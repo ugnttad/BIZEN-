@@ -10,6 +10,14 @@ const server = app.listen(env.port, () => {
   console.log(`BIZEN backend running on http://localhost:${env.port}`);
 });
 
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(`Port ${env.port} is already in use. Stop the existing backend process or change PORT in BE/.env.`);
+    process.exit(1);
+  }
+  throw error;
+});
+
 function shutdown() {
   server.close(async () => {
     await pool.end();
