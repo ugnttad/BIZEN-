@@ -1,0 +1,154 @@
+import {
+  AlertTriangle,
+  CalendarDays,
+  Clock3,
+  CreditCard,
+  TrendingUp,
+  UserCheck,
+  UsersRound
+} from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
+import PageHeader from "../../components/PageHeader";
+import StatCard from "../../components/StatCard";
+import StatusBadge from "../../components/StatusBadge";
+import { aiAlerts, attendanceToday, departmentHeadcount, employees, payrollRows, payrollTrend, weeklyAttendance } from "../../data/mockData";
+import { formatCurrency } from "../../lib/utils";
+
+const colors = ["#2563eb", "#6d5dfc", "#0891b2", "#10b981", "#f59e0b"];
+
+export default function AdminDashboard() {
+  const checkedIn = attendanceToday.filter((record) => record.checkIn !== "-").length;
+  const late = attendanceToday.filter((record) => record.status === "Late").length;
+  const leave = attendanceToday.filter((record) => record.status === "Leave").length;
+  const payrollTotal = payrollRows.reduce((sum, row) => sum + row.finalSalary, 0);
+  const payrollShort = `${Math.round(payrollTotal / 1000000)} triệu`;
+
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Admin / HR Dashboard"
+        title="Tổng quan vận hành hôm nay"
+        description="Dữ liệu demo ngày 20/05/2026 cho doanh nghiệp SME tại Đà Nẵng."
+        actions={
+          <button className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+            Xuất báo cáo nhanh
+          </button>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard title="Tổng nhân viên" value={employees.length} helper="5 phòng ban" icon={UsersRound} tone="blue" trend="+2" />
+        <StatCard title="Đã chấm công" value={checkedIn} helper="người hôm nay" icon={UserCheck} tone="emerald" trend="+4%" />
+        <StatCard title="Đi trễ" value={late} helper="cần HR nhắc" icon={Clock3} tone="amber" trend="+1" />
+        <StatCard title="Nghỉ phép" value={leave} helper="đã duyệt" icon={CalendarDays} tone="violet" />
+        <StatCard title="Lương dự kiến" value={payrollShort} helper="tháng 05/2026" icon={CreditCard} tone="rose" trend="+3.9%" />
+      </div>
+
+      <div className="mt-5 grid gap-5 2xl:grid-cols-[1.2fr_0.8fr]">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-slate-950">Chấm công theo tuần</h2>
+              <p className="text-sm text-slate-500">Present, late, leave và absent</p>
+            </div>
+            <StatusBadge status="Late" />
+          </div>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weeklyAttendance}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip />
+                <Bar dataKey="present" stackId="a" fill="#2563eb" radius={[6, 6, 0, 0]} name="Đúng giờ" />
+                <Bar dataKey="late" stackId="a" fill="#f59e0b" name="Đi trễ" />
+                <Bar dataKey="leave" stackId="a" fill="#6d5dfc" name="Nghỉ phép" />
+                <Bar dataKey="absent" stackId="a" fill="#ef4444" name="Vắng" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-slate-950">Chi phí lương</h2>
+              <p className="text-sm text-slate-500">Payroll và OT theo tháng</p>
+            </div>
+            <TrendingUp className="h-5 w-5 text-emerald-600" />
+          </div>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={payrollTrend}>
+                <defs>
+                  <linearGradient id="payrollFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.24} />
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value / 1000000}tr`} />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Area type="monotone" dataKey="payroll" stroke="#2563eb" strokeWidth={3} fill="url(#payrollFill)" name="Lương" />
+                <Area type="monotone" dataKey="overtime" stroke="#6d5dfc" strokeWidth={2} fill="transparent" name="OT" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-950">Cảnh báo AI</h2>
+          <div className="mt-4 space-y-3">
+            {aiAlerts.map((alert) => (
+              <div key={alert.id} className="flex gap-3 rounded-lg border border-slate-200 p-3">
+                <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${alert.type === "danger" ? "bg-rose-50 text-rose-600" : alert.type === "warning" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">{alert.title}</p>
+                  <p className="mt-1 text-sm text-slate-500">{alert.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-slate-950">Nhân sự theo phòng ban</h2>
+            <p className="text-sm text-slate-500">Headcount và hiệu suất dự kiến</p>
+          </div>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={departmentHeadcount} layout="vertical" margin={{ left: 32 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                <XAxis type="number" axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="department" axisLine={false} tickLine={false} width={92} />
+                <Tooltip />
+                <Bar dataKey="employees" name="Nhân viên" radius={[0, 8, 8, 0]}>
+                  {departmentHeadcount.map((_, index) => (
+                    <Cell key={index} fill={colors[index % colors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

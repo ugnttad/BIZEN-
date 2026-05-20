@@ -1,0 +1,66 @@
+import { useState } from "react";
+import { CheckCircle2, Send } from "lucide-react";
+
+export default function MobileLeaveRequest() {
+  const [reason, setReason] = useState("");
+  const [days, setDays] = useState(1);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  function submit(event) {
+    event.preventDefault();
+    if (!reason.trim() || Number(days) <= 0) {
+      setError("Vui lòng nhập lý do và số ngày nghỉ.");
+      return;
+    }
+    setError("");
+    setSent(true);
+  }
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="font-semibold text-slate-950">Gửi đơn nghỉ phép</h2>
+        <form onSubmit={submit} className="mt-4 space-y-3">
+          <label className="block text-sm font-medium text-slate-700">
+            Loại nghỉ
+            <select className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-3 outline-none">
+              <option>Annual leave</option>
+              <option>Sick leave</option>
+              <option>Unpaid leave</option>
+            </select>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm font-medium text-slate-700">
+              Từ
+              <input defaultValue="25/05/2026" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none" />
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              Số ngày
+              <input type="number" value={days} onChange={(event) => setDays(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none" />
+            </label>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">
+            Lý do
+            <textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={4} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none" />
+          </label>
+          {error ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p> : null}
+          <button className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white">
+            <Send className="h-4 w-4" />
+            Gửi đơn
+          </button>
+        </form>
+      </section>
+
+      {sent ? (
+        <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
+          <div className="flex items-center gap-2 font-semibold">
+            <CheckCircle2 className="h-5 w-5" />
+            Đơn đã gửi
+          </div>
+          <p className="mt-1 text-sm">Manager sẽ nhận thông báo và phản hồi trên app.</p>
+        </section>
+      ) : null}
+    </div>
+  );
+}
