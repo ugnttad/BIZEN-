@@ -9,6 +9,7 @@ import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import { departments, employees as seedEmployees } from "../../data/mockData";
 import { formatCurrency } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const emptyForm = {
   name: "",
@@ -34,8 +35,22 @@ export default function EmployeeManagement() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setLoading(false), 450);
-    return () => window.clearTimeout(timer);
+    let active = true;
+    setLoading(true);
+    bizenApi
+      .employees()
+      .then((employees) => {
+        if (active) setRows(employees);
+      })
+      .catch(() => {
+        if (active) setRows(seedEmployees);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -70,39 +85,42 @@ export default function EmployeeManagement() {
     setFormError("");
   }
 
-  function saveEmployee(event) {
+  async function saveEmployee(event) {
     event.preventDefault();
     if (!form.name.trim() || !form.position.trim() || Number(form.baseSalary) <= 0 || !form.email.includes("@")) {
       setFormError("Vui lòng nhập tên, chức vụ, email và lương hợp lệ.");
       return;
     }
 
-    if (modalMode === "edit") {
-      setRows((current) =>
-        current.map((employee) => (employee.id === editingId ? { ...employee, ...form, baseSalary: Number(form.baseSalary) } : employee))
-      );
-    } else {
-      const nextNumber = rows.length + 1;
-      setRows((current) => [
-        {
-          ...form,
-          id: `BZN${String(nextNumber).padStart(3, "0")}`,
-          baseSalary: Number(form.baseSalary),
-          startDate: "2026-05-20",
-          manager: "Đỗ Thanh Tâm",
-          shiftId: "morning",
-          leaveRemaining: 12,
-          address: "Đà Nẵng"
-        },
-        ...current
-      ]);
+    const departmentId = departments.find((item) => item.name === form.department)?.id || "sales";
+    const payload = {
+      ...form,
+      departmentId,
+      baseSalary: Number(form.baseSalary)
+    };
+
+    try {
+      if (modalMode === "edit") {
+        const updated = await bizenApi.updateEmployee(editingId, payload);
+        setRows((current) => current.map((employee) => (employee.id === editingId ? updated : employee)));
+      } else {
+        const created = await bizenApi.createEmployee(payload);
+        setRows((current) => [created, ...current]);
+      }
+      setModalMode(null);
+    } catch (error) {
+      setFormError(error.message || "Không thể lưu nhân viên vào Neon.");
     }
-    setModalMode(null);
   }
 
-  function deleteEmployee() {
-    setRows((current) => current.filter((employee) => employee.id !== deleteTarget.id));
-    setDeleteTarget(null);
+  async function deleteEmployee() {
+    try {
+      await bizenApi.deleteEmployee(deleteTarget.id);
+      setRows((current) => current.filter((employee) => employee.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (error) {
+      setFormError(error.message || "Không thể xóa nhân viên.");
+    }
   }
 
   return (
