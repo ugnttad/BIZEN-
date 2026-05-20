@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Filter, MapPin, Search, ShieldAlert } from "lucide-react";
 import {
   Bar,
@@ -18,36 +18,44 @@ import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import { attendanceToday, departments, employees, weeklyAttendance } from "../../data/mockData";
-import { findEmployee } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const statusOptions = ["All", "Present", "Late", "Absent", "Leave", "Overtime"];
 const pieColors = ["#2563eb", "#f59e0b", "#ef4444", "#6d5dfc", "#10b981"];
 
 export default function AttendanceDashboard() {
+  const [attendance, setAttendance] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [weeklyAttendance, setWeeklyAttendance] = useState([]);
   const [department, setDepartment] = useState("All");
   const [status, setStatus] = useState("All");
   const [query, setQuery] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
 
+  useEffect(() => {
+    Promise.all([bizenApi.attendance(), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([attendanceRows, departmentRows, chartRows]) => {
+      setAttendance(attendanceRows);
+      setDepartments(departmentRows);
+      setWeeklyAttendance(chartRows.weeklyAttendance || []);
+    });
+  }, []);
+
   const rows = useMemo(() => {
-    return attendanceToday
-      .map((record) => ({ ...record, employee: findEmployee(employees, record.employeeId) }))
-      .filter((record) => {
-        const matchesDepartment = department === "All" || record.employee.department === department;
+    return attendance.filter((record) => {
+        const matchesDepartment = department === "All" || record.department === department;
         const matchesStatus = status === "All" || record.status === status;
-        const matchesQuery = [record.employee.name, record.employee.id].join(" ").toLowerCase().includes(query.toLowerCase());
+        const matchesQuery = [record.employeeName, record.employeeId].join(" ").toLowerCase().includes(query.toLowerCase());
         return matchesDepartment && matchesStatus && matchesQuery;
       });
-  }, [department, status, query]);
+  }, [attendance, department, status, query]);
 
   const summary = statusOptions
     .filter((item) => item !== "All")
     .map((item) => ({
       name: item,
-      value: attendanceToday.filter((record) => record.status === item).length
+      value: attendance.filter((record) => record.status === item).length
     }));
-  const missingCheckout = attendanceToday.filter((record) => record.note.includes("Thiếu check-out"));
+  const missingCheckout = attendance.filter((record) => record.note?.includes("Thiếu check-out"));
 
   return (
     <div>
@@ -64,11 +72,11 @@ export default function AttendanceDashboard() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Present" value={attendanceToday.filter((item) => item.status === "Present").length} helper="đúng giờ" tone="emerald" />
-        <StatCard title="Late" value={attendanceToday.filter((item) => item.status === "Late").length} helper="đi trễ" tone="amber" />
-        <StatCard title="Absent" value={attendanceToday.filter((item) => item.status === "Absent").length} helper="vắng" tone="rose" />
-        <StatCard title="Leave" value={attendanceToday.filter((item) => item.status === "Leave").length} helper="nghỉ phép" tone="violet" />
-        <StatCard title="Overtime" value={attendanceToday.filter((item) => item.status === "Overtime").length} helper="tăng ca" tone="blue" />
+        <StatCard title="Present" value={attendance.filter((item) => item.status === "Present").length} helper="đúng giờ" tone="emerald" />
+        <StatCard title="Late" value={attendance.filter((item) => item.status === "Late").length} helper="đi trễ" tone="amber" />
+        <StatCard title="Absent" value={attendance.filter((item) => item.status === "Absent").length} helper="vắng" tone="rose" />
+        <StatCard title="Leave" value={attendance.filter((item) => item.status === "Leave").length} helper="nghỉ phép" tone="violet" />
+        <StatCard title="Overtime" value={attendance.filter((item) => item.status === "Overtime").length} helper="tăng ca" tone="blue" />
       </div>
 
       {missingCheckout.length ? (
@@ -170,10 +178,10 @@ export default function AttendanceDashboard() {
                   <tr key={record.employeeId} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Avatar name={record.employee.name} />
+                        <Avatar name={record.employeeName} />
                         <div>
-                          <p className="font-semibold text-slate-950">{record.employee.name}</p>
-                          <p className="text-xs text-slate-500">{record.employee.department}</p>
+                          <p className="font-semibold text-slate-950">{record.employeeName}</p>
+                          <p className="text-xs text-slate-500">{record.department}</p>
                         </div>
                       </div>
                     </td>

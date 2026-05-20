@@ -1,12 +1,22 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { LogOut, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import StatusBadge from "../../components/StatusBadge";
-import { employees, mobileEmployeeId } from "../../data/mockData";
-import { findEmployee } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
+
+const mobileEmployeeId = "BZN017";
 
 export default function Profile() {
-  const employee = findEmployee(employees, mobileEmployeeId);
+  const [employee, setEmployee] = useState(null);
+
+  useEffect(() => {
+    bizenApi.employee(mobileEmployeeId).then(setEmployee);
+  }, []);
+
+  if (!employee) {
+    return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải hồ sơ từ Neon...</section>;
+  }
 
   return (
     <div className="space-y-4">

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getDefaultCompanyId } from "../companies/company.repository.js";
-import { listAttendance, upsertAttendance } from "./attendance.repository.js";
+import { listAttendance, listEmployeeAttendance, upsertAttendance } from "./attendance.repository.js";
 
 const attendanceSchema = z.object({
   employeeId: z.string(),
@@ -21,4 +21,8 @@ export async function upsertAttendanceHandler(req, res) {
   const data = attendanceSchema.parse(req.body);
   const companyId = await getDefaultCompanyId();
   res.status(201).json(await upsertAttendance(companyId, data));
+}
+
+export async function listEmployeeAttendanceHandler(req, res) {
+  res.json(await listEmployeeAttendance(req.params.employeeId));
 }

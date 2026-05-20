@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, BadgeDollarSign, CalendarCheck2, Clock3, MinusCircle, PlusCircle } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
@@ -5,14 +6,43 @@ import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
 import EmptyState from "../../components/EmptyState";
 import Avatar from "../../components/Avatar";
-import { attendanceToday, employees, payrollRows } from "../../data/mockData";
-import { findEmployee, formatCurrency } from "../../lib/utils";
+import { formatCurrency } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 export default function PayrollDetail() {
   const { id } = useParams();
-  const employee = findEmployee(employees, id);
-  const payroll = payrollRows.find((row) => row.employeeId === id);
-  const attendance = attendanceToday.find((row) => row.employeeId === id);
+  const [employee, setEmployee] = useState(null);
+  const [payroll, setPayroll] = useState(null);
+  const [attendance, setAttendance] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    Promise.all([bizenApi.employee(id), bizenApi.payrollDetail(id), bizenApi.employeeAttendance(id)])
+      .then(([employeeData, payrollData, attendanceRows]) => {
+        if (!active) return;
+        setEmployee(employeeData);
+        setPayroll(payrollData);
+        setAttendance(attendanceRows.find((record) => record.date === "20/05/2026") || attendanceRows[0] || null);
+      })
+      .catch(() => {
+        if (active) {
+          setEmployee(null);
+          setPayroll(null);
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return <EmptyState title="Đang tải bảng lương" description="Đang lấy payroll từ Neon." />;
+  }
 
   if (!employee || !payroll) {
     return (

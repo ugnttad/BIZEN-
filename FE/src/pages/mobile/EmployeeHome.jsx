@@ -1,14 +1,32 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarDays, ChevronRight, Clock3, CreditCard, ScanFace, Umbrella } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
-import { attendanceToday, employees, mobileEmployeeId, payrollRows, shifts } from "../../data/mockData";
-import { findEmployee, formatCurrency } from "../../lib/utils";
+import { formatCurrency } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
+
+const mobileEmployeeId = "BZN017";
 
 export default function EmployeeHome() {
-  const employee = findEmployee(employees, mobileEmployeeId);
-  const attendance = attendanceToday.find((record) => record.employeeId === mobileEmployeeId);
-  const payroll = payrollRows.find((row) => row.employeeId === mobileEmployeeId);
-  const shift = shifts.find((item) => item.id === employee.shiftId);
+  const [employee, setEmployee] = useState(null);
+  const [attendance, setAttendance] = useState(null);
+  const [payroll, setPayroll] = useState(null);
+  const [shift, setShift] = useState(null);
+
+  useEffect(() => {
+    Promise.all([bizenApi.employee(mobileEmployeeId), bizenApi.employeeAttendance(mobileEmployeeId), bizenApi.payrollDetail(mobileEmployeeId), bizenApi.shifts()]).then(
+      ([employeeData, attendanceRows, payrollData, shiftRows]) => {
+        setEmployee(employeeData);
+        setAttendance(attendanceRows.find((record) => record.date === "20/05/2026") || attendanceRows[0]);
+        setPayroll(payrollData);
+        setShift(shiftRows.find((item) => item.id === employeeData.shiftId));
+      }
+    );
+  }, []);
+
+  if (!employee || !attendance || !payroll || !shift) {
+    return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải dữ liệu nhân viên từ Neon...</section>;
+  }
 
   return (
     <div className="space-y-4">

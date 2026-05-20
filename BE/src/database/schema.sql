@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS companies (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS companies_name_unique_idx ON companies(name);
+
 CREATE TABLE IF NOT EXISTS departments (
   id TEXT PRIMARY KEY,
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,

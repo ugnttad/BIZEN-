@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, BriefcaseBusiness, CalendarDays, Clock3, CreditCard, Mail, MapPin, Phone, UserRoundCog } from "lucide-react";
 import Avatar from "../../components/Avatar";
@@ -5,14 +6,40 @@ import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import { attendanceHistory, attendanceToday, employees, payrollRows, shifts } from "../../data/mockData";
-import { findEmployee, formatCurrency } from "../../lib/utils";
+import { formatCurrency } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 export default function EmployeeDetail() {
   const { id } = useParams();
-  const employee = findEmployee(employees, id);
+  const [employee, setEmployee] = useState(null);
+  const [payroll, setPayroll] = useState(null);
+  const [attendanceHistory, setAttendanceHistory] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!employee) {
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    Promise.all([bizenApi.employee(id), bizenApi.payrollDetail(id), bizenApi.employeeAttendance(id), bizenApi.shifts()])
+      .then(([employeeData, payrollData, attendanceRows, shiftRows]) => {
+        if (!active) return;
+        setEmployee(employeeData);
+        setPayroll(payrollData);
+        setAttendanceHistory(attendanceRows);
+        setShifts(shiftRows);
+      })
+      .catch(() => {
+        if (active) setEmployee(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  if (!loading && !employee) {
     return (
       <div>
         <Link to="/web/employees" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700">
@@ -24,17 +51,13 @@ export default function EmployeeDetail() {
     );
   }
 
-  const attendance = attendanceToday.find((record) => record.employeeId === employee.id);
-  const payroll = payrollRows.find((row) => row.employeeId === employee.id);
+  if (loading) {
+    return <EmptyState title="Đang tải hồ sơ" description="Đang lấy dữ liệu nhân viên từ Neon." />;
+  }
+
+  const attendance = attendanceHistory.find((record) => record.date === "20/05/2026") || attendanceHistory[0];
   const shift = shifts.find((item) => item.id === employee.shiftId);
-  const employeeHistory =
-    employee.id === "BZN017"
-      ? attendanceHistory
-      : [
-          { date: "20/05/2026", shift: shift?.name || "Ca sáng", checkIn: attendance?.checkIn || "-", checkOut: attendance?.checkOut || "-", hours: attendance?.totalHours || 0, status: attendance?.status || "Present" },
-          { date: "19/05/2026", shift: shift?.name || "Ca sáng", checkIn: "07:58", checkOut: "17:02", hours: 8.1, status: "Present" },
-          { date: "18/05/2026", shift: shift?.name || "Ca sáng", checkIn: "08:04", checkOut: "17:00", hours: 8, status: "Present" }
-        ];
+  const employeeHistory = attendanceHistory;
 
   return (
     <div>

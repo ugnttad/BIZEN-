@@ -1,10 +1,21 @@
+import { useEffect, useState } from "react";
 import { CreditCard, Download } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
-import { mobileEmployeeId, payrollRows } from "../../data/mockData";
 import { formatCurrency } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
+
+const mobileEmployeeId = "BZN017";
 
 export default function MyPayroll() {
-  const payroll = payrollRows.find((row) => row.employeeId === mobileEmployeeId);
+  const [payroll, setPayroll] = useState(null);
+
+  useEffect(() => {
+    bizenApi.payrollDetail(mobileEmployeeId).then(setPayroll);
+  }, []);
+
+  if (!payroll) {
+    return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải bảng lương từ Neon...</section>;
+  }
 
   const lines = [
     ["Base salary", payroll.baseSalary],

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarPlus, Check, Filter, Send, X } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import EmptyState from "../../components/EmptyState";
@@ -6,51 +6,50 @@ import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import { employees, leaveRequests as seedRequests } from "../../data/mockData";
-import { findEmployee } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const emptyForm = {
   employeeId: "BZN017",
   type: "Annual leave",
-  from: "25/05/2026",
-  to: "25/05/2026",
+  from: "2026-05-25",
+  to: "2026-05-25",
   days: 1,
   reason: ""
 };
 
 export default function LeaveRequests() {
-  const [requests, setRequests] = useState(seedRequests);
+  const [requests, setRequests] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [status, setStatus] = useState("All");
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    Promise.all([bizenApi.leaves(), bizenApi.employees()]).then(([leaveRows, employeeRows]) => {
+      setRequests(leaveRows);
+      setEmployees(employeeRows);
+    });
+  }, []);
+
   const rows = useMemo(() => {
-    return requests
-      .map((request) => ({ ...request, employee: findEmployee(employees, request.employeeId) }))
-      .filter((request) => status === "All" || request.status === status);
+    return requests.filter((request) => status === "All" || request.status === status);
   }, [requests, status]);
 
-  function updateStatus(id, nextStatus) {
+  async function updateStatus(id, nextStatus) {
+    await bizenApi.updateLeaveStatus(id, nextStatus);
     setRequests((current) => current.map((request) => (request.id === id ? { ...request, status: nextStatus } : request)));
   }
 
-  function submitLeave(event) {
+  async function submitLeave(event) {
     event.preventDefault();
     if (!form.reason.trim() || Number(form.days) <= 0) {
       setError("Vui lòng nhập lý do và số ngày nghỉ hợp lệ.");
       return;
     }
-    setRequests((current) => [
-      {
-        ...form,
-        id: `LR-${1000 + current.length + 1}`,
-        days: Number(form.days),
-        status: "Pending",
-        approver: "Võ Khánh Linh"
-      },
-      ...current
-    ]);
+    await bizenApi.createLeave({ ...form, days: Number(form.days), approver: "Võ Khánh Linh" });
+    const leaveRows = await bizenApi.leaves();
+    setRequests(leaveRows);
     setForm(emptyForm);
     setError("");
     setFormOpen(false);
@@ -103,10 +102,10 @@ export default function LeaveRequests() {
                 <div key={request.id} className="rounded-lg border border-slate-200 p-4">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar name={request.employee.name} />
+                      <Avatar name={request.employeeName} />
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-slate-950">{request.employee.name}</p>
+                          <p className="font-semibold text-slate-950">{request.employeeName}</p>
                           <StatusBadge status={request.status} />
                         </div>
                         <p className="mt-1 text-sm text-slate-500">
@@ -191,11 +190,11 @@ export default function LeaveRequests() {
           </label>
           <label className="text-sm font-medium text-slate-700">
             Từ ngày
-            <input value={form.from} onChange={(event) => setForm({ ...form, from: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none" />
+                  <input type="date" value={form.from} onChange={(event) => setForm({ ...form, from: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none" />
           </label>
           <label className="text-sm font-medium text-slate-700">
             Đến ngày
-            <input value={form.to} onChange={(event) => setForm({ ...form, to: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none" />
+                  <input type="date" value={form.to} onChange={(event) => setForm({ ...form, to: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none" />
           </label>
           <label className="text-sm font-medium text-slate-700">
             Số ngày

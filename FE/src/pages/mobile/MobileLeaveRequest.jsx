@@ -1,19 +1,30 @@
 import { useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 export default function MobileLeaveRequest() {
   const [reason, setReason] = useState("");
   const [days, setDays] = useState(1);
+  const [fromDate, setFromDate] = useState("2026-05-25");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     if (!reason.trim() || Number(days) <= 0) {
       setError("Vui lòng nhập lý do và số ngày nghỉ.");
       return;
     }
     setError("");
+    await bizenApi.createLeave({
+      employeeId: "BZN017",
+      type: "Annual leave",
+      from: fromDate,
+      to: fromDate,
+      days: Number(days),
+      reason,
+      approver: "Võ Khánh Linh"
+    });
     setSent(true);
   }
 
@@ -33,7 +44,7 @@ export default function MobileLeaveRequest() {
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-sm font-medium text-slate-700">
               Từ
-              <input defaultValue="25/05/2026" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none" />
+              <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none" />
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Số ngày

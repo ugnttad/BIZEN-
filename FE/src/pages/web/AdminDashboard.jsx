@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   CalendarDays,
@@ -22,17 +23,28 @@ import {
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import { aiAlerts, attendanceToday, departmentHeadcount, employees, payrollRows, payrollTrend, weeklyAttendance } from "../../data/mockData";
 import { formatCurrency } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const colors = ["#2563eb", "#6d5dfc", "#0891b2", "#10b981", "#f59e0b"];
 
 export default function AdminDashboard() {
-  const checkedIn = attendanceToday.filter((record) => record.checkIn !== "-").length;
-  const late = attendanceToday.filter((record) => record.status === "Late").length;
-  const leave = attendanceToday.filter((record) => record.status === "Leave").length;
-  const payrollTotal = payrollRows.reduce((sum, row) => sum + row.finalSalary, 0);
-  const payrollShort = `${Math.round(payrollTotal / 1000000)} triệu`;
+  const [summary, setSummary] = useState({ employees: 0, checkedIn: 0, late: 0, leave: 0, payrollTotal: 0, departments: [], aiAlerts: [] });
+  const [charts, setCharts] = useState({ weeklyAttendance: [], payrollTrend: [] });
+
+  useEffect(() => {
+    Promise.all([bizenApi.dashboardSummary(), bizenApi.dashboardCharts()]).then(([summaryData, chartsData]) => {
+      setSummary(summaryData);
+      setCharts(chartsData);
+    });
+  }, []);
+
+  const payrollShort = `${Math.round((summary.payrollTotal || 0) / 1000000)} triệu`;
+  const departmentHeadcount = summary.departments.map((item, index) => ({
+    ...item,
+    productivity: [88, 92, 84, 89, 86][index] || 85,
+    leaveRate: [5, 3, 4, 6, 5][index] || 4
+  }));
 
   return (
     <div>
@@ -48,10 +60,10 @@ export default function AdminDashboard() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Tổng nhân viên" value={employees.length} helper="5 phòng ban" icon={UsersRound} tone="blue" trend="+2" />
-        <StatCard title="Đã chấm công" value={checkedIn} helper="người hôm nay" icon={UserCheck} tone="emerald" trend="+4%" />
-        <StatCard title="Đi trễ" value={late} helper="cần HR nhắc" icon={Clock3} tone="amber" trend="+1" />
-        <StatCard title="Nghỉ phép" value={leave} helper="đã duyệt" icon={CalendarDays} tone="violet" />
+        <StatCard title="Tổng nhân viên" value={summary.employees} helper={`${departmentHeadcount.length} phòng ban`} icon={UsersRound} tone="blue" trend="+2" />
+        <StatCard title="Đã chấm công" value={summary.checkedIn} helper="người hôm nay" icon={UserCheck} tone="emerald" trend="+4%" />
+        <StatCard title="Đi trễ" value={summary.late} helper="cần HR nhắc" icon={Clock3} tone="amber" trend="+1" />
+        <StatCard title="Nghỉ phép" value={summary.leave} helper="đã duyệt" icon={CalendarDays} tone="violet" />
         <StatCard title="Lương dự kiến" value={payrollShort} helper="tháng 05/2026" icon={CreditCard} tone="rose" trend="+3.9%" />
       </div>
 
@@ -66,7 +78,7 @@ export default function AdminDashboard() {
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyAttendance}>
+              <BarChart data={charts.weeklyAttendance}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="day" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
@@ -90,7 +102,7 @@ export default function AdminDashboard() {
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={payrollTrend}>
+              <AreaChart data={charts.payrollTrend}>
                 <defs>
                   <linearGradient id="payrollFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#2563eb" stopOpacity={0.24} />
@@ -113,7 +125,7 @@ export default function AdminDashboard() {
         <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-base font-semibold text-slate-950">Cảnh báo AI</h2>
           <div className="mt-4 space-y-3">
-            {aiAlerts.map((alert) => (
+            {summary.aiAlerts.map((alert) => (
               <div key={alert.id} className="flex gap-3 rounded-lg border border-slate-200 p-3">
                 <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${alert.type === "danger" ? "bg-rose-50 text-rose-600" : alert.type === "warning" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>
                   <AlertTriangle className="h-4 w-4" />

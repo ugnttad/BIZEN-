@@ -1,8 +1,19 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Bell, Building2, ChevronRight, Menu, Search, Smartphone } from "lucide-react";
-import { webNavItems } from "../data/mockData";
+import { BarChart3, Bell, Building2, CalendarCheck2, ChevronRight, Clock3, CreditCard, FileText, LayoutDashboard, Menu, Search, Settings, Smartphone, Sparkles, UsersRound } from "lucide-react";
 import Avatar from "./Avatar";
 import AiChat from "./AiChat";
+
+const webNavItems = [
+  { label: "Tổng quan", path: "/web/dashboard", icon: LayoutDashboard },
+  { label: "Nhân viên", path: "/web/employees", icon: UsersRound },
+  { label: "Chấm công", path: "/web/attendance", icon: Clock3 },
+  { label: "Xếp ca AI", path: "/web/scheduling", icon: CalendarCheck2 },
+  { label: "Bảng lương", path: "/web/payroll", icon: CreditCard },
+  { label: "Nghỉ phép", path: "/web/leaves", icon: FileText },
+  { label: "Báo cáo", path: "/web/reports", icon: BarChart3 },
+  { label: "Trợ lý AI", path: "/web/assistant", icon: Sparkles },
+  { label: "Cài đặt", path: "/web/settings", icon: Settings }
+];
 
 function getTitle(pathname) {
   const match = webNavItems.find((item) => pathname.startsWith(item.path));

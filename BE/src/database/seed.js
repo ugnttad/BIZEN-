@@ -19,18 +19,16 @@ function calculatePayroll(employee, index) {
 }
 
 await withTransaction(async (client) => {
-  const companyResult = await client.query(
-    `INSERT INTO companies (name, city)
-     VALUES ($1, $2)
-     ON CONFLICT DO NOTHING
-     RETURNING id`,
-    ["BIZEN Demo Company", "Da Nang"]
-  );
-
-  let companyId = companyResult.rows[0]?.id;
+  const existingCompany = await client.query("SELECT id FROM companies WHERE name = $1 LIMIT 1", ["BIZEN Demo Company"]);
+  let companyId = existingCompany.rows[0]?.id;
   if (!companyId) {
-    const existing = await client.query("SELECT id FROM companies WHERE name = $1 LIMIT 1", ["BIZEN Demo Company"]);
-    companyId = existing.rows[0].id;
+    const companyResult = await client.query(
+      `INSERT INTO companies (name, city)
+       VALUES ($1, $2)
+       RETURNING id`,
+      ["BIZEN Demo Company", "Da Nang"]
+    );
+    companyId = companyResult.rows[0].id;
   }
 
   for (const department of departments) {
@@ -90,6 +88,28 @@ await withTransaction(async (client) => {
         location = EXCLUDED.location,
         note = EXCLUDED.note`,
       [companyId, record[0], "2026-05-20", ...record.slice(1)]
+    );
+  }
+
+  const attendanceHistory = [
+    ["BZN017", "2026-05-19", "12:58", "21:02", 8.1, "Present", "Thanh Khê", "Đúng giờ"],
+    ["BZN017", "2026-05-18", "13:04", "21:00", 7.9, "Present", "Thanh Khê", "Đúng giờ"],
+    ["BZN017", "2026-05-17", "17:55", "22:06", 4.2, "Overtime", "Sơn Trà", "OT 12 phút"]
+  ];
+
+  for (const record of attendanceHistory) {
+    await client.query(
+      `INSERT INTO attendance_records
+        (company_id, employee_id, work_date, check_in, check_out, total_hours, status, location, note)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (employee_id, work_date) DO UPDATE SET
+        check_in = EXCLUDED.check_in,
+        check_out = EXCLUDED.check_out,
+        total_hours = EXCLUDED.total_hours,
+        status = EXCLUDED.status,
+        location = EXCLUDED.location,
+        note = EXCLUDED.note`,
+      [companyId, ...record]
     );
   }
 

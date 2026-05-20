@@ -1,9 +1,20 @@
+import { useEffect, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
-import { scheduleWeek, shifts } from "../../data/mockData";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 export default function MySchedule() {
   const myId = "BZN017";
+  const [scheduleWeek, setScheduleWeek] = useState([]);
+  const [shifts, setShifts] = useState([]);
+
+  useEffect(() => {
+    Promise.all([bizenApi.scheduleWeek(), bizenApi.shifts()]).then(([scheduleRows, shiftRows]) => {
+      setScheduleWeek(scheduleRows);
+      setShifts(shiftRows);
+    });
+  }, []);
+
   const mySchedule = scheduleWeek
     .map((day) => ({
       ...day,
@@ -26,7 +37,7 @@ export default function MySchedule() {
                 <span className="text-sm text-slate-500">{day.date}</span>
               </div>
               {day.slots.map((slot) => {
-                const shift = shifts.find((item) => item.id === slot.shiftId);
+                const shift = shifts.find((item) => item.id === slot.shiftId) || { name: slot.shiftId, time: "-" };
                 return (
                   <div key={slot.shiftId} className="mt-3 rounded-lg bg-blue-50 p-3">
                     <p className="font-semibold text-blue-900">{shift.name}</p>

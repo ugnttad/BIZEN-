@@ -1,28 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Building2, CheckCircle2, Clock3, CreditCard, ShieldCheck, UsersRound } from "lucide-react";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
-import { departments } from "../../data/mockData";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 export default function Settings() {
   const [settings, setSettings] = useState({
     workStart: "08:00",
     workEnd: "17:00",
-    lateGrace: 10,
+    lateGraceMinutes: 10,
     payrollFormula: "Base salary / 22 x working days + OT + bonus - deduction",
     overtimeFormula: "Hourly rate x 150%",
-    annualLeave: 12
+    annualLeaveDays: 12
   });
+  const [departments, setDepartments] = useState([]);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  function saveSettings(event) {
+  useEffect(() => {
+    Promise.all([bizenApi.settings(), bizenApi.departments()]).then(([settingsData, departmentRows]) => {
+      if (settingsData) setSettings(settingsData);
+      setDepartments(departmentRows);
+    });
+  }, []);
+
+  async function saveSettings(event) {
     event.preventDefault();
-    if (Number(settings.lateGrace) < 0 || Number(settings.annualLeave) < 0) {
+    if (Number(settings.lateGraceMinutes) < 0 || Number(settings.annualLeaveDays) < 0) {
       setError("Quy định đi trễ và ngày phép không được âm.");
       return;
     }
     setError("");
+    await bizenApi.updateSettings(settings);
     setSaved(true);
   }
 
@@ -61,7 +70,7 @@ export default function Settings() {
               </label>
               <label className="text-sm font-medium text-slate-700">
                 Grace period phút
-                <input type="number" value={settings.lateGrace} onChange={(event) => setSettings({ ...settings, lateGrace: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                <input type="number" value={settings.lateGraceMinutes} onChange={(event) => setSettings({ ...settings, lateGraceMinutes: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
               </label>
             </div>
           </div>
@@ -84,7 +93,7 @@ export default function Settings() {
               </label>
               <label className="text-sm font-medium text-slate-700">
                 Số ngày phép năm
-                <input type="number" value={settings.annualLeave} onChange={(event) => setSettings({ ...settings, annualLeave: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                <input type="number" value={settings.annualLeaveDays} onChange={(event) => setSettings({ ...settings, annualLeaveDays: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
               </label>
             </div>
           </div>

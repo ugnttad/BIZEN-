@@ -1,13 +1,28 @@
 import { useState } from "react";
 import { CheckCircle2, Loader2, MapPin, ScanFace, ShieldAlert, XCircle } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 export default function FaceIDCheckin() {
   const [state, setState] = useState("idle");
 
   function scanFace(nextState = "success") {
     setState("scanning");
-    window.setTimeout(() => setState(nextState), 900);
+    window.setTimeout(async () => {
+      if (nextState === "success") {
+        await bizenApi.upsertAttendance({
+          employeeId: "BZN017",
+          workDate: "2026-05-20",
+          checkIn: "13:22",
+          checkOut: "21:01",
+          totalHours: 7.4,
+          status: "Late",
+          location: "Thanh Khê",
+          note: "Face ID verified từ mobile app"
+        });
+      }
+      setState(nextState);
+    }, 900);
   }
 
   return (

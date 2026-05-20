@@ -1,7 +1,8 @@
 import { AlertTriangle, CalendarCheck2, Clock3, CreditCard, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import AiChat from "../../components/AiChat";
 import PageHeader from "../../components/PageHeader";
-import { aiAlerts } from "../../data/mockData";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const aiActions = [
   { icon: CalendarCheck2, title: "Xếp lịch tuần sau", prompt: "Xếp lịch tuần sau cho bộ phận bán hàng" },
@@ -11,6 +12,12 @@ const aiActions = [
 ];
 
 export default function AIAssistantPage() {
+  const [aiAlerts, setAiAlerts] = useState([]);
+
+  useEffect(() => {
+    bizenApi.aiAlerts().then(setAiAlerts);
+  }, []);
+
   return (
     <div>
       <PageHeader

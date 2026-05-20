@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, CheckCircle2, LockKeyhole, ShieldCheck, Smartphone, UserRound } from "lucide-react";
-import { roleDashboards } from "../data/mockData";
+
+const roleDashboards = [
+  { role: "Admin", focus: "Chi phí, cấu hình, cảnh báo rủi ro" },
+  { role: "HR", focus: "Chấm công, hồ sơ, lương, nghỉ phép" },
+  { role: "Manager", focus: "Ca làm, hiệu suất, thiếu nhân sự" },
+  { role: "Employee", focus: "Check-in, lịch làm, lương, phép" }
+];
 
 export default function LoginPage() {
   const navigate = useNavigate();

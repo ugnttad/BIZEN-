@@ -1,8 +1,15 @@
+import { useEffect, useState } from "react";
 import { Clock3, MapPin } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
-import { attendanceHistory } from "../../data/mockData";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 export default function MyAttendance() {
+  const [attendanceHistory, setAttendanceHistory] = useState([]);
+
+  useEffect(() => {
+    bizenApi.employeeAttendance("BZN017").then(setAttendanceHistory);
+  }, []);
+
   const totalHours = attendanceHistory.reduce((sum, item) => sum + item.hours, 0).toFixed(1);
 
   return (

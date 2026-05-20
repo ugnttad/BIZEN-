@@ -7,7 +7,6 @@ import LoadingState from "../../components/LoadingState";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
-import { departments, employees as seedEmployees } from "../../data/mockData";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
@@ -24,7 +23,8 @@ const emptyForm = {
 };
 
 export default function EmployeeManagement() {
-  const [rows, setRows] = useState(seedEmployees);
+  const [rows, setRows] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState("All");
   const [loading, setLoading] = useState(true);
@@ -37,13 +37,13 @@ export default function EmployeeManagement() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    bizenApi
-      .employees()
-      .then((employees) => {
+    Promise.all([bizenApi.employees(), bizenApi.departments()])
+      .then(([employees, departmentRows]) => {
         if (active) setRows(employees);
+        if (active) setDepartments(departmentRows);
       })
       .catch(() => {
-        if (active) setRows(seedEmployees);
+        if (active) setRows([]);
       })
       .finally(() => {
         if (active) setLoading(false);

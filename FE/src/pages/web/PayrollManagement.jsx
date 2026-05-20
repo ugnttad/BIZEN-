@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calculator, CheckCircle2, Download, Filter, Search } from "lucide-react";
 import {
@@ -16,27 +16,37 @@ import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import { departments, employees, payrollRows, payrollTrend } from "../../data/mockData";
-import { findEmployee, formatCurrency } from "../../lib/utils";
+import { formatCurrency } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const statusOptions = ["All", "Draft", "Reviewed", "Approved", "Paid"];
 
 export default function PayrollManagement() {
+  const [payrollRows, setPayrollRows] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [payrollTrend, setPayrollTrend] = useState([]);
   const [status, setStatus] = useState("All");
   const [department, setDepartment] = useState("All");
   const [query, setQuery] = useState("");
   const [calculateOpen, setCalculateOpen] = useState(false);
 
+  useEffect(() => {
+    Promise.all([bizenApi.payroll(), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([payrollData, departmentData, chartData]) => {
+      setPayrollRows(payrollData);
+      setDepartments(departmentData);
+      setPayrollTrend(chartData.payrollTrend || []);
+    });
+  }, []);
+
   const rows = useMemo(() => {
     return payrollRows
-      .map((row) => ({ ...row, employee: findEmployee(employees, row.employeeId) }))
       .filter((row) => {
         const matchesStatus = status === "All" || row.status === status;
-        const matchesDepartment = department === "All" || row.employee.department === department;
-        const matchesQuery = [row.employee.name, row.employee.id].join(" ").toLowerCase().includes(query.toLowerCase());
+        const matchesDepartment = department === "All" || row.department === department;
+        const matchesQuery = [row.employeeName, row.employeeId].join(" ").toLowerCase().includes(query.toLowerCase());
         return matchesStatus && matchesDepartment && matchesQuery;
       });
-  }, [status, department, query]);
+  }, [payrollRows, status, department, query]);
 
   const total = payrollRows.reduce((sum, row) => sum + row.finalSalary, 0);
   const overtime = payrollRows.reduce((sum, row) => sum + row.overtimePay, 0);
@@ -144,10 +154,10 @@ export default function PayrollManagement() {
                   <tr key={row.employeeId} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <Link to={`/web/payroll/${row.employeeId}`} className="flex items-center gap-3">
-                        <Avatar name={row.employee.name} />
+                        <Avatar name={row.employeeName} />
                         <span>
-                          <span className="block font-semibold text-slate-950">{row.employee.name}</span>
-                          <span className="text-xs text-slate-500">{row.employee.department}</span>
+                          <span className="block font-semibold text-slate-950">{row.employeeName}</span>
+                          <span className="text-xs text-slate-500">{row.department}</span>
                         </span>
                       </Link>
                     </td>

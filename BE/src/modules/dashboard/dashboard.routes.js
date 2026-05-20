@@ -23,7 +23,15 @@ dashboardRouter.get(
          FROM departments d
          LEFT JOIN employees e ON e.department_id = d.id
          GROUP BY d.id
-         ORDER BY d.id`
+         ORDER BY
+          CASE d.id
+            WHEN 'sales' THEN 1
+            WHEN 'hr' THEN 2
+            WHEN 'warehouse' THEN 3
+            WHEN 'admin' THEN 4
+            WHEN 'support' THEN 5
+            ELSE 6
+          END`
       ),
       query("SELECT id, alert_type AS type, title, detail FROM ai_alerts ORDER BY id")
     ]);

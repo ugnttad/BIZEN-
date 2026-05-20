@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Bot, SendHorizontal, Sparkles, UserRound } from "lucide-react";
+import { bizenApi } from "../modules/api/bizenApi";
 
 const quickPrompts = [
   "Xếp lịch tuần sau cho Sales",
@@ -36,11 +37,17 @@ export default function AiChat({ compact = false }) {
 
   const suggestions = useMemo(() => quickPrompts, []);
 
-  function sendMessage(text = input) {
+  async function sendMessage(text = input) {
     const clean = text.trim();
     if (!clean) return;
-    setMessages((current) => [...current, { from: "user", text: clean }, { from: "ai", text: buildReply(clean) }]);
+    setMessages((current) => [...current, { from: "user", text: clean }]);
     setInput("");
+    try {
+      const payload = await bizenApi.aiChat(clean);
+      setMessages((current) => [...current, { from: "ai", text: payload.reply }]);
+    } catch {
+      setMessages((current) => [...current, { from: "ai", text: buildReply(clean) }]);
+    }
   }
 
   return (

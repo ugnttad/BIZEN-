@@ -16,10 +16,11 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { useEffect, useState } from "react";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
-import { attendanceToday, departmentHeadcount, payrollRows, payrollTrend } from "../../data/mockData";
 import { formatCurrency } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const lateData = [
   { name: "Quốc Bảo", late: 4 },
@@ -43,7 +44,23 @@ const leavePie = [
 ];
 
 export default function Reports() {
-  const onTimeRate = Math.round((attendanceToday.filter((item) => item.status === "Present" || item.status === "Overtime").length / attendanceToday.length) * 100);
+  const [attendanceRows, setAttendanceRows] = useState([]);
+  const [payrollRows, setPayrollRows] = useState([]);
+  const [payrollTrend, setPayrollTrend] = useState([]);
+  const [departmentHeadcount, setDepartmentHeadcount] = useState([]);
+
+  useEffect(() => {
+    Promise.all([bizenApi.attendance(), bizenApi.payroll(), bizenApi.dashboardCharts(), bizenApi.dashboardSummary()]).then(([attendance, payroll, charts, summary]) => {
+      setAttendanceRows(attendance);
+      setPayrollRows(payroll);
+      setPayrollTrend(charts.payrollTrend || []);
+      setDepartmentHeadcount((summary.departments || []).map((item) => ({ ...item, productivity: 85 + Math.min(item.employees, 7), leaveRate: 5 })));
+    });
+  }, []);
+
+  const onTimeRate = attendanceRows.length
+    ? Math.round((attendanceRows.filter((item) => item.status === "Present" || item.status === "Overtime").length / attendanceRows.length) * 100)
+    : 0;
   const totalOt = payrollRows.reduce((sum, item) => sum + item.overtimeHours, 0);
   const totalPayroll = payrollRows.reduce((sum, item) => sum + item.finalSalary, 0);
 

@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, CalendarPlus2, CheckCircle2, Loader2, Sparkles, UsersRound } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
-import { aiScheduleReasons, employees, leaveRequests, scheduleWeek, shifts } from "../../data/mockData";
-import { findEmployee } from "../../lib/utils";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const shiftTone = {
   blue: "border-blue-200 bg-blue-50 text-blue-700",
@@ -15,20 +14,38 @@ const shiftTone = {
 };
 
 export default function ShiftScheduling() {
+  const [employees, setEmployees] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [scheduleWeek, setScheduleWeek] = useState([]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [aiScheduleReasons, setAiScheduleReasons] = useState([]);
   const [suggesting, setSuggesting] = useState(false);
   const [suggested, setSuggested] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
 
+  useEffect(() => {
+    Promise.all([bizenApi.employees(), bizenApi.shifts(), bizenApi.scheduleWeek(), bizenApi.leaves()]).then(([employeeRows, shiftRows, scheduleRows, leaveRows]) => {
+      setEmployees(employeeRows);
+      setShifts(shiftRows);
+      setScheduleWeek(scheduleRows);
+      setLeaveRequests(leaveRows);
+      setAiScheduleReasons(["Không xếp nhân viên đang nghỉ phép.", "Cân bằng workload theo từng phòng ban."]);
+    });
+  }, []);
+
   function suggestSchedule() {
     setSuggesting(true);
-    window.setTimeout(() => {
+    bizenApi.aiSuggestSchedule().then((payload) => {
       setSuggesting(false);
       setSuggested(true);
-    }, 900);
+      setAiScheduleReasons(payload.reasons || []);
+    });
   }
 
   const approvedLeaves = leaveRequests.filter((request) => request.status === "Approved");
-  const leaveEmployees = approvedLeaves.map((request) => findEmployee(employees, request.employeeId));
+  const leaveEmployees = approvedLeaves
+    .map((request) => employees.find((employee) => employee.id === request.employeeId))
+    .filter(Boolean);
 
   return (
     <div>
@@ -78,7 +95,7 @@ export default function ShiftScheduling() {
                 </div>
                 <div className="space-y-3">
                   {day.shifts.map((slot) => {
-                    const shift = shifts.find((item) => item.id === slot.shiftId);
+                    const shift = shifts.find((item) => item.id === slot.shiftId) || { name: slot.shiftId, time: "-", required: 0, color: "blue" };
                     const conflict = slot.employees.length < shift.required;
                     return (
                       <div key={`${day.date}-${slot.shiftId}`} className="rounded-lg border border-slate-200 bg-white p-3">
@@ -93,8 +110,8 @@ export default function ShiftScheduling() {
                         </div>
                         <div className="mt-3 flex -space-x-2">
                           {slot.employees.slice(0, 5).map((employeeId) => {
-                            const employee = findEmployee(employees, employeeId);
-                            return <Avatar key={employeeId} name={employee.name} size="sm" className="ring-2 ring-white" />;
+                            const employee = employees.find((item) => item.id === employeeId);
+                            return <Avatar key={employeeId} name={employee?.name || employeeId} size="sm" className="ring-2 ring-white" />;
                           })}
                         </div>
                         {slot.employees.length > 5 ? <p className="mt-2 text-xs font-medium text-slate-500">+{slot.employees.length - 5} nhân viên</p> : null}

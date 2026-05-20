@@ -22,6 +22,28 @@ export async function listAttendance({ date = "2026-05-20" } = {}) {
   return result.rows;
 }
 
+export async function listEmployeeAttendance(employeeId) {
+  const result = await query(
+    `SELECT
+      to_char(a.work_date, 'DD/MM/YYYY') AS date,
+      COALESCE(sh.name, 'Ca làm') AS shift,
+      COALESCE(a.check_in, '-') AS "checkIn",
+      COALESCE(a.check_out, '-') AS "checkOut",
+      a.total_hours::float AS hours,
+      a.status,
+      COALESCE(a.location, '-') AS location,
+      a.note
+     FROM attendance_records a
+     JOIN employees e ON e.id = a.employee_id
+     LEFT JOIN shifts sh ON sh.id = e.shift_id
+     WHERE a.employee_id = $1
+     ORDER BY a.work_date DESC
+     LIMIT 30`,
+    [employeeId]
+  );
+  return result.rows;
+}
+
 export async function upsertAttendance(companyId, data) {
   const result = await query(
     `INSERT INTO attendance_records

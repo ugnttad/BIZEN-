@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { Bell, CalendarDays, Clock3, CreditCard } from "lucide-react";
-import { notifications } from "../../data/mockData";
+import { bizenApi } from "../../modules/api/bizenApi";
 
 const icons = {
   reminder: Clock3,
@@ -9,6 +10,12 @@ const icons = {
 };
 
 export default function Notifications() {
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    bizenApi.notifications("BZN017").then(setNotifications);
+  }, []);
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
       <h2 className="font-semibold text-slate-950">Thông báo</h2>
