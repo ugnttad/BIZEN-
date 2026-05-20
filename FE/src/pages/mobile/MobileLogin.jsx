@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, LockKeyhole, Smartphone, UserRound } from "lucide-react";
+import GoogleLoginButton from "../../modules/auth/GoogleLoginButton";
 
 export default function MobileLogin() {
   const navigate = useNavigate();
@@ -14,6 +15,10 @@ export default function MobileLogin() {
       setError("Email hoặc mật khẩu chưa hợp lệ.");
       return;
     }
+    navigate("/mobile/home");
+  }
+
+  function handleGoogleSuccess() {
     navigate("/mobile/home");
   }
 
@@ -58,6 +63,12 @@ export default function MobileLogin() {
             <button type="submit" className="w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700">
               Vào app
             </button>
+            <div className="flex items-center gap-3">
+              <span className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate-400">Google</span>
+              <span className="h-px flex-1 bg-slate-200" />
+            </div>
+            <GoogleLoginButton mode="mobile" onSuccess={handleGoogleSuccess} />
           </form>
         </div>
 

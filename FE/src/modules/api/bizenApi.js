@@ -1,6 +1,8 @@
 import { apiClient } from "./client";
 
 export const bizenApi = {
+  googleLogin: (credential) => apiClient.post("/auth/google", { credential }),
+  me: () => apiClient.get("/auth/me"),
   dashboardSummary: () => apiClient.get("/dashboard/summary"),
   dashboardCharts: () => apiClient.get("/dashboard/charts"),
   departments: () => apiClient.get("/departments"),

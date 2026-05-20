@@ -148,3 +148,19 @@ CREATE TABLE IF NOT EXISTS app_settings (
 CREATE INDEX IF NOT EXISTS idx_employees_department ON employees(department_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_work_date ON attendance_records(work_date);
 CREATE INDEX IF NOT EXISTS idx_payroll_items_employee ON payroll_items(employee_id);
+
+CREATE TABLE IF NOT EXISTS app_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  google_sub TEXT UNIQUE NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  picture_url TEXT,
+  role TEXT NOT NULL CHECK (role IN ('Admin', 'HR', 'Manager', 'Employee')),
+  last_login_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_users_employee ON app_users(employee_id);

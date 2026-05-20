@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, CheckCircle2, LockKeyhole, ShieldCheck, Smartphone, UserRound } from "lucide-react";
+import GoogleLoginButton from "../modules/auth/GoogleLoginButton";
 
 const roleDashboards = [
   { role: "Admin", focus: "Chi phí, cấu hình, cảnh báo rủi ro" },
@@ -24,6 +25,10 @@ export default function LoginPage() {
     }
     setError("");
     navigate(role === "Employee" ? "/mobile/home" : "/web/dashboard");
+  }
+
+  function handleGoogleSuccess(user) {
+    navigate(user.role === "Employee" ? "/mobile/home" : "/web/dashboard");
   }
 
   return (
@@ -119,6 +124,14 @@ export default function LoginPage() {
             <button type="submit" className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">
               Vào hệ thống
             </button>
+
+            <div className="my-4 flex items-center gap-3">
+              <span className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-semibold uppercase tracking-normal text-slate-400">Google Auth</span>
+              <span className="h-px flex-1 bg-slate-200" />
+            </div>
+
+            <GoogleLoginButton onSuccess={handleGoogleSuccess} />
 
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
