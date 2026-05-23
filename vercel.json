@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm ci --prefix BE && npm ci --prefix FE",
+  "installCommand": "npm ci && npm ci --prefix BE && npm ci --prefix FE",
   "buildCommand": "npm --prefix FE run build",
   "outputDirectory": "FE/dist",
   "rewrites": [
