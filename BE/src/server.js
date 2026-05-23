@@ -1,5 +1,5 @@
 import { createApp } from "./app.js";
-import { pool } from "./config/db.js";
+import { closePool } from "./config/db.js";
 import { assertEnv, env } from "./config/env.js";
 
 assertEnv();
@@ -20,7 +20,7 @@ server.on("error", (error) => {
 
 function shutdown() {
   server.close(async () => {
-    await pool.end();
+    await closePool();
     process.exit(0);
   });
 }

@@ -54,7 +54,7 @@ function signToken(user) {
 
 export async function googleLoginHandler(req, res) {
   if (!env.googleClientId || env.googleClientId.includes("your-google")) {
-    throw httpError(500, "GOOGLE_CLIENT_ID is not configured in BE/.env");
+    throw httpError(500, "GOOGLE_CLIENT_ID is not configured on the backend deployment");
   }
 
   const { credential } = googleLoginSchema.parse(req.body);

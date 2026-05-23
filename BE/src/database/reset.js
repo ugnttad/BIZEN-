@@ -1,9 +1,9 @@
-import { pool } from "../config/db.js";
+import { closePool, query } from "../config/db.js";
 import { assertEnv } from "../config/env.js";
 
 assertEnv();
 
-await pool.query(`
+await query(`
   DROP TABLE IF EXISTS
     app_settings,
     ai_alerts,
@@ -21,6 +21,6 @@ await pool.query(`
   CASCADE;
 `);
 
-await pool.end();
+await closePool();
 
 console.log("Database reset completed.");

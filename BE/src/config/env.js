@@ -29,13 +29,22 @@ const vercelClientOrigins = [
   .map(toOrigin)
   .filter(Boolean);
 
+const defaultGoogleClientId = "518331039125-i79o5esjg5v5eiim93rdapvtfp0elk4n.apps.googleusercontent.com";
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL_NON_POOLING ||
+  process.env.NEON_DATABASE_URL ||
+  "";
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 4000),
-  databaseUrl: process.env.DATABASE_URL,
+  databaseUrl,
   clientOrigin: configuredClientOrigins[0] || "http://localhost:5173",
   clientOrigins: [...new Set([...configuredClientOrigins, ...vercelClientOrigins])],
-  googleClientId: process.env.GOOGLE_CLIENT_ID,
+  googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || defaultGoogleClientId,
   awsRegion: process.env.AWS_REGION || "ap-southeast-1",
   awsRekognitionCollectionId: process.env.AWS_REKOGNITION_COLLECTION_ID || "bizen-employees",
   awsRekognitionMinSimilarity: Number(process.env.AWS_REKOGNITION_MIN_SIMILARITY || 90),
@@ -51,6 +60,6 @@ export const env = {
 
 export function assertEnv() {
   if (!env.databaseUrl) {
-    throw new Error("DATABASE_URL is required. Copy BE/.env.example to BE/.env and set your Neon connection string.");
+    throw new Error("DATABASE_URL is required. Set DATABASE_URL, POSTGRES_URL, or NEON_DATABASE_URL to your Neon connection string.");
   }
 }

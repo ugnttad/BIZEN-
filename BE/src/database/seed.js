@@ -1,4 +1,4 @@
-import { pool, withTransaction } from "../config/db.js";
+import { closePool, withTransaction } from "../config/db.js";
 import { assertEnv } from "../config/env.js";
 import { calculatePayrollItem } from "../shared/payrollCalc.js";
 import { attendanceToday, departments, employees, shifts, scheduleWeek, leaveRequests, notifications, aiAlerts } from "./seedData.js";
@@ -234,6 +234,6 @@ await withTransaction(async (client) => {
   );
 });
 
-await pool.end();
+await closePool();
 
 console.log("Database seed completed.");

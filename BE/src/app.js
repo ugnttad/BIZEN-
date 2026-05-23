@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import { isDatabaseConfigured } from "./config/db.js";
 import { env } from "./config/env.js";
 import { apiRouter } from "./routes.js";
 
@@ -60,7 +61,7 @@ export function createApp() {
     res.json({
       ok: true,
       service: "bizen-backend",
-      databaseConfigured: Boolean(env.databaseUrl),
+      databaseConfigured: isDatabaseConfigured(),
       googleConfigured: Boolean(env.googleClientId)
     });
   });
@@ -74,7 +75,8 @@ export function createApp() {
   app.use((error, _req, res, _next) => {
     const status = error.status || 500;
     res.status(status).json({
-      error: error.message || "Internal server error"
+      error: error.message || "Internal server error",
+      ...(error.code ? { code: error.code } : {})
     });
   });
 

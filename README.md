@@ -91,8 +91,8 @@ Set these Vercel environment variables:
 
 ```text
 DATABASE_URL=postgresql://...
-GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
-VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=518331039125-i79o5esjg5v5eiim93rdapvtfp0elk4n.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=518331039125-i79o5esjg5v5eiim93rdapvtfp0elk4n.apps.googleusercontent.com
 JWT_SECRET=replace-with-a-long-random-secret
 PASSWORD_LOGIN_SECRET=replace-this-login-password
 PLATFORM_ADMIN_EMAIL=platform@your-domain.com

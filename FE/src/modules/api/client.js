@@ -61,6 +61,9 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
+    if (payload.code === "DATABASE_NOT_CONFIGURED") {
+      throw new Error("Backend chưa cấu hình DATABASE_URL trên Vercel. Thêm DATABASE_URL/POSTGRES_URL/NEON_DATABASE_URL rồi redeploy.");
+    }
     throw new Error(payload.error || `API request failed: ${response.status}`);
   }
 
@@ -85,6 +88,9 @@ async function requestBlob(path, options = {}) {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
+    if (payload.code === "DATABASE_NOT_CONFIGURED") {
+      throw new Error("Backend chưa cấu hình DATABASE_URL trên Vercel. Thêm DATABASE_URL/POSTGRES_URL/NEON_DATABASE_URL rồi redeploy.");
+    }
     throw new Error(payload.error || `API request failed: ${response.status}`);
   }
 

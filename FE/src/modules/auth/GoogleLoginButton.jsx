@@ -3,7 +3,8 @@ import { Chrome } from "lucide-react";
 import { bizenApi } from "../api/bizenApi";
 import { saveAuthSession } from "./authStore";
 
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const defaultGoogleClientId = "518331039125-i79o5esjg5v5eiim93rdapvtfp0elk4n.apps.googleusercontent.com";
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || defaultGoogleClientId;
 
 let googleInitClientId = null;
 let credentialHandler = null;
@@ -56,7 +57,7 @@ export default function GoogleLoginButton({ mode = "web", onSuccess }) {
     setError("");
 
     if (!googleClientId || googleClientId.includes("your-google")) {
-      setError("Chưa cấu hình VITE_GOOGLE_CLIENT_ID trong FE/.env (copy từ FE/.env.example).");
+      setError("Chưa cấu hình Google Client ID cho frontend.");
       return;
     }
 
@@ -102,7 +103,7 @@ export default function GoogleLoginButton({ mode = "web", onSuccess }) {
       ) : null}
       {!error && googleClientId && !googleClientId.includes("your-google") ? (
         <p className="mt-2 text-xs text-slate-500">
-          Nếu nút Google báo lỗi: thêm <span className="font-semibold">http://localhost:5173</span> vào Authorized JavaScript origins trên Google Cloud Console.
+          Nếu nút Google báo lỗi: thêm domain app vào Authorized JavaScript origins trên Google Cloud Console.
         </p>
       ) : null}
     </div>
