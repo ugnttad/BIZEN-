@@ -7,15 +7,16 @@ import LoadingState from "../../components/LoadingState";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import { contractTypes, employeeRoles, hospitalityPositions } from "../../constants/hospitality";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 const emptyForm = {
   name: "",
-  department: "Sales",
+  department: "",
   position: "",
   role: "Employee",
-  contractType: "Full-time",
+  contractType: "Toàn thời gian",
   baseSalary: "",
   status: "Active",
   email: "",
@@ -39,8 +40,14 @@ export default function EmployeeManagement() {
     setLoading(true);
     Promise.all([bizenApi.employees(), bizenApi.departments()])
       .then(([employees, departmentRows]) => {
-        if (active) setRows(employees);
-        if (active) setDepartments(departmentRows);
+        if (active) {
+          setRows(employees);
+          setDepartments(departmentRows);
+          setForm((current) => ({
+            ...current,
+            department: current.department || departmentRows[0]?.name || "Phục vụ"
+          }));
+        }
       })
       .catch(() => {
         if (active) setRows([]);
@@ -64,7 +71,11 @@ export default function EmployeeManagement() {
   function openCreate() {
     setModalMode("create");
     setEditingId(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      department: departments[0]?.name || "Phục vụ",
+      position: hospitalityPositions[0]
+    });
     setFormError("");
   }
 
@@ -92,7 +103,12 @@ export default function EmployeeManagement() {
       return;
     }
 
-    const departmentId = departments.find((item) => item.name === form.department)?.id || "sales";
+    const departmentId = departments.find((item) => item.name === form.department)?.id;
+    if (!departmentId) {
+      setFormError("Chọn phòng ban hợp lệ.");
+      return;
+    }
+
     const payload = {
       ...form,
       departmentId,
@@ -109,7 +125,7 @@ export default function EmployeeManagement() {
       }
       setModalMode(null);
     } catch (error) {
-      setFormError(error.message || "Không thể lưu nhân viên vào Neon.");
+      setFormError(error.message || "Không thể lưu nhân viên.");
     }
   }
 
@@ -126,9 +142,9 @@ export default function EmployeeManagement() {
   return (
     <div>
       <PageHeader
-        eyebrow="Employee Management"
+        eyebrow="Quản lý nhân sự"
         title="Hồ sơ nhân viên"
-        description="Quản lý thông tin cá nhân, phòng ban, hợp đồng, lương cơ bản và trạng thái làm việc."
+        description="Dành cho quán cafe, nhà hàng, khách sạn nhỏ — phòng ban và chức vụ F&B."
         actions={
           <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
             <Plus className="h-4 w-4" />
@@ -239,25 +255,49 @@ export default function EmployeeManagement() {
             Phòng ban
             <select value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
               {departments.map((item) => (
-                <option key={item.id}>{item.name}</option>
+                <option key={item.id} value={item.name}>
+                  {item.name}
+                </option>
               ))}
             </select>
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Vai trò
+            Vai trò hệ thống
             <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
-              <option>Employee</option>
-              <option>Manager</option>
-              <option>HR</option>
-              <option>Admin</option>
+              {employeeRoles.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
             </select>
           </label>
           <label className="text-sm font-medium text-slate-700">
             Chức vụ
-            <input value={form.position} onChange={(event) => setForm({ ...form, position: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            <input
+              list="hospitality-positions"
+              value={form.position}
+              onChange={(event) => setForm({ ...form, position: event.target.value })}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              placeholder="VD: Pha chế, Phục vụ…"
+            />
+            <datalist id="hospitality-positions">
+              {hospitalityPositions.map((position) => (
+                <option key={position} value={position} />
+              ))}
+            </datalist>
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Lương cơ bản
+            Loại hợp đồng
+            <select value={form.contractType} onChange={(event) => setForm({ ...form, contractType: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
+              {contractTypes.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-medium text-slate-700">
+            Lương cơ bản (VNĐ/tháng)
             <input type="number" value={form.baseSalary} onChange={(event) => setForm({ ...form, baseSalary: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
           </label>
           <label className="text-sm font-medium text-slate-700">
@@ -292,7 +332,7 @@ export default function EmployeeManagement() {
             <UserRoundPlus className="h-5 w-5" />
           </div>
           <p className="text-sm text-slate-600">
-            Xóa hồ sơ <span className="font-semibold text-slate-950">{deleteTarget?.name}</span> khỏi danh sách demo.
+            Xóa hồ sơ <span className="font-semibold text-slate-950">{deleteTarget?.name}</span> khỏi danh sách nhân viên.
           </p>
         </div>
       </Modal>

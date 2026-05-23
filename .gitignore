@@ -5,6 +5,7 @@ dist/
 FE/dist/
 .vite/
 FE/.vite/
+BE/storage/
 .env
 .env.*
 !.env.example

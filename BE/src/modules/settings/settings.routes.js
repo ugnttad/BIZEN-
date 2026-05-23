@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { query } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
-import { getDefaultCompanyId } from "../companies/company.repository.js";
+import { getCompanyIdForUser } from "../companies/company.repository.js";
 
 export const settingsRouter = Router();
 
@@ -17,8 +17,8 @@ const settingsSchema = z.object({
 
 settingsRouter.get(
   "/",
-  asyncHandler(async (_req, res) => {
-    const companyId = await getDefaultCompanyId();
+  asyncHandler(async (req, res) => {
+    const companyId = await getCompanyIdForUser(req.user);
     const result = await query(
       `SELECT
         work_start AS "workStart",
@@ -38,7 +38,7 @@ settingsRouter.put(
   "/",
   asyncHandler(async (req, res) => {
     const data = settingsSchema.parse(req.body);
-    const companyId = await getDefaultCompanyId();
+    const companyId = await getCompanyIdForUser(req.user);
     const result = await query(
       `UPDATE app_settings SET
         work_start = $2,

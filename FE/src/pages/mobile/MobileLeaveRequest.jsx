@@ -1,12 +1,30 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
 import { bizenApi } from "../../modules/api/bizenApi";
+import { getMobileEmployeeId } from "../../modules/auth/mobileSession";
+
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(value, days) {
+  const date = new Date(`${value}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return formatDateInput(date);
+}
 
 export default function MobileLeaveRequest() {
+  const employeeId = getMobileEmployeeId();
+  const tomorrow = useMemo(() => addDays(formatDateInput(new Date()), 1), []);
+  const [leaveType, setLeaveType] = useState("Annual leave");
   const [reason, setReason] = useState("");
   const [days, setDays] = useState(1);
-  const [fromDate, setFromDate] = useState("2026-05-25");
+  const [fromDate, setFromDate] = useState(tomorrow);
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   async function submit(event) {
@@ -15,17 +33,26 @@ export default function MobileLeaveRequest() {
       setError("Vui lòng nhập lý do và số ngày nghỉ.");
       return;
     }
+
+    setSubmitting(true);
     setError("");
-    await bizenApi.createLeave({
-      employeeId: "BZN017",
-      type: "Annual leave",
-      from: fromDate,
-      to: fromDate,
-      days: Number(days),
-      reason,
-      approver: "Võ Khánh Linh"
-    });
-    setSent(true);
+    try {
+      await bizenApi.createLeave({
+        employeeId,
+        type: leaveType,
+        from: fromDate,
+        to: addDays(fromDate, Math.max(Math.ceil(Number(days)) - 1, 0)),
+        days: Number(days),
+        reason,
+        approver: "Manager"
+      });
+      setSent(true);
+      setReason("");
+    } catch (err) {
+      setError(err.message || "Không gửi được đơn nghỉ phép.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -35,7 +62,7 @@ export default function MobileLeaveRequest() {
         <form onSubmit={submit} className="mt-4 space-y-3">
           <label className="block text-sm font-medium text-slate-700">
             Loại nghỉ
-            <select className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-3 outline-none">
+            <select value={leaveType} onChange={(event) => setLeaveType(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-3 outline-none">
               <option>Annual leave</option>
               <option>Sick leave</option>
               <option>Unpaid leave</option>
@@ -48,7 +75,7 @@ export default function MobileLeaveRequest() {
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Số ngày
-              <input type="number" value={days} onChange={(event) => setDays(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none" />
+              <input type="number" min="0.5" step="0.5" value={days} onChange={(event) => setDays(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none" />
             </label>
           </div>
           <label className="block text-sm font-medium text-slate-700">
@@ -56,9 +83,9 @@ export default function MobileLeaveRequest() {
             <textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={4} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none" />
           </label>
           {error ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p> : null}
-          <button className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white">
+          <button disabled={submitting} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white disabled:bg-slate-300">
             <Send className="h-4 w-4" />
-            Gửi đơn
+            {submitting ? "Đang gửi" : "Gửi đơn"}
           </button>
         </form>
       </section>

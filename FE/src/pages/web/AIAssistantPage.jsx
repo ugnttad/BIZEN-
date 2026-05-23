@@ -13,9 +13,10 @@ const aiActions = [
 
 export default function AIAssistantPage() {
   const [aiAlerts, setAiAlerts] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    bizenApi.aiAlerts().then(setAiAlerts);
+    bizenApi.aiAlerts().then(setAiAlerts).catch((requestError) => setError(requestError.message || "Không tải được AI alerts."));
   }, []);
 
   return (
@@ -23,8 +24,10 @@ export default function AIAssistantPage() {
       <PageHeader
         eyebrow="AI Assistant Panel"
         title="Trợ lý thông minh cho HR"
-        description="Chatbox hỗ trợ truy vấn lịch ca, chấm công, payroll và cảnh báo vận hành."
+        description="Chatbox đọc dữ liệu Neon và dùng OpenAI khi backend có OPENAI_API_KEY; nếu chưa có key, hệ thống vẫn trả lời bằng fallback nội bộ."
       />
+
+      {error ? <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p> : null}
 
       <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -34,7 +37,7 @@ export default function AIAssistantPage() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-slate-950">Prompt nhanh</h2>
-              <p className="text-sm text-slate-500">Dữ liệu mẫu phản hồi ngay trong prototype.</p>
+              <p className="text-sm text-slate-500">Các câu hỏi này sẽ gửi qua endpoint /api/ai/chat.</p>
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -53,7 +56,7 @@ export default function AIAssistantPage() {
           </div>
 
           <div className="mt-5 rounded-lg border border-slate-200 p-4">
-            <h2 className="text-base font-semibold text-slate-950">AI alerts</h2>
+            <h2 className="text-base font-semibold text-slate-950">AI alerts từ Neon</h2>
             <div className="mt-3 space-y-3">
               {aiAlerts.map((alert) => (
                 <div key={alert.id} className="flex gap-3 rounded-lg bg-slate-50 p-3">
@@ -64,6 +67,7 @@ export default function AIAssistantPage() {
                   </div>
                 </div>
               ))}
+              {aiAlerts.length === 0 ? <p className="text-sm text-slate-500">Chưa có cảnh báo AI trong Neon.</p> : null}
             </div>
           </div>
         </section>

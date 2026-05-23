@@ -1,12 +1,14 @@
 import { Router } from "express";
 import { query } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
+import { getCompanyIdForUser } from "../companies/company.repository.js";
 
 export const schedulesRouter = Router();
 
 schedulesRouter.get(
   "/week",
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
+    const companyId = await getCompanyIdForUser(req.user);
     const result = await query(
       `SELECT
         sd.work_date,
@@ -22,8 +24,10 @@ schedulesRouter.get(
        FROM schedule_days sd
        JOIN schedule_slots ss ON ss.schedule_day_id = sd.id
        JOIN shifts sh ON sh.id = ss.shift_id
+       WHERE sd.company_id = $1
        GROUP BY sd.id
-       ORDER BY sd.work_date`
+       ORDER BY sd.work_date`,
+      [companyId]
     );
     res.json(result.rows);
   })

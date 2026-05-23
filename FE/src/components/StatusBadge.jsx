@@ -14,9 +14,11 @@ const statusStyles = {
   Paid: "bg-indigo-50 text-indigo-700 ring-indigo-100",
   Pending: "bg-amber-50 text-amber-700 ring-amber-100",
   Rejected: "bg-rose-50 text-rose-700 ring-rose-100",
+  Suspended: "bg-slate-100 text-slate-700 ring-slate-200",
   Manager: "bg-indigo-50 text-indigo-700 ring-indigo-100",
   HR: "bg-blue-50 text-blue-700 ring-blue-100",
   Admin: "bg-slate-900 text-white ring-slate-900",
+  PlatformAdmin: "bg-slate-900 text-white ring-slate-900",
   Employee: "bg-slate-100 text-slate-700 ring-slate-200"
 };
 
@@ -28,12 +30,19 @@ const statusLabels = {
   Overtime: "Tăng ca",
   Active: "Đang làm",
   "On leave": "Đang nghỉ",
+  Inactive: "Ngừng làm",
   Draft: "Nháp",
   Reviewed: "Đã soát",
   Approved: "Đã duyệt",
   Paid: "Đã trả",
   Pending: "Chờ duyệt",
-  Rejected: "Từ chối"
+  Rejected: "Từ chối",
+  Suspended: "Tạm khóa",
+  Manager: "Quản lý ca",
+  HR: "Nhân sự",
+  Admin: "Quản trị",
+  PlatformAdmin: "Chủ nền tảng",
+  Employee: "Nhân viên"
 };
 
 export default function StatusBadge({ status, className = "" }) {

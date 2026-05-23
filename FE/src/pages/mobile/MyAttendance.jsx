@@ -2,15 +2,23 @@ import { useEffect, useState } from "react";
 import { Clock3, MapPin } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
+import { getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
 export default function MyAttendance() {
+  const employeeId = getMobileEmployeeId();
   const [attendanceHistory, setAttendanceHistory] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    bizenApi.employeeAttendance("BZN017").then(setAttendanceHistory);
-  }, []);
+    if (!employeeId) return;
+    bizenApi.employeeAttendance(employeeId).then(setAttendanceHistory).catch((err) => setError(err.message || "Không tải được chấm công."));
+  }, [employeeId]);
 
   const totalHours = attendanceHistory.reduce((sum, item) => sum + item.hours, 0).toFixed(1);
+
+  if (error) {
+    return <section className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</section>;
+  }
 
   return (
     <div className="space-y-4">

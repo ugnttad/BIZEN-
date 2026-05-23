@@ -2,17 +2,21 @@ import { useEffect, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
+import { getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
 export default function MySchedule() {
-  const myId = "BZN017";
+  const myId = getMobileEmployeeId();
   const [scheduleWeek, setScheduleWeek] = useState([]);
   const [shifts, setShifts] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([bizenApi.scheduleWeek(), bizenApi.shifts()]).then(([scheduleRows, shiftRows]) => {
-      setScheduleWeek(scheduleRows);
-      setShifts(shiftRows);
-    });
+    Promise.all([bizenApi.scheduleWeek(), bizenApi.shifts()])
+      .then(([scheduleRows, shiftRows]) => {
+        setScheduleWeek(scheduleRows);
+        setShifts(shiftRows);
+      })
+      .catch((err) => setError(err.message || "Không tải được lịch làm."));
   }, []);
 
   const mySchedule = scheduleWeek
@@ -21,6 +25,10 @@ export default function MySchedule() {
       slots: day.shifts.filter((slot) => slot.employees.includes(myId))
     }))
     .filter((day) => day.slots.length);
+
+  if (error) {
+    return <section className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</section>;
+  }
 
   return (
     <div className="space-y-4">

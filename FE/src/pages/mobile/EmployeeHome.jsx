@@ -4,51 +4,113 @@ import { CalendarDays, ChevronRight, Clock3, CreditCard, ScanFace, Umbrella } fr
 import StatusBadge from "../../components/StatusBadge";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
+import { getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
-const mobileEmployeeId = "BZN017";
+function formatLocalDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(value) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
 
 export default function EmployeeHome() {
+  const employeeId = getMobileEmployeeId();
   const [employee, setEmployee] = useState(null);
   const [attendance, setAttendance] = useState(null);
   const [payroll, setPayroll] = useState(null);
   const [shift, setShift] = useState(null);
+  const [error, setError] = useState("");
+  const today = formatLocalDate();
+  const todayDisplay = formatDisplayDate(today);
 
   useEffect(() => {
-    Promise.all([bizenApi.employee(mobileEmployeeId), bizenApi.employeeAttendance(mobileEmployeeId), bizenApi.payrollDetail(mobileEmployeeId), bizenApi.shifts()]).then(
-      ([employeeData, attendanceRows, payrollData, shiftRows]) => {
-        setEmployee(employeeData);
-        setAttendance(attendanceRows.find((record) => record.date === "20/05/2026") || attendanceRows[0]);
-        setPayroll(payrollData);
-        setShift(shiftRows.find((item) => item.id === employeeData.shiftId));
-      }
-    );
-  }, []);
+    let active = true;
+    if (!employeeId) {
+      setError("Chưa gắn hồ sơ nhân viên. Đăng xuất và đăng nhập lại sau khi HR duyệt tài khoản.");
+      return;
+    }
 
-  if (!employee || !attendance || !payroll || !shift) {
-    return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải dữ liệu nhân viên từ Neon...</section>;
+    async function load() {
+      try {
+        const [employeeData, attendanceRows, shiftRows] = await Promise.all([
+          bizenApi.employee(employeeId),
+          bizenApi.employeeAttendance(employeeId),
+          bizenApi.shifts()
+        ]);
+
+        if (!active) return;
+
+        const todayRecord = attendanceRows.find((record) => record.date === todayDisplay);
+        setEmployee(employeeData);
+        setAttendance(
+          todayRecord || {
+            date: todayDisplay,
+            checkIn: "-",
+            checkOut: "-",
+            hours: 0,
+            status: "Absent",
+            note: "Chưa chấm công"
+          }
+        );
+        setShift(shiftRows.find((item) => item.id === employeeData.shiftId) || shiftRows[0] || null);
+
+        try {
+          const payrollData = await bizenApi.payrollDetail(employeeId);
+          if (active) setPayroll(payrollData);
+        } catch {
+          if (active) setPayroll(null);
+        }
+      } catch (err) {
+        if (active) setError(err.message || "Không tải được dữ liệu nhân viên.");
+      }
+    }
+
+    load();
+
+    return () => {
+      active = false;
+    };
+  }, [employeeId, todayDisplay]);
+
+  if (error) {
+    return <section className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</section>;
   }
+
+  if (!employee || !attendance) {
+    return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải dữ liệu nhân viên…</section>;
+  }
+
+  const salaryLabel = payroll?.isEstimate ? "Lương tạm tính" : "Lương tháng này";
+  const salaryValue = payroll ? formatCurrency(payroll.finalSalary) : "—";
 
   return (
     <div className="space-y-4">
       <section className="rounded-lg bg-slate-950 p-5 text-white">
-        <p className="text-sm text-blue-100">Hôm nay bạn làm ca nào?</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-normal">{shift.name}</h2>
-        <p className="mt-1 text-sm text-slate-300">{shift.time}</p>
+        <p className="text-sm text-blue-100">Hôm nay · {todayDisplay}</p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-normal">{shift?.name || "Chưa xếp ca"}</h2>
+        <p className="mt-1 text-sm text-slate-300">{shift?.time || "Liên hệ quản lý ca"}</p>
         <div className="mt-4 flex items-center justify-between rounded-lg bg-white/10 px-3 py-2">
-          <span className="text-sm text-slate-200">Bạn đã check-in chưa?</span>
+          <span className="text-sm text-slate-200">{attendance.checkIn === "-" ? "Bạn chưa check-in" : `Check-in ${attendance.checkIn}`}</span>
           <StatusBadge status={attendance.status} />
         </div>
         <Link to="/mobile/checkin" className="mt-5 flex items-center justify-center gap-2 rounded-lg bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-400">
           <ScanFace className="h-5 w-5" />
-          Check-in / Check-out
+          Chấm công Face ID
         </Link>
       </section>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <CreditCard className="h-5 w-5 text-blue-600" />
-          <p className="mt-3 text-xs font-medium text-slate-500">Lương tạm tính</p>
-          <p className="mt-1 text-lg font-semibold text-slate-950">{formatCurrency(payroll.finalSalary)}</p>
+          <p className="mt-3 text-xs font-medium text-slate-500">{salaryLabel}</p>
+          <p className="mt-1 text-lg font-semibold text-slate-950">{salaryValue}</p>
+          {payroll?.isEstimate ? <p className="mt-1 text-xs text-amber-700">HR chưa chốt bảng lương — số liệu từ công + BH</p> : null}
+          {!payroll ? <p className="mt-1 text-xs text-slate-500">HR sẽ tính lương trên web</p> : null}
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <Umbrella className="h-5 w-5 text-violet-600" />
@@ -57,16 +119,20 @@ export default function EmployeeHome() {
         </div>
       </div>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-slate-950">Lịch hôm nay</h2>
-          <CalendarDays className="h-5 w-5 text-slate-400" />
-        </div>
-        <div className="mt-4 rounded-lg bg-blue-50 p-3">
-          <p className="font-semibold text-blue-900">{shift.name}</p>
-          <p className="mt-1 text-sm text-blue-700">{shift.time} · Customer Support</p>
-        </div>
-      </section>
+      {shift ? (
+        <section className="rounded-lg border border-slate-200 bg-white p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-slate-950">Lịch hôm nay</h2>
+            <CalendarDays className="h-5 w-5 text-slate-400" />
+          </div>
+          <div className="mt-4 rounded-lg bg-blue-50 p-3">
+            <p className="font-semibold text-blue-900">{shift.name}</p>
+            <p className="mt-1 text-sm text-blue-700">
+              {shift.time} · {employee.department}
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-lg border border-slate-200 bg-white p-4">
         <Link to="/mobile/attendance" className="flex items-center justify-between">
@@ -76,7 +142,9 @@ export default function EmployeeHome() {
             </span>
             <span>
               <span className="block font-semibold text-slate-950">Chấm công của tôi</span>
-              <span className="text-sm text-slate-500">{attendance.checkIn} · {attendance.note}</span>
+              <span className="text-sm text-slate-500">
+                {attendance.checkIn} · {attendance.note || "Đã đồng bộ"}
+              </span>
             </span>
           </span>
           <ChevronRight className="h-5 w-5 text-slate-400" />

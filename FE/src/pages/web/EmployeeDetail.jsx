@@ -9,6 +9,14 @@ import StatusBadge from "../../components/StatusBadge";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
+function formatTodayDisplay() {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date());
+}
+
 export default function EmployeeDetail() {
   const { id } = useParams();
   const [employee, setEmployee] = useState(null);
@@ -46,7 +54,7 @@ export default function EmployeeDetail() {
           <ArrowLeft className="h-4 w-4" />
           Danh sách nhân viên
         </Link>
-        <EmptyState title="Không tìm thấy nhân viên" description="Mã nhân viên không tồn tại trong dữ liệu mẫu." />
+        <EmptyState title="Không tìm thấy nhân viên" description="Mã nhân viên không tồn tại trong hệ thống." />
       </div>
     );
   }
@@ -55,7 +63,8 @@ export default function EmployeeDetail() {
     return <EmptyState title="Đang tải hồ sơ" description="Đang lấy dữ liệu nhân viên từ Neon." />;
   }
 
-  const attendance = attendanceHistory.find((record) => record.date === "20/05/2026") || attendanceHistory[0];
+  const today = formatTodayDisplay();
+  const attendance = attendanceHistory.find((record) => record.date === today) || attendanceHistory[0];
   const shift = shifts.find((item) => item.id === employee.shiftId);
   const employeeHistory = attendanceHistory;
 

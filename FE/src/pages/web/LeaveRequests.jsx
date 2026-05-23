@@ -9,10 +9,10 @@ import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 const emptyForm = {
-  employeeId: "BZN017",
+  employeeId: "",
   type: "Annual leave",
-  from: "2026-05-25",
-  to: "2026-05-25",
+  from: new Date().toISOString().slice(0, 10),
+  to: new Date().toISOString().slice(0, 10),
   days: 1,
   reason: ""
 };
@@ -29,6 +29,7 @@ export default function LeaveRequests() {
     Promise.all([bizenApi.leaves(), bizenApi.employees()]).then(([leaveRows, employeeRows]) => {
       setRequests(leaveRows);
       setEmployees(employeeRows);
+      setForm((current) => (current.employeeId ? current : { ...current, employeeId: employeeRows[0]?.id || "" }));
     });
   }, []);
 

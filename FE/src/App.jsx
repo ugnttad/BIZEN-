@@ -1,11 +1,17 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import WebLayout from "./components/WebLayout";
 import MobileLayout from "./components/MobileLayout";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import CompanyRegisterPage from "./pages/CompanyRegisterPage";
+import EmployeeAccountRequestPage from "./pages/EmployeeAccountRequestPage";
+import PlatformCompanyRequests from "./pages/platform/PlatformCompanyRequests";
 import AdminDashboard from "./pages/web/AdminDashboard";
 import EmployeeManagement from "./pages/web/EmployeeManagement";
 import EmployeeDetail from "./pages/web/EmployeeDetail";
 import AttendanceDashboard from "./pages/web/AttendanceDashboard";
+import FaceEnrollmentReview from "./pages/web/FaceEnrollmentReview";
+import AccountApprovals from "./pages/web/AccountApprovals";
 import ShiftScheduling from "./pages/web/ShiftScheduling";
 import PayrollManagement from "./pages/web/PayrollManagement";
 import PayrollDetail from "./pages/web/PayrollDetail";
@@ -14,6 +20,7 @@ import Reports from "./pages/web/Reports";
 import Settings from "./pages/web/Settings";
 import AIAssistantPage from "./pages/web/AIAssistantPage";
 import MobileLogin from "./pages/mobile/MobileLogin";
+import ProtectedRoute from "./modules/auth/ProtectedRoute";
 import EmployeeHome from "./pages/mobile/EmployeeHome";
 import FaceIDCheckin from "./pages/mobile/FaceIDCheckin";
 import MySchedule from "./pages/mobile/MySchedule";
@@ -26,24 +33,85 @@ import Profile from "./pages/mobile/Profile";
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<LoginPage />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/web" element={<WebLayout />}>
+      <Route path="/register-company" element={<CompanyRegisterPage />} />
+      <Route path="/register-employee" element={<EmployeeAccountRequestPage />} />
+      <Route
+        path="/platform/companies"
+        element={
+          <ProtectedRoute roles={["PlatformAdmin"]}>
+            <PlatformCompanyRequests />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/web"
+        element={
+          <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <WebLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<Navigate to="/web/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="employees" element={<EmployeeManagement />} />
         <Route path="employees/:id" element={<EmployeeDetail />} />
         <Route path="attendance" element={<AttendanceDashboard />} />
+        <Route
+          path="accounts"
+          element={
+            <ProtectedRoute roles={["Admin", "HR"]}>
+              <AccountApprovals />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="face-id"
+          element={
+            <ProtectedRoute roles={["Admin", "HR"]}>
+              <FaceEnrollmentReview />
+            </ProtectedRoute>
+          }
+        />
         <Route path="scheduling" element={<ShiftScheduling />} />
-        <Route path="payroll" element={<PayrollManagement />} />
-        <Route path="payroll/:id" element={<PayrollDetail />} />
+        <Route
+          path="payroll"
+          element={
+            <ProtectedRoute roles={["Admin", "HR"]}>
+              <PayrollManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="payroll/:id"
+          element={
+            <ProtectedRoute roles={["Admin", "HR"]}>
+              <PayrollDetail />
+            </ProtectedRoute>
+          }
+        />
         <Route path="leaves" element={<LeaveRequests />} />
         <Route path="reports" element={<Reports />} />
         <Route path="assistant" element={<AIAssistantPage />} />
-        <Route path="settings" element={<Settings />} />
+        <Route
+          path="settings"
+          element={
+            <ProtectedRoute roles={["Admin"]}>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
       </Route>
       <Route path="/mobile/login" element={<MobileLogin />} />
-      <Route path="/mobile" element={<MobileLayout />}>
+      <Route
+        path="/mobile"
+        element={
+          <ProtectedRoute roles={["Employee"]}>
+            <MobileLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<Navigate to="/mobile/home" replace />} />
         <Route path="home" element={<EmployeeHome />} />
         <Route path="checkin" element={<FaceIDCheckin />} />

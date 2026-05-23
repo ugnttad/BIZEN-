@@ -9,6 +9,14 @@ import Avatar from "../../components/Avatar";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
+function formatTodayDisplay() {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date());
+}
+
 export default function PayrollDetail() {
   const { id } = useParams();
   const [employee, setEmployee] = useState(null);
@@ -24,7 +32,7 @@ export default function PayrollDetail() {
         if (!active) return;
         setEmployee(employeeData);
         setPayroll(payrollData);
-        setAttendance(attendanceRows.find((record) => record.date === "20/05/2026") || attendanceRows[0] || null);
+        setAttendance(attendanceRows.find((record) => record.date === formatTodayDisplay()) || attendanceRows[0] || null);
       })
       .catch(() => {
         if (active) {
@@ -79,23 +87,25 @@ export default function PayrollDetail() {
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Base salary" value={formatCurrency(payroll.baseSalary)} helper="theo hợp đồng" icon={BadgeDollarSign} tone="blue" />
-        <StatCard title="Working days" value={`${payroll.workingDays}/22`} helper="ngày công" icon={CalendarCheck2} tone="emerald" />
-        <StatCard title="Overtime" value={`${payroll.overtimeHours}h`} helper={formatCurrency(payroll.overtimePay)} icon={Clock3} tone="violet" />
-        <StatCard title="Bonus" value={formatCurrency(payroll.bonus)} helper="thưởng/phụ cấp" icon={PlusCircle} tone="amber" />
-        <StatCard title="Deduction" value={formatCurrency(payroll.deduction)} helper="trễ, nghỉ, phạt" icon={MinusCircle} tone="rose" />
+        <StatCard title="Lương CB" value={formatCurrency(payroll.baseSalary)} helper="theo hợp đồng" icon={BadgeDollarSign} tone="blue" />
+        <StatCard title="Ngày công" value={`${payroll.workingDays}/22`} helper="từ chấm công" icon={CalendarCheck2} tone="emerald" />
+        <StatCard title="Tăng ca" value={`${payroll.overtimeHours}h`} helper={formatCurrency(payroll.overtimePay)} icon={Clock3} tone="violet" />
+        <StatCard title="Lương gross" value={formatCurrency(payroll.grossSalary || 0)} helper="trước khấu trừ" icon={PlusCircle} tone="amber" />
+        <StatCard title="Bảo hiểm" value={formatCurrency(payroll.insuranceDeduction || 0)} helper="BHXH+BHYT+BHTN" icon={MinusCircle} tone="rose" />
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-950">Final salary</h2>
+          <h2 className="text-base font-semibold text-slate-950">Thực lĩnh</h2>
           <p className="mt-3 text-4xl font-semibold tracking-normal text-slate-950">{formatCurrency(payroll.finalSalary)}</p>
           <div className="mt-5 space-y-3 text-sm">
             {[
-              ["Lương theo ngày công", formatCurrency((payroll.baseSalary / 22) * payroll.workingDays)],
-              ["Tiền tăng ca", formatCurrency(payroll.overtimePay)],
-              ["Thưởng", formatCurrency(payroll.bonus)],
-              ["Khấu trừ", `-${formatCurrency(payroll.deduction)}`]
+              ["Lương gross", formatCurrency(payroll.grossSalary || 0)],
+              ["BHXH (8%)", `-${formatCurrency(payroll.bhxhEmployee || 0)}`],
+              ["BHYT (1,5%)", `-${formatCurrency(payroll.bhytEmployee || 0)}`],
+              ["BHTN (1%)", `-${formatCurrency(payroll.bhtnEmployee || 0)}`],
+              ["Khấu trừ khác", `-${formatCurrency(payroll.otherDeduction || 0)}`],
+              ["Tổng khấu trừ", `-${formatCurrency(payroll.deduction)}`]
             ].map(([label, value]) => (
               <div key={label} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
                 <span className="text-slate-500">{label}</span>

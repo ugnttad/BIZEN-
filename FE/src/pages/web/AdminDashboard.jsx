@@ -28,6 +28,14 @@ import { bizenApi } from "../../modules/api/bizenApi";
 
 const colors = ["#2563eb", "#6d5dfc", "#0891b2", "#10b981", "#f59e0b"];
 
+function formatDisplayDate(date = new Date()) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(date);
+}
+
 export default function AdminDashboard() {
   const [summary, setSummary] = useState({ employees: 0, checkedIn: 0, late: 0, leave: 0, payrollTotal: 0, departments: [], aiAlerts: [] });
   const [charts, setCharts] = useState({ weeklyAttendance: [], payrollTrend: [] });
@@ -51,7 +59,7 @@ export default function AdminDashboard() {
       <PageHeader
         eyebrow="Admin / HR Dashboard"
         title="Tổng quan vận hành hôm nay"
-        description="Dữ liệu demo ngày 20/05/2026 cho doanh nghiệp SME tại Đà Nẵng."
+        description={`Dữ liệu vận hành ngày ${formatDisplayDate()} cho doanh nghiệp SME tại Đà Nẵng.`}
         actions={
           <button className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
             Xuất báo cáo nhanh

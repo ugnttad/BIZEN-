@@ -1,18 +1,30 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { LogOut, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
-
-const mobileEmployeeId = "BZN017";
+import { clearMobileEmployeeSession, getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
 export default function Profile() {
+  const navigate = useNavigate();
+  const mobileEmployeeId = getMobileEmployeeId();
   const [employee, setEmployee] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    bizenApi.employee(mobileEmployeeId).then(setEmployee);
-  }, []);
+    if (!mobileEmployeeId) return;
+    bizenApi.employee(mobileEmployeeId).then(setEmployee).catch((err) => setError(err.message || "Không tải được hồ sơ."));
+  }, [mobileEmployeeId]);
+
+  function logout() {
+    clearMobileEmployeeSession();
+    navigate("/mobile/login", { replace: true });
+  }
+
+  if (error) {
+    return <section className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</section>;
+  }
 
   if (!employee) {
     return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải hồ sơ từ Neon...</section>;
@@ -53,10 +65,10 @@ export default function Profile() {
         </div>
       </section>
 
-      <Link to="/mobile/login" className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700">
+      <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700">
         <LogOut className="h-4 w-4" />
         Đăng xuất
-      </Link>
+      </button>
     </div>
   );
 }

@@ -29,6 +29,8 @@ export default function PayrollManagement() {
   const [department, setDepartment] = useState("All");
   const [query, setQuery] = useState("");
   const [calculateOpen, setCalculateOpen] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [calculateMessage, setCalculateMessage] = useState("");
 
   useEffect(() => {
     Promise.all([bizenApi.payroll(), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([payrollData, departmentData, chartData]) => {
@@ -50,14 +52,29 @@ export default function PayrollManagement() {
 
   const total = payrollRows.reduce((sum, row) => sum + row.finalSalary, 0);
   const overtime = payrollRows.reduce((sum, row) => sum + row.overtimePay, 0);
+  const insurance = payrollRows.reduce((sum, row) => sum + (row.insuranceDeduction || 0), 0);
   const deduction = payrollRows.reduce((sum, row) => sum + row.deduction, 0);
+
+  async function runCalculatePayroll() {
+    setCalculating(true);
+    setCalculateMessage("");
+    try {
+      const result = await bizenApi.calculatePayroll("05/2026");
+      setPayrollRows(result.items || []);
+      setCalculateMessage(`Đã tính lương cho ${result.updated} nhân viên (đã trừ BHXH 8%, BHYT 1,5%, BHTN 1%).`);
+    } catch (err) {
+      setCalculateMessage(err.message || "Không tính được lương.");
+    } finally {
+      setCalculating(false);
+    }
+  }
 
   return (
     <div>
       <PageHeader
-        eyebrow="Payroll Automation"
+        eyebrow="Tính lương"
         title="Bảng lương tháng 05/2026"
-        description="Tự động tổng hợp ngày công, OT, đi trễ, thưởng phạt và lương cuối kỳ."
+        description="Gộp ngày công, tăng ca, thưởng và khấu trừ BHXH/BHYT/BHTN theo quy định VN."
         actions={
           <>
             <button onClick={() => setCalculateOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
@@ -72,10 +89,11 @@ export default function PayrollManagement() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard title="Tổng lương dự kiến" value={formatCurrency(total)} helper="20 nhân viên" tone="blue" />
         <StatCard title="OT tháng này" value={formatCurrency(overtime)} helper="từ giờ tăng ca" tone="violet" />
-        <StatCard title="Khấu trừ" value={formatCurrency(deduction)} helper="đi trễ, nghỉ không phép" tone="rose" />
+        <StatCard title="Bảo hiểm NLĐ" value={formatCurrency(insurance)} helper="BHXH + BHYT + BHTN" tone="rose" />
+        <StatCard title="Tổng khấu trừ" value={formatCurrency(deduction)} helper="BH + phạt trễ" tone="amber" />
         <StatCard title="Đã trả" value={payrollRows.filter((row) => row.status === "Paid").length} helper="bảng lương" tone="emerald" />
       </div>
 
@@ -144,8 +162,8 @@ export default function PayrollManagement() {
                   <th className="px-4 py-3">Ngày công</th>
                   <th className="px-4 py-3">OT</th>
                   <th className="px-4 py-3">Thưởng</th>
-                  <th className="px-4 py-3">Khấu trừ</th>
-                  <th className="px-4 py-3">Final salary</th>
+                  <th className="px-4 py-3">BH (8+1,5+1%)</th>
+                  <th className="px-4 py-3">Thực lĩnh</th>
                   <th className="px-4 py-3">Trạng thái</th>
                 </tr>
               </thead>
@@ -164,7 +182,7 @@ export default function PayrollManagement() {
                     <td className="px-4 py-3 text-slate-600">{row.workingDays}</td>
                     <td className="px-4 py-3 text-slate-600">{row.overtimeHours}h</td>
                     <td className="px-4 py-3 text-slate-600">{formatCurrency(row.bonus)}</td>
-                    <td className="px-4 py-3 text-rose-600">{formatCurrency(row.deduction)}</td>
+                    <td className="px-4 py-3 text-rose-600">{formatCurrency(row.insuranceDeduction || 0)}</td>
                     <td className="px-4 py-3 font-semibold text-slate-950">{formatCurrency(row.finalSalary)}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={row.status} />
@@ -181,11 +199,26 @@ export default function PayrollManagement() {
         open={calculateOpen}
         title="Tính lương tự động"
         onClose={() => setCalculateOpen(false)}
-        footer={<button onClick={() => setCalculateOpen(false)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Hoàn tất</button>}
+        footer={
+          <>
+            <button onClick={() => setCalculateOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+              Đóng
+            </button>
+            <button onClick={runCalculatePayroll} disabled={calculating} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300">
+              {calculating ? "Đang tính…" : "Tính lương ngay"}
+            </button>
+          </>
+        }
       >
-        <div className="flex gap-3 text-sm text-slate-600">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-          <p>Payroll tháng 05/2026 đã đồng bộ từ chấm công, OT, nghỉ phép và cấu hình công thức lương.</p>
+        <div className="space-y-3 text-sm text-slate-600">
+          <p>Hệ thống lấy ngày công từ chấm công, tính lương gross rồi trừ:</p>
+          <ul className="list-inside list-disc space-y-1">
+            <li>BHXH người lao động: 8%</li>
+            <li>BHYT: 1,5%</li>
+            <li>BHTN: 1%</li>
+            <li>Phạt đi trễ: 50.000đ/lần (ước tính)</li>
+          </ul>
+          {calculateMessage ? <p className="rounded-lg bg-emerald-50 px-3 py-2 font-medium text-emerald-800">{calculateMessage}</p> : null}
         </div>
       </Modal>
     </div>

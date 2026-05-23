@@ -9,6 +9,25 @@ CREATE TABLE IF NOT EXISTS companies (
 
 CREATE UNIQUE INDEX IF NOT EXISTS companies_name_unique_idx ON companies(name);
 
+CREATE TABLE IF NOT EXISTS company_access_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_name TEXT NOT NULL,
+  city TEXT NOT NULL DEFAULT 'Da Nang',
+  contact_name TEXT NOT NULL,
+  contact_email TEXT NOT NULL,
+  phone TEXT,
+  admin_password_hash TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
+  company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
+  reviewed_by TEXT,
+  rejection_reason TEXT,
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  reviewed_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_company_access_requests_status ON company_access_requests(status, requested_at DESC);
+
 CREATE TABLE IF NOT EXISTS departments (
   id TEXT PRIMARY KEY,
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
@@ -157,10 +176,55 @@ CREATE TABLE IF NOT EXISTS app_users (
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   picture_url TEXT,
+  password_hash TEXT,
   role TEXT NOT NULL CHECK (role IN ('Admin', 'HR', 'Manager', 'Employee')),
+  status TEXT NOT NULL DEFAULT 'Approved' CHECK (status IN ('Pending', 'Approved', 'Rejected', 'Suspended')),
   last_login_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'Approved';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'app_users_status_check'
+  ) THEN
+    ALTER TABLE app_users
+      ADD CONSTRAINT app_users_status_check
+      CHECK (status IN ('Pending', 'Approved', 'Rejected', 'Suspended'));
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_app_users_employee ON app_users(employee_id);
+CREATE INDEX IF NOT EXISTS idx_app_users_company_status ON app_users(company_id, status);
+
+CREATE TABLE IF NOT EXISTS face_enrollments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE,
+  image_storage_key TEXT NOT NULL,
+  image_mime_type TEXT NOT NULL,
+  face_confidence NUMERIC(6, 3),
+  status TEXT NOT NULL CHECK (status IN ('Pending', 'Approved', 'Rejected', 'Revoked')),
+  rekognition_face_id TEXT,
+  rekognition_collection_id TEXT,
+  rejection_reason TEXT,
+  reviewed_by TEXT,
+  requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  reviewed_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_face_enrollments_employee_status ON face_enrollments(employee_id, status);
+CREATE INDEX IF NOT EXISTS idx_face_enrollments_status_requested ON face_enrollments(status, requested_at DESC);
+
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS gross_salary NUMERIC(14, 0) NOT NULL DEFAULT 0;
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhxh_employee NUMERIC(14, 0) NOT NULL DEFAULT 0;
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhyt_employee NUMERIC(14, 0) NOT NULL DEFAULT 0;
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhtn_employee NUMERIC(14, 0) NOT NULL DEFAULT 0;
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS other_deduction NUMERIC(14, 0) NOT NULL DEFAULT 0;

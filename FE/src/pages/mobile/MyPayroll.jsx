@@ -3,26 +3,39 @@ import { CreditCard, Download } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
-
-const mobileEmployeeId = "BZN017";
+import { getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
 export default function MyPayroll() {
+  const mobileEmployeeId = getMobileEmployeeId();
   const [payroll, setPayroll] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    bizenApi.payrollDetail(mobileEmployeeId).then(setPayroll);
-  }, []);
+    if (!mobileEmployeeId) {
+      setError("Chưa gắn hồ sơ nhân viên.");
+      return;
+    }
+    bizenApi
+      .payrollDetail(mobileEmployeeId)
+      .then(setPayroll)
+      .catch((err) => setError(err.message || "Không tải được bảng lương."));
+  }, [mobileEmployeeId]);
+
+  if (error) {
+    return <section className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</section>;
+  }
 
   if (!payroll) {
-    return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải bảng lương từ Neon...</section>;
+    return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải bảng lương…</section>;
   }
 
   const lines = [
-    ["Base salary", payroll.baseSalary],
-    ["Working days", (payroll.baseSalary / 22) * payroll.workingDays],
-    ["Overtime", payroll.overtimePay],
-    ["Bonus", payroll.bonus],
-    ["Deduction", -payroll.deduction]
+    ["Lương gross", payroll.grossSalary || 0],
+    ["BHXH (8%)", -(payroll.bhxhEmployee || 0)],
+    ["BHYT (1,5%)", -(payroll.bhytEmployee || 0)],
+    ["BHTN (1%)", -(payroll.bhtnEmployee || 0)],
+    ["Khấu trừ khác", -(payroll.otherDeduction || 0)],
+    ["Thực lĩnh", payroll.finalSalary]
   ];
 
   return (
@@ -32,23 +45,27 @@ export default function MyPayroll() {
           <CreditCard className="h-6 w-6" />
           <StatusBadge status={payroll.status} />
         </div>
-        <p className="mt-5 text-sm text-blue-100">Lương tháng 05/2026</p>
+        <p className="mt-5 text-sm text-blue-100">Lương tháng {payroll.month || "05/2026"}</p>
         <p className="mt-1 text-3xl font-semibold tracking-normal">{formatCurrency(payroll.finalSalary)}</p>
+        {payroll.isEstimate ? <p className="mt-2 text-xs text-blue-100">Tạm tính từ ngày công — HR chưa chốt bảng lương chính thức</p> : null}
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="font-semibold text-slate-950">Breakdown</h2>
+        <h2 className="font-semibold text-slate-950">Chi tiết</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Ngày công: {payroll.workingDays}/22 · OT: {payroll.overtimeHours}h
+        </p>
         <div className="mt-4 space-y-3">
           {lines.map(([label, value]) => (
             <div key={label} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
               <span className="text-sm text-slate-500">{label}</span>
-              <span className={`text-sm font-semibold ${value < 0 ? "text-rose-600" : "text-slate-950"}`}>{formatCurrency(value)}</span>
+              <span className={`text-sm font-semibold ${value < 0 ? "text-rose-600" : "text-slate-950"}`}>{formatCurrency(Math.abs(value))}</span>
             </div>
           ))}
         </div>
-        <button className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-3 text-sm font-semibold text-slate-700">
+        <button type="button" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-3 text-sm font-semibold text-slate-700">
           <Download className="h-4 w-4" />
-          Xem phiếu lương
+          Phiếu lương (sắp có)
         </button>
       </section>
     </div>

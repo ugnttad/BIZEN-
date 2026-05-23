@@ -1,5 +1,6 @@
 import { pool, withTransaction } from "../config/db.js";
 import { assertEnv } from "../config/env.js";
+import { calculatePayrollItem } from "../shared/payrollCalc.js";
 import { attendanceToday, departments, employees, shifts, scheduleWeek, leaveRequests, notifications, aiAlerts } from "./seedData.js";
 
 assertEnv();
@@ -8,14 +9,25 @@ function calculatePayroll(employee, index) {
   const workingDays = [22, 21, 22, 20, 0, 22, 22, 21, 22, 18, 22, 22, 22, 22, 0, 22, 21, 22, 20, 22][index];
   const overtimeHours = [4, 0, 2, 7, 0, 1, 0, 0, 3, 0, 8, 2, 4, 1, 0, 5, 0, 1, 2, 9][index];
   const bonus = [1200000, 400000, 600000, 300000, 0, 900000, 300000, 200000, 700000, 0, 650000, 350000, 1500000, 500000, 0, 800000, 200000, 250000, 100000, 900000][index];
-  const deduction = [0, 350000, 0, 0, 480000, 0, 0, 420000, 0, 900000, 0, 0, 0, 0, 460000, 0, 380000, 0, 0, 0][index];
+  const otherDeduction = [0, 150000, 0, 0, 200000, 0, 0, 120000, 0, 300000, 0, 0, 0, 0, 180000, 0, 100000, 0, 0, 0][index];
   const statuses = ["Paid", "Draft", "Reviewed", "Approved", "Draft", "Paid", "Reviewed", "Reviewed", "Approved", "Draft", "Paid", "Reviewed", "Paid", "Approved", "Draft", "Reviewed", "Draft", "Reviewed", "Draft", "Approved"];
   const baseSalary = Number(employee[6]);
-  const dailyRate = baseSalary / 22;
-  const overtimePay = Math.round(overtimeHours * (dailyRate / 8) * 1.5);
-  const finalSalary = Math.round(dailyRate * workingDays + overtimePay + bonus - deduction);
+  const calc = calculatePayrollItem({ baseSalary, workingDays, overtimeHours, bonus, otherDeduction: otherDeduction[index] });
 
-  return { workingDays, overtimeHours, overtimePay, bonus, deduction, finalSalary, status: statuses[index] };
+  return {
+    workingDays,
+    overtimeHours,
+    overtimePay: calc.overtimePay,
+    bonus,
+    grossSalary: calc.grossSalary,
+    bhxhEmployee: calc.bhxhEmployee,
+    bhytEmployee: calc.bhytEmployee,
+    bhtnEmployee: calc.bhtnEmployee,
+    otherDeduction: calc.otherDeduction,
+    deduction: calc.deduction,
+    finalSalary: calc.finalSalary,
+    status: statuses[index]
+  };
 }
 
 await withTransaction(async (client) => {
@@ -144,18 +156,40 @@ await withTransaction(async (client) => {
     const payroll = calculatePayroll(employee, index);
     await client.query(
       `INSERT INTO payroll_items
-        (payroll_run_id, employee_id, base_salary, working_days, overtime_hours, overtime_pay, bonus, deduction, final_salary, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        (payroll_run_id, employee_id, base_salary, working_days, overtime_hours, overtime_pay, bonus,
+         gross_salary, bhxh_employee, bhyt_employee, bhtn_employee, other_deduction, deduction, final_salary, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        ON CONFLICT (payroll_run_id, employee_id) DO UPDATE SET
         base_salary = EXCLUDED.base_salary,
         working_days = EXCLUDED.working_days,
         overtime_hours = EXCLUDED.overtime_hours,
         overtime_pay = EXCLUDED.overtime_pay,
         bonus = EXCLUDED.bonus,
+        gross_salary = EXCLUDED.gross_salary,
+        bhxh_employee = EXCLUDED.bhxh_employee,
+        bhyt_employee = EXCLUDED.bhyt_employee,
+        bhtn_employee = EXCLUDED.bhtn_employee,
+        other_deduction = EXCLUDED.other_deduction,
         deduction = EXCLUDED.deduction,
         final_salary = EXCLUDED.final_salary,
         status = EXCLUDED.status`,
-      [payrollRun.rows[0].id, employee[0], employee[6], payroll.workingDays, payroll.overtimeHours, payroll.overtimePay, payroll.bonus, payroll.deduction, payroll.finalSalary, payroll.status]
+      [
+        payrollRun.rows[0].id,
+        employee[0],
+        employee[6],
+        payroll.workingDays,
+        payroll.overtimeHours,
+        payroll.overtimePay,
+        payroll.bonus,
+        payroll.grossSalary,
+        payroll.bhxhEmployee,
+        payroll.bhytEmployee,
+        payroll.bhtnEmployee,
+        payroll.otherDeduction,
+        payroll.deduction,
+        payroll.finalSalary,
+        payroll.status
+      ]
     );
   }
 

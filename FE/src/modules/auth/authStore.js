@@ -24,3 +24,9 @@ export function clearAuthSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
 }
+
+export function getDefaultPathForRole(role) {
+  if (role === "PlatformAdmin") return "/platform/companies";
+  if (role === "Employee") return "/mobile/home";
+  return "/web/dashboard";
+}

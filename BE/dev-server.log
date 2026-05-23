@@ -1,0 +1,15 @@
+
+> bizen-backend@0.1.0 dev
+> node src/server.js
+
+BIZEN backend running on http://localhost:4000
+[0mGET /health [32m200[0m 1.772 ms - 37[0m
+[0mPOST /api/auth/login [32m200[0m 3.329 ms - 578[0m
+[0mGET /api/tenants/company-requests?status=All [32m200[0m 1701.240 ms - 2[0m
+[0mPOST /api/auth/employee-account-requests [33m404[0m 1701.101 ms - 83[0m
+[0mPOST /api/auth/login [32m200[0m 1930.775 ms - 761[0m
+[0mGET /api/auth/account-requests?status=All [32m200[0m 481.420 ms - 1011[0m
+[0mPOST /api/tenants/company-requests [32m201[0m 1735.798 ms - 388[0m
+[0mPOST /api/auth/login [32m200[0m 0.472 ms - 578[0m
+[0mPATCH /api/tenants/company-requests/36352272-5a85-4cbd-814a-4afbf184412e/status [32m200[0m 969.545 ms - 444[0m
+[0mPOST /api/auth/employee-account-requests [32m200[0m 1963.418 ms - 350[0m

@@ -5,17 +5,46 @@ import morgan from "morgan";
 import { env } from "./config/env.js";
 import { apiRouter } from "./routes.js";
 
+function isDevLanOrigin(origin) {
+  if (!origin || env.nodeEnv === "production") return false;
+
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname;
+    const port = url.port;
+    const isVitePort = port === "5173";
+    const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+    const isPrivateLan =
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+
+    return isVitePort && (isLocalhost || isPrivateLan);
+  } catch {
+    return false;
+  }
+}
+
+function resolveCorsOrigin(origin, callback) {
+  if (!origin || env.clientOrigins.includes(origin) || isDevLanOrigin(origin)) {
+    callback(null, true);
+    return;
+  }
+
+  callback(new Error(`CORS blocked origin: ${origin}`));
+}
+
 export function createApp() {
   const app = express();
 
   app.use(helmet());
   app.use(
     cors({
-      origin: env.clientOrigin,
+      origin: resolveCorsOrigin,
       credentials: true
     })
   );
-  app.use(express.json({ limit: "2mb" }));
+  app.use(express.json({ limit: "5mb" }));
   app.use(morgan("dev"));
 
   app.get("/health", (_req, res) => {

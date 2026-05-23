@@ -23,6 +23,18 @@ import { bizenApi } from "../../modules/api/bizenApi";
 const statusOptions = ["All", "Present", "Late", "Absent", "Leave", "Overtime"];
 const pieColors = ["#2563eb", "#f59e0b", "#ef4444", "#6d5dfc", "#10b981"];
 
+function formatDateInput(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(value) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 export default function AttendanceDashboard() {
   const [attendance, setAttendance] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -30,15 +42,16 @@ export default function AttendanceDashboard() {
   const [department, setDepartment] = useState("All");
   const [status, setStatus] = useState("All");
   const [query, setQuery] = useState("");
+  const [selectedDate, setSelectedDate] = useState(formatDateInput());
   const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
-    Promise.all([bizenApi.attendance(), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([attendanceRows, departmentRows, chartRows]) => {
+    Promise.all([bizenApi.attendance(selectedDate), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([attendanceRows, departmentRows, chartRows]) => {
       setAttendance(attendanceRows);
       setDepartments(departmentRows);
       setWeeklyAttendance(chartRows.weeklyAttendance || []);
     });
-  }, []);
+  }, [selectedDate]);
 
   const rows = useMemo(() => {
     return attendance.filter((record) => {
@@ -61,13 +74,21 @@ export default function AttendanceDashboard() {
     <div>
       <PageHeader
         eyebrow="Attendance Tracking"
-        title="Bảng chấm công ngày 20/05/2026"
+        title={`Bảng chấm công ngày ${formatDisplayDate(selectedDate)}`}
         description="Theo dõi check-in, check-out, GPS, tổng giờ làm và trạng thái trong ngày."
         actions={
-          <button onClick={() => setExportOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
-            <Download className="h-4 w-4" />
-            Xuất báo cáo
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none"
+            />
+            <button onClick={() => setExportOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+              <Download className="h-4 w-4" />
+              Xuất báo cáo
+            </button>
+          </div>
         }
       />
 
@@ -212,7 +233,7 @@ export default function AttendanceDashboard() {
         onClose={() => setExportOpen(false)}
         footer={<button onClick={() => setExportOpen(false)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Đã hiểu</button>}
       >
-        <p className="text-sm text-slate-600">Báo cáo ngày 20/05/2026 đã được tạo trong prototype. Dữ liệu gồm {rows.length} bản ghi theo bộ lọc hiện tại.</p>
+        <p className="text-sm text-slate-600">Báo cáo ngày {formatDisplayDate(selectedDate)} đã sẵn sàng. Dữ liệu gồm {rows.length} bản ghi theo bộ lọc hiện tại.</p>
       </Modal>
     </div>
   );

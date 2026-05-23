@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Bot, SendHorizontal, Sparkles, UserRound } from "lucide-react";
+import { Bot, Loader2, SendHorizontal, Sparkles, UserRound } from "lucide-react";
 import { bizenApi } from "../modules/api/bizenApi";
 
 const quickPrompts = [
@@ -12,26 +12,27 @@ const quickPrompts = [
 function buildReply(text) {
   const lower = text.toLowerCase();
   if (lower.includes("lịch") || lower.includes("xếp")) {
-    return "AI đề xuất tăng 1 người cho ca chiều Sales, không xếp nhân viên đang nghỉ phép và giữ OT dưới 40 giờ/tuần.";
+    return "Tôi chưa gọi được AI backend, nhưng dữ liệu Neon cho thấy cần tránh nhân viên đang nghỉ phép và ưu tiên bù ca thiếu người.";
   }
   if (lower.includes("trễ")) {
-    return "Top đi trễ tháng này: Trần Quốc Bảo 4 lần, Nguyễn Bảo Châu 3 lần, Phạm Thanh Đạt 3 lần.";
+    return "Tôi chưa gọi được AI backend. Hãy kiểm tra bảng chấm công: trạng thái Late đang được lấy trực tiếp từ Neon.";
   }
   if (lower.includes("lương")) {
-    return "Lương giảm chủ yếu do 1 lần đi trễ, 1 ngày công thiếu và khoản khấu trừ 380.000 VND trong tháng 05/2026.";
+    return "Tôi chưa gọi được AI backend. Bảng lương vẫn có breakdown từ Neon: base salary, ngày công, OT, bonus, deduction và final salary.";
   }
   if (lower.includes("thiếu")) {
-    return "Warehouse thiếu 1 người ở ca kho sớm ngày 21/05. Có thể điều Châu Anh Thư hoặc Nguyễn Đức Long nếu không vượt OT.";
+    return "Tôi chưa gọi được AI backend. Dashboard phòng ban đang dùng headcount thật từ Neon để xác định thiếu nhân sự.";
   }
-  return "Tôi đã kiểm tra dữ liệu mẫu và thấy 3 cảnh báo cần xử lý: đi trễ, thiếu nhân sự kho, OT Support tăng.";
+  return "Tôi chưa gọi được AI backend. Kiểm tra lại BE đang chạy ở port 4000 và cấu hình VITE_API_URL.";
 }
 
 export default function AiChat({ compact = false }) {
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([
     {
       from: "ai",
-      text: "Tôi đang theo dõi chấm công, lịch ca và lương tháng 05/2026 cho BIZEN."
+      text: "Tôi là BIZEN AI. Tôi có thể đọc dữ liệu Neon về chấm công, lịch ca, nghỉ phép và lương để trả lời cho HR."
     }
   ]);
 
@@ -39,14 +40,18 @@ export default function AiChat({ compact = false }) {
 
   async function sendMessage(text = input) {
     const clean = text.trim();
-    if (!clean) return;
+    if (!clean || loading) return;
     setMessages((current) => [...current, { from: "user", text: clean }]);
     setInput("");
+    setLoading(true);
+
     try {
       const payload = await bizenApi.aiChat(clean);
-      setMessages((current) => [...current, { from: "ai", text: payload.reply }]);
+      setMessages((current) => [...current, { from: "ai", text: payload.reply, mode: payload.mode }]);
     } catch {
-      setMessages((current) => [...current, { from: "ai", text: buildReply(clean) }]);
+      setMessages((current) => [...current, { from: "ai", text: buildReply(clean), mode: "client-fallback" }]);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -58,7 +63,7 @@ export default function AiChat({ compact = false }) {
         </div>
         <div>
           <h2 className="text-sm font-semibold text-slate-950">BIZEN AI</h2>
-          <p className="text-xs text-slate-500">HR, ca làm, lương</p>
+          <p className="text-xs text-slate-500">Neon data + OpenAI khi có API key</p>
         </div>
       </header>
 
@@ -70,13 +75,14 @@ export default function AiChat({ compact = false }) {
                 <Bot className="h-4 w-4" />
               </div>
             ) : null}
-            <p
+            <div
               className={`max-w-[82%] rounded-lg px-3 py-2 text-sm leading-5 ${
                 message.from === "user" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
               }`}
             >
-              {message.text}
-            </p>
+              <p>{message.text}</p>
+              {message.mode ? <p className="mt-1 text-[11px] font-semibold text-slate-400">{message.mode}</p> : null}
+            </div>
             {message.from === "user" ? (
               <div className="mt-1 grid h-7 w-7 place-items-center rounded-full bg-slate-100 text-slate-600">
                 <UserRound className="h-4 w-4" />
@@ -84,6 +90,13 @@ export default function AiChat({ compact = false }) {
             ) : null}
           </div>
         ))}
+
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            Đang đọc dữ liệu Neon và tạo câu trả lời...
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-2 border-t border-slate-200 p-4">
@@ -112,8 +125,8 @@ export default function AiChat({ compact = false }) {
             placeholder="Hỏi AI..."
             className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
-          <button type="submit" className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-white hover:bg-blue-700" aria-label="Gửi">
-            <SendHorizontal className="h-4 w-4" />
+          <button type="submit" disabled={loading} className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60" aria-label="Gửi">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
           </button>
         </form>
       </div>

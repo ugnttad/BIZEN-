@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell, CalendarDays, Clock3, CreditCard } from "lucide-react";
 import { bizenApi } from "../../modules/api/bizenApi";
+import { getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
 const icons = {
   reminder: Clock3,
@@ -10,11 +11,18 @@ const icons = {
 };
 
 export default function Notifications() {
+  const employeeId = getMobileEmployeeId();
   const [notifications, setNotifications] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    bizenApi.notifications("BZN017").then(setNotifications);
-  }, []);
+    if (!employeeId) return;
+    bizenApi.notifications(employeeId).then(setNotifications).catch((err) => setError(err.message || "Không tải được thông báo."));
+  }, [employeeId]);
+
+  if (error) {
+    return <section className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</section>;
+  }
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">

@@ -5,6 +5,9 @@ import { saveAuthSession } from "./authStore";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+let googleInitClientId = null;
+let credentialHandler = null;
+
 function loadGoogleScript() {
   return new Promise((resolve, reject) => {
     if (window.google?.accounts?.id) {
@@ -30,35 +33,49 @@ function loadGoogleScript() {
   });
 }
 
+function ensureGoogleInitialized(clientId) {
+  if (googleInitClientId === clientId) return;
+  window.google.accounts.id.initialize({
+    client_id: clientId,
+    callback: (response) => credentialHandler?.(response)
+  });
+  googleInitClientId = clientId;
+}
+
 export default function GoogleLoginButton({ mode = "web", onSuccess }) {
   const buttonRef = useRef(null);
+  const onSuccessRef = useRef(onSuccess);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   useEffect(() => {
     let active = true;
     setError("");
 
     if (!googleClientId || googleClientId.includes("your-google")) {
-      setError("Chưa cấu hình VITE_GOOGLE_CLIENT_ID trong FE/.env.");
+      setError("Chưa cấu hình VITE_GOOGLE_CLIENT_ID trong FE/.env (copy từ FE/.env.example).");
       return;
     }
 
     loadGoogleScript()
       .then(() => {
         if (!active || !buttonRef.current) return;
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response) => {
-            try {
-              const session = await bizenApi.googleLogin(response.credential);
-              saveAuthSession(session);
-              onSuccess?.(session.user);
-            } catch (err) {
-              setError(err.message || "Không đăng nhập được bằng Google.");
-            }
-          }
-        });
 
+        credentialHandler = async (response) => {
+          try {
+            const session = await bizenApi.googleLogin(response.credential);
+            saveAuthSession(session);
+            onSuccessRef.current?.(session.user);
+          } catch (err) {
+            setError(err.message || "Không đăng nhập được bằng Google.");
+          }
+        };
+        ensureGoogleInitialized(googleClientId);
+
+        buttonRef.current.innerHTML = "";
         window.google.accounts.id.renderButton(buttonRef.current, {
           theme: "outline",
           size: "large",
@@ -72,7 +89,7 @@ export default function GoogleLoginButton({ mode = "web", onSuccess }) {
     return () => {
       active = false;
     };
-  }, [mode, onSuccess]);
+  }, [mode]);
 
   return (
     <div className="mt-3">
@@ -82,6 +99,11 @@ export default function GoogleLoginButton({ mode = "web", onSuccess }) {
           <Chrome className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <p>{error}</p>
         </div>
+      ) : null}
+      {!error && googleClientId && !googleClientId.includes("your-google") ? (
+        <p className="mt-2 text-xs text-slate-500">
+          Nếu nút Google báo lỗi: thêm <span className="font-semibold">http://localhost:5173</span> vào Authorized JavaScript origins trên Google Cloud Console.
+        </p>
       ) : null}
     </div>
   );

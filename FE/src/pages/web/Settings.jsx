@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Building2, CheckCircle2, Clock3, CreditCard, ShieldCheck, UsersRound } from "lucide-react";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
+import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 export default function Settings() {
@@ -18,10 +19,12 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    Promise.all([bizenApi.settings(), bizenApi.departments()]).then(([settingsData, departmentRows]) => {
-      if (settingsData) setSettings(settingsData);
-      setDepartments(departmentRows);
-    });
+    Promise.all([bizenApi.settings(), bizenApi.departments()])
+      .then(([settingsData, departmentRows]) => {
+        if (settingsData) setSettings(settingsData);
+        setDepartments(departmentRows);
+      })
+      .catch((requestError) => setError(requestError.message || "Không tải được phòng ban từ Neon."));
   }, []);
 
   async function saveSettings(event) {
@@ -109,11 +112,25 @@ export default function Settings() {
             </div>
             <div className="space-y-2">
               {departments.map((department) => (
-                <div key={department.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                  <span className="text-sm font-semibold text-slate-950">{department.name}</span>
-                  <span className="text-xs font-semibold text-slate-500">{department.targetHeadcount} người</span>
+                <div key={department.id} className="rounded-lg bg-slate-50 px-3 py-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-slate-950">{department.name}</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      {department.employeeCount ?? 0}/{department.targetHeadcount} người
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className="h-full rounded-full bg-blue-600"
+                      style={{ width: `${Math.min(100, ((department.employeeCount || 0) / Math.max(1, department.targetHeadcount || 1)) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Active {department.activeCount ?? 0} · Nghỉ {department.onLeaveCount ?? 0} · Quỹ lương {formatCurrency(department.baseSalaryTotal || 0)}
+                  </p>
                 </div>
               ))}
+              {departments.length === 0 ? <p className="text-sm text-slate-500">Chưa có phòng ban hoặc API đang lỗi.</p> : null}
             </div>
           </section>
 
@@ -155,7 +172,7 @@ export default function Settings() {
       >
         <div className="flex gap-3 text-sm text-slate-600">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-          <p>Cấu hình demo đã được cập nhật cho giờ làm, payroll và nghỉ phép.</p>
+          <p>Cấu hình đã được cập nhật cho giờ làm, payroll và nghỉ phép.</p>
         </div>
       </Modal>
     </div>
