@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, Filter, MapPin, Search, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Download, Filter, MapPin, Search, ShieldAlert } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -20,8 +20,27 @@ import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
 
-const statusOptions = ["All", "Present", "Late", "Absent", "Leave", "Overtime"];
-const pieColors = ["#2563eb", "#f59e0b", "#ef4444", "#6d5dfc", "#10b981"];
+const statusOptions = ["All", "Present", "Late", "Absent", "Leave", "Overtime", "Missing checkout"];
+const pieColors = ["#2563eb", "#f59e0b", "#ef4444", "#6d5dfc", "#10b981", "#d97706"];
+
+function toMinutes(time) {
+  const match = /^(\d{2}):(\d{2})$/.exec(time || "");
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function calculateHours(checkIn, checkOut) {
+  const start = toMinutes(checkIn);
+  const end = toMinutes(checkOut);
+  if (start === null || end === null) return 0;
+  const adjustedEnd = end < start ? end + 24 * 60 : end;
+  return Math.round(((adjustedEnd - start) / 60) * 100) / 100;
+}
+
+function resolveShiftEnd(shiftTime) {
+  const match = /(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/.exec(shiftTime || "");
+  return match?.[2] || "";
+}
 
 function formatDateInput(date = new Date()) {
   const year = date.getFullYear();
@@ -44,6 +63,10 @@ export default function AttendanceDashboard() {
   const [query, setQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState(formatDateInput());
   const [exportOpen, setExportOpen] = useState(false);
+  const [checkoutRecord, setCheckoutRecord] = useState(null);
+  const [checkoutTime, setCheckoutTime] = useState("");
+  const [closingCheckout, setClosingCheckout] = useState(false);
+  const [checkoutMessage, setCheckoutMessage] = useState("");
 
   useEffect(() => {
     Promise.all([bizenApi.attendance(selectedDate), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([attendanceRows, departmentRows, chartRows]) => {
@@ -56,7 +79,7 @@ export default function AttendanceDashboard() {
   const rows = useMemo(() => {
     return attendance.filter((record) => {
         const matchesDepartment = department === "All" || record.department === department;
-        const matchesStatus = status === "All" || record.status === status;
+        const matchesStatus = status === "All" || (status === "Missing checkout" ? record.needsCheckoutReview : record.status === status);
         const matchesQuery = [record.employeeName, record.employeeId].join(" ").toLowerCase().includes(query.toLowerCase());
         return matchesDepartment && matchesStatus && matchesQuery;
       });
@@ -66,9 +89,49 @@ export default function AttendanceDashboard() {
     .filter((item) => item !== "All")
     .map((item) => ({
       name: item,
-      value: attendance.filter((record) => record.status === item).length
+      value: attendance.filter((record) => (item === "Missing checkout" ? record.needsCheckoutReview : record.status === item)).length
     }));
-  const missingCheckout = attendance.filter((record) => record.note?.includes("Thiếu check-out"));
+  const missingCheckout = attendance.filter((record) => record.needsCheckoutReview);
+
+  async function reloadAttendance() {
+    const attendanceRows = await bizenApi.attendance(selectedDate);
+    setAttendance(attendanceRows);
+  }
+
+  function openCheckoutModal(record) {
+    setCheckoutRecord(record);
+    setCheckoutTime(resolveShiftEnd(record.shiftTime) || "17:00");
+    setCheckoutMessage("");
+  }
+
+  async function closeCheckout() {
+    if (!checkoutRecord || !checkoutTime) return;
+    setClosingCheckout(true);
+    setCheckoutMessage("");
+    try {
+      const totalHours = calculateHours(checkoutRecord.checkIn, checkoutTime);
+      await bizenApi.upsertAttendance({
+        employeeId: checkoutRecord.employeeId,
+        workDate: checkoutRecord.workDate || selectedDate,
+        checkIn: checkoutRecord.checkIn,
+        checkOut: checkoutTime,
+        totalHours,
+        status: checkoutRecord.status,
+        location: checkoutRecord.location,
+        note: "HR chốt giờ ra thủ công do nhân viên quên check-out"
+      });
+      await reloadAttendance();
+      setCheckoutMessage("Đã chốt giờ ra. Bản ghi này có thể đưa vào payroll.");
+      window.setTimeout(() => {
+        setCheckoutRecord(null);
+        setCheckoutMessage("");
+      }, 700);
+    } catch (err) {
+      setCheckoutMessage(err.message || "Không chốt được giờ ra.");
+    } finally {
+      setClosingCheckout(false);
+    }
+  }
 
   return (
     <div>
@@ -92,12 +155,13 @@ export default function AttendanceDashboard() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <StatCard title="Present" value={attendance.filter((item) => item.status === "Present").length} helper="đúng giờ" tone="emerald" />
         <StatCard title="Late" value={attendance.filter((item) => item.status === "Late").length} helper="đi trễ" tone="amber" />
         <StatCard title="Absent" value={attendance.filter((item) => item.status === "Absent").length} helper="vắng" tone="rose" />
         <StatCard title="Leave" value={attendance.filter((item) => item.status === "Leave").length} helper="nghỉ phép" tone="violet" />
         <StatCard title="Overtime" value={attendance.filter((item) => item.status === "Overtime").length} helper="tăng ca" tone="blue" />
+        <StatCard title="Quên check-out" value={missingCheckout.length} helper="cần HR chốt" tone="amber" />
       </div>
 
       {missingCheckout.length ? (
@@ -105,7 +169,7 @@ export default function AttendanceDashboard() {
           <ShieldAlert className="h-5 w-5 shrink-0" />
           <div>
             <p className="font-semibold">Có {missingCheckout.length} nhân viên thiếu check-out</p>
-            <p className="mt-1 text-sm">HR cần xác minh trước khi khóa bảng công ngày.</p>
+            <p className="mt-1 text-sm">HR cần chốt giờ ra trước khi tính lương. Payroll sẽ bị chặn nếu còn bản ghi thiếu check-out.</p>
           </div>
         </div>
       ) : null}
@@ -196,7 +260,7 @@ export default function AttendanceDashboard() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rows.map((record) => (
-                  <tr key={record.employeeId} className="hover:bg-slate-50">
+                  <tr key={record.employeeId} className={record.needsCheckoutReview ? "bg-amber-50/55 hover:bg-amber-50" : "hover:bg-slate-50"}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <Avatar name={record.employeeName} />
@@ -207,7 +271,20 @@ export default function AttendanceDashboard() {
                       </div>
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-900">{record.checkIn}</td>
-                    <td className="px-4 py-3 text-slate-600">{record.checkOut}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {record.needsCheckoutReview ? (
+                        <button
+                          type="button"
+                          onClick={() => openCheckoutModal(record)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-200"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Chốt giờ ra
+                        </button>
+                      ) : (
+                        record.checkOut
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-600">{record.totalHours}</td>
                     <td className="px-4 py-3 text-slate-600">
                       <span className="inline-flex items-center gap-1">
@@ -216,7 +293,7 @@ export default function AttendanceDashboard() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={record.status} />
+                      <StatusBadge status={record.displayStatus || record.status} />
                     </td>
                     <td className="px-4 py-3 text-slate-600">{record.note}</td>
                   </tr>
@@ -226,6 +303,42 @@ export default function AttendanceDashboard() {
           </div>
         )}
       </section>
+
+      <Modal
+        open={Boolean(checkoutRecord)}
+        title="Chốt giờ ra thủ công"
+        onClose={() => setCheckoutRecord(null)}
+        footer={
+          <>
+            <button onClick={() => setCheckoutRecord(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+              Đóng
+            </button>
+            <button onClick={closeCheckout} disabled={closingCheckout || !checkoutTime} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:bg-slate-300">
+              {closingCheckout ? "Đang chốt..." : "Chốt giờ ra"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-sm text-slate-600">
+          <p>
+            {checkoutRecord?.employeeName} đã check-in lúc <span className="font-semibold text-slate-950">{checkoutRecord?.checkIn}</span> nhưng chưa check-out.
+            Hãy xác nhận giờ ra thực tế hoặc dùng giờ kết thúc ca mặc định.
+          </p>
+          <label className="block text-sm font-semibold text-slate-700">
+            Giờ ra xác nhận
+            <input
+              type="time"
+              value={checkoutTime}
+              onChange={(event) => setCheckoutTime(event.target.value)}
+              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+            />
+          </label>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">
+            Tổng giờ dự kiến: {calculateHours(checkoutRecord?.checkIn, checkoutTime)}h. Bản ghi sẽ được gắn note HR chốt thủ công.
+          </p>
+          {checkoutMessage ? <p className="rounded-lg bg-slate-50 px-3 py-2 font-semibold text-slate-700">{checkoutMessage}</p> : null}
+        </div>
+      </Modal>
 
       <Modal
         open={exportOpen}

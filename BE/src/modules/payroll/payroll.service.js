@@ -21,15 +21,16 @@ export async function buildPayrollPreview(companyId, employeeId, month) {
 
   const start = parseMonth(month);
   const attendance = await query(
-    `SELECT status FROM attendance_records
+    `SELECT status, check_out AS "checkOut" FROM attendance_records
      WHERE company_id = $1 AND employee_id = $2
        AND work_date >= $3::date
        AND work_date < ($3::date + INTERVAL '1 month')`,
     [companyId, employeeId, start]
   );
 
-  const workingDays = attendance.rows.filter((row) => ["Present", "Late", "Overtime"].includes(row.status)).length;
+  const workingDays = attendance.rows.filter((row) => ["Present", "Late", "Overtime"].includes(row.status) && row.checkOut).length;
   const lateDays = attendance.rows.filter((row) => row.status === "Late").length;
+  const missingCheckoutDays = attendance.rows.filter((row) => ["Present", "Late", "Overtime"].includes(row.status) && !row.checkOut).length;
   const otherDeduction = lateDays * 50000;
   const overtimeHours = Math.max(0, attendance.rows.filter((row) => row.status === "Overtime").length * 2);
 
@@ -60,6 +61,8 @@ export async function buildPayrollPreview(companyId, employeeId, month) {
     status: "Draft",
     employeeName: employee.rows[0].name,
     department: employee.rows[0].department,
-    isEstimate: true
+    isEstimate: true,
+    needsPayrollReview: missingCheckoutDays > 0,
+    missingCheckoutDays
   };
 }

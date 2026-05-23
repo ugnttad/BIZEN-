@@ -68,6 +68,29 @@ payrollRouter.post(
     const companyId = await getCompanyIdForUser(req.user);
     const { start } = parseMonth(payrollMonth);
 
+    const openAttendances = await query(
+      `SELECT e.name, a.employee_id AS "employeeId", to_char(a.work_date, 'DD/MM/YYYY') AS "workDate", a.check_in AS "checkIn"
+       FROM attendance_records a
+       JOIN employees e ON e.id = a.employee_id
+       WHERE a.company_id = $1
+         AND a.work_date >= $2::date
+         AND a.work_date < ($2::date + INTERVAL '1 month')
+         AND a.check_in IS NOT NULL
+         AND a.check_out IS NULL
+         AND a.status IN ('Present', 'Late', 'Overtime')
+       ORDER BY a.work_date, e.name
+       LIMIT 8`,
+      [companyId, start]
+    );
+
+    if (openAttendances.rows.length) {
+      const sample = openAttendances.rows.map((row) => `${row.name} (${row.workDate}, vào ${row.checkIn})`).join(", ");
+      throw httpError(
+        409,
+        `Chưa thể tính lương vì có ${openAttendances.rows.length} bản ghi thiếu check-out: ${sample}. HR cần chốt giờ ra trước.`
+      );
+    }
+
     const run = await query(
       `INSERT INTO payroll_runs (company_id, month, status)
        VALUES ($1, $2, 'Draft')

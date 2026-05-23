@@ -63,6 +63,7 @@ export default function FaceIDCheckin() {
   const [uploadedImage, setUploadedImage] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [enrollment, setEnrollment] = useState(null);
+  const [todayAttendance, setTodayAttendance] = useState(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
@@ -84,6 +85,22 @@ export default function FaceIDCheckin() {
       })
       .catch(() => {
         if (active) setEnrollment(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [employee.id]);
+
+  useEffect(() => {
+    let active = true;
+    bizenApi
+      .employeeAttendance(employee.id)
+      .then((rows) => {
+        if (active) setTodayAttendance(rows.find((row) => row.workDate === formatLocalDate()) || null);
+      })
+      .catch(() => {
+        if (active) setTodayAttendance(null);
       });
 
     return () => {
@@ -196,6 +213,10 @@ export default function FaceIDCheckin() {
       });
       setResult(response);
       setState("success");
+      bizenApi
+        .employeeAttendance(employee.id)
+        .then((rows) => setTodayAttendance(rows.find((row) => row.workDate === formatLocalDate()) || null))
+        .catch(() => {});
     } catch (scanError) {
       setResult(null);
       setError(getFriendlyFaceError(scanError.message) || "Không xác minh được khuôn mặt.");
@@ -242,6 +263,9 @@ export default function FaceIDCheckin() {
   const confidence = result?.face?.similarity ? Math.round(result.face.similarity) : result?.face?.confidence ? Math.round(result.face.confidence) : null;
   const isDemoVerification = result?.provider === "local-demo" || result?.face?.provider === "local-demo";
   const providerLabel = isDemoVerification ? "Chế độ demo Face ID" : "AWS Rekognition";
+  const hasCheckedIn = Boolean(todayAttendance?.checkIn && todayAttendance.checkIn !== "-");
+  const hasCheckedOut = Boolean(todayAttendance?.checkOut && todayAttendance.checkOut !== "-");
+  const scanLabel = hasCheckedOut ? "Đã hoàn tất" : hasCheckedIn ? "Kết thúc ca" : "Check-in Face ID";
 
   return (
     <div className="space-y-4">
@@ -304,8 +328,8 @@ export default function FaceIDCheckin() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-950">Trạng thái Face ID</p>
-              <p className="mt-1 text-xs text-slate-500">
-                {enrollment?.status === "Approved" && "HR đã duyệt. Bạn có thể chấm công bằng khuôn mặt."}
+            <p className="mt-1 text-xs text-slate-500">
+              {enrollment?.status === "Approved" && "HR đã duyệt. Bạn có thể chấm công bằng khuôn mặt."}
                 {enrollment?.status === "Pending" && "Yêu cầu đang chờ HR duyệt trên web dashboard."}
                 {enrollment?.status === "Rejected" && (enrollment.rejectionReason || "Yêu cầu đã bị từ chối. Vui lòng đăng ký lại.")}
                 {!enrollment || enrollment?.status === "Not submitted" ? "Bạn cần đăng ký khuôn mặt và chờ HR duyệt trước khi chấm công." : null}
@@ -314,6 +338,14 @@ export default function FaceIDCheckin() {
             <StatusBadge status={enrollment?.status === "Not submitted" ? "Reviewed" : enrollment?.status || "Reviewed"} />
           </div>
         </div>
+
+        {hasCheckedIn ? (
+          <div className={`mt-3 rounded-lg border p-3 text-sm ${hasCheckedOut ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+            {hasCheckedOut
+              ? `Ca hôm nay đã hoàn tất: ${todayAttendance.checkIn} - ${todayAttendance.checkOut}, ${todayAttendance.hours}h.`
+              : `Bạn đã vào ca lúc ${todayAttendance.checkIn}. Hãy scan lần nữa khi kết thúc ca để HR chốt đủ giờ.`}
+          </div>
+        ) : null}
 
         <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
           <Upload className="h-4 w-4" />
@@ -364,11 +396,11 @@ export default function FaceIDCheckin() {
           </button>
           <button
             onClick={scanFace}
-            disabled={isBusy || !hasImage || !canCheckIn}
+            disabled={isBusy || !hasImage || !canCheckIn || hasCheckedOut}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {state === "scanning" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanFace className="h-4 w-4" />}
-            {state === "success" ? "Quét lại" : "Scan Face"}
+            {scanLabel}
           </button>
           <button onClick={resetScan} className="grid h-11 w-11 place-items-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100" aria-label="Làm mới">
             <RotateCcw className="h-4 w-4" />

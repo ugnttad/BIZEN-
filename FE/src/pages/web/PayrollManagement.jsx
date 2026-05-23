@@ -218,7 +218,11 @@ export default function PayrollManagement() {
             <li>BHTN: 1%</li>
             <li>Phạt đi trễ: 50.000đ/lần (ước tính)</li>
           </ul>
-          {calculateMessage ? <p className="rounded-lg bg-emerald-50 px-3 py-2 font-medium text-emerald-800">{calculateMessage}</p> : null}
+          {calculateMessage ? (
+            <p className={`rounded-lg px-3 py-2 font-medium ${calculateMessage.startsWith("Chưa thể") || calculateMessage.startsWith("Không") ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}>
+              {calculateMessage}
+            </p>
+          ) : null}
         </div>
       </Modal>
     </div>
