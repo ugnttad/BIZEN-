@@ -57,7 +57,12 @@ export function createApp() {
   app.use(morgan("dev"));
 
   app.get(["/health", "/api/health"], (_req, res) => {
-    res.json({ ok: true, service: "bizen-backend" });
+    res.json({
+      ok: true,
+      service: "bizen-backend",
+      databaseConfigured: Boolean(env.databaseUrl),
+      googleConfigured: Boolean(env.googleClientId)
+    });
   });
 
   app.use("/api", apiRouter);
