@@ -37,6 +37,15 @@ const databaseUrl =
   process.env.POSTGRES_URL_NON_POOLING ||
   process.env.NEON_DATABASE_URL ||
   "";
+const awsRekognitionEnabledValue = (process.env.AWS_REKOGNITION_ENABLED || "").trim().toLowerCase();
+const hasAwsStaticCredentials = Boolean(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+const hasAwsProviderCredentials = Boolean(process.env.AWS_PROFILE || process.env.AWS_WEB_IDENTITY_TOKEN_FILE || process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI);
+const awsRekognitionEnabled =
+  awsRekognitionEnabledValue === "true" || awsRekognitionEnabledValue === "1"
+    ? true
+    : awsRekognitionEnabledValue === "false" || awsRekognitionEnabledValue === "0"
+      ? false
+      : hasAwsStaticCredentials || hasAwsProviderCredentials;
 
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
@@ -46,6 +55,7 @@ export const env = {
   clientOrigins: [...new Set([...configuredClientOrigins, ...vercelClientOrigins])],
   googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || defaultGoogleClientId,
   awsRegion: process.env.AWS_REGION || "ap-southeast-1",
+  awsRekognitionEnabled,
   awsRekognitionCollectionId: process.env.AWS_REKOGNITION_COLLECTION_ID || "bizen-employees",
   awsRekognitionMinSimilarity: Number(process.env.AWS_REKOGNITION_MIN_SIMILARITY || 90),
   awsRekognitionFaceMinConfidence: Number(process.env.AWS_REKOGNITION_FACE_MIN_CONFIDENCE || 90),

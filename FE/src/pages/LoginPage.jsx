@@ -70,15 +70,15 @@ export default function LoginPage() {
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-80" />
       <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
         <section className="flex flex-col justify-between bg-white/70 px-6 py-8 backdrop-blur-xl md:px-12">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="group flex w-fit items-center gap-3 rounded-xl">
             <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
               <Building2 className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-2xl font-semibold tracking-normal text-slate-950">BIZEN</p>
+              <p className="text-2xl font-semibold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
               <p className="text-sm text-slate-500">Cloud HR & Payroll</p>
             </div>
-          </div>
+          </Link>
 
           <div className="my-10 max-w-xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">

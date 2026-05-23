@@ -45,6 +45,13 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function getFriendlyFaceError(message) {
+  if (/AWS Rekognition/i.test(message || "") && /credential|credentials|provider/i.test(message || "")) {
+    return "AWS Rekognition chưa được cấu hình trên Vercel. Hệ thống sẽ dùng chế độ demo sau khi bản mới được deploy.";
+  }
+  return message;
+}
+
 export default function FaceIDCheckin() {
   const employee = getMobileEmployeeSession();
   const videoRef = useRef(null);
@@ -191,7 +198,7 @@ export default function FaceIDCheckin() {
       setState("success");
     } catch (scanError) {
       setResult(null);
-      setError(scanError.message || "Không xác minh được khuôn mặt.");
+      setError(getFriendlyFaceError(scanError.message) || "Không xác minh được khuôn mặt.");
       setState("failed");
     }
   }
@@ -216,7 +223,7 @@ export default function FaceIDCheckin() {
       setState("success");
     } catch (enrollError) {
       setResult(null);
-      setError(enrollError.message || "Không đăng ký được khuôn mặt.");
+      setError(getFriendlyFaceError(enrollError.message) || "Không đăng ký được khuôn mặt.");
       setState("failed");
     }
   }
@@ -233,6 +240,8 @@ export default function FaceIDCheckin() {
   const hasImage = cameraStatus === "ready" || Boolean(uploadedImage);
   const canCheckIn = enrollment?.status === "Approved";
   const confidence = result?.face?.similarity ? Math.round(result.face.similarity) : result?.face?.confidence ? Math.round(result.face.confidence) : null;
+  const isDemoVerification = result?.provider === "local-demo" || result?.face?.provider === "local-demo";
+  const providerLabel = isDemoVerification ? "Chế độ demo Face ID" : "AWS Rekognition";
 
   return (
     <div className="space-y-4">
@@ -318,7 +327,7 @@ export default function FaceIDCheckin() {
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
             <div className="flex items-center gap-2 font-semibold">
               <CheckCircle2 className="h-5 w-5" />
-              {result?.pending ? "Đã gửi yêu cầu đăng ký" : "Chấm công thành công"}
+              {result?.pending ? "Đã gửi yêu cầu đăng ký" : isDemoVerification ? "Chấm công bằng chế độ demo" : "Chấm công thành công"}
             </div>
             {result?.pending ? (
               <p className="mt-1 text-sm">HR cần duyệt ảnh đăng ký trước khi bạn được dùng Face ID để chấm công.</p>
@@ -327,7 +336,10 @@ export default function FaceIDCheckin() {
                 {actionLabel} ghi nhận lúc {result.checkTime} ngày {formatDisplayDate(result.workDate)}.
               </p>
             )}
-            {confidence ? <p className="mt-1 text-xs text-emerald-700">AWS Rekognition similarity {confidence}%</p> : null}
+            {isDemoVerification ? (
+              <p className="mt-1 text-xs text-emerald-700">AWS Rekognition chưa cấu hình, hệ thống đã dùng trạng thái HR duyệt Face ID để ghi nhận demo.</p>
+            ) : null}
+            {confidence && !isDemoVerification ? <p className="mt-1 text-xs text-emerald-700">{providerLabel} similarity {confidence}%</p> : null}
           </div>
         ) : null}
 

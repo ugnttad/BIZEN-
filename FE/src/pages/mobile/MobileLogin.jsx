@@ -65,15 +65,15 @@ export default function MobileLogin() {
       <section className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col justify-between overflow-hidden bg-white/90 p-6 shadow-2xl shadow-slate-950/10 backdrop-blur-xl sm:min-h-[860px] sm:rounded-[30px] sm:border sm:border-white/70">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-teal-400 to-amber-400" />
         <div>
-          <div className="flex items-center gap-3">
+          <Link to="/" className="group flex w-fit items-center gap-3 rounded-xl">
             <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
               <Building2 className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-2xl font-semibold tracking-normal text-slate-950">BIZEN</p>
+              <p className="text-2xl font-semibold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
               <p className="text-sm text-slate-500">Employee App</p>
             </div>
-          </div>
+          </Link>
 
           <div className="mt-14">
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">

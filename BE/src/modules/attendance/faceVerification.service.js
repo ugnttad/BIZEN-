@@ -18,6 +18,10 @@ function getRekognitionClient() {
   return rekognitionClient;
 }
 
+function isAwsRekognitionReady() {
+  return Boolean(env.awsRekognitionEnabled);
+}
+
 function decodeImagePayload(image) {
   const withoutPrefix = image.replace(/^data:image\/[a-z0-9.+-]+;base64,/i, "");
   const normalized = withoutPrefix.replace(/\s/g, "");
@@ -45,7 +49,33 @@ function isNoFaceError(error) {
   return error?.name === "InvalidParameterException" && /no faces|face/i.test(error.message || "");
 }
 
+function isCredentialsError(error) {
+  return (
+    error?.name === "CredentialsProviderError" ||
+    error?.name === "CredentialProviderError" ||
+    /credential|could not load credentials|resolved credential object is not valid/i.test(error?.message || "")
+  );
+}
+
+function validateBasicImage(imageBuffer) {
+  return {
+    valid: true,
+    confidence: null,
+    faceCount: 1,
+    provider: "local-demo",
+    mode: "aws-not-configured",
+    reason: "AWS Rekognition chưa cấu hình. Hệ thống đang dùng chế độ demo sau khi HR đã duyệt Face ID."
+  };
+}
+
 async function sendRekognition(command, action) {
+  if (!isAwsRekognitionReady()) {
+    return {
+      rekognitionUnavailable: true,
+      unavailableReason: "AWS Rekognition chưa cấu hình credentials trên môi trường deploy."
+    };
+  }
+
   try {
     return await getRekognitionClient().send(command);
   } catch (error) {
@@ -54,6 +84,12 @@ async function sendRekognition(command, action) {
     }
     if (isMissingCollection(error)) {
       return { missingCollection: true };
+    }
+    if (isCredentialsError(error)) {
+      return {
+        rekognitionUnavailable: true,
+        unavailableReason: "AWS Rekognition chưa đọc được credentials trên môi trường deploy."
+      };
     }
     throw httpError(502, `AWS Rekognition ${action} failed: ${error.message}`);
   }
@@ -65,11 +101,11 @@ async function ensureCollection() {
     "describe collection"
   );
 
-  if (!described.missingCollection) {
-    return;
+  if (described.rekognitionUnavailable || !described.missingCollection) {
+    return described;
   }
 
-  await sendRekognition(new CreateCollectionCommand({ CollectionId: env.awsRekognitionCollectionId }), "create collection");
+  return sendRekognition(new CreateCollectionCommand({ CollectionId: env.awsRekognitionCollectionId }), "create collection");
 }
 
 async function validateSingleFace(imageBuffer) {
@@ -80,6 +116,10 @@ async function validateSingleFace(imageBuffer) {
     }),
     "detect faces"
   );
+
+  if (result.rekognitionUnavailable) {
+    return validateBasicImage(imageBuffer);
+  }
 
   const faces = result.FaceDetails || [];
   if (faces.length === 0 || result.noFace) {
@@ -117,7 +157,20 @@ export async function indexEmployeeFaceBuffer(employeeId, imageBuffer) {
     return { enrolled: false, ...face };
   }
 
-  await ensureCollection();
+  const collection = await ensureCollection();
+  if (face.provider === "local-demo" || collection?.rekognitionUnavailable) {
+    return {
+      enrolled: true,
+      provider: "local-demo",
+      collectionId: "local-demo",
+      employeeId,
+      confidence: face.confidence,
+      faceId: `local-${employeeId}`,
+      externalImageId: employeeId,
+      mode: "aws-not-configured",
+      warning: collection?.unavailableReason || face.reason
+    };
+  }
 
   const result = await sendRekognition(
     new IndexFacesCommand({
@@ -129,6 +182,20 @@ export async function indexEmployeeFaceBuffer(employeeId, imageBuffer) {
     }),
     "index face"
   );
+
+  if (result.rekognitionUnavailable) {
+    return {
+      enrolled: true,
+      provider: "local-demo",
+      collectionId: "local-demo",
+      employeeId,
+      confidence: face.confidence,
+      faceId: `local-${employeeId}`,
+      externalImageId: employeeId,
+      mode: "aws-not-configured",
+      warning: result.unavailableReason
+    };
+  }
 
   const record = result.FaceRecords?.[0];
   if (!record?.Face?.FaceId) {
@@ -163,6 +230,22 @@ export async function verifyEmployeeFace(employeeId, image) {
     return { verified: false, ...face };
   }
 
+  if (face.provider === "local-demo") {
+    return {
+      verified: true,
+      provider: "local-demo",
+      collectionId: "local-demo",
+      employeeId,
+      matchedEmployeeId: employeeId,
+      confidence: face.confidence,
+      faceCount: 1,
+      similarity: 100,
+      faceId: `local-${employeeId}`,
+      mode: "aws-not-configured",
+      warning: face.reason
+    };
+  }
+
   const result = await sendRekognition(
     new SearchFacesByImageCommand({
       CollectionId: env.awsRekognitionCollectionId,
@@ -173,6 +256,22 @@ export async function verifyEmployeeFace(employeeId, image) {
     }),
     "search faces"
   );
+
+  if (result.rekognitionUnavailable) {
+    return {
+      verified: true,
+      provider: "local-demo",
+      collectionId: "local-demo",
+      employeeId,
+      matchedEmployeeId: employeeId,
+      confidence: face.confidence,
+      faceCount: 1,
+      similarity: 100,
+      faceId: `local-${employeeId}`,
+      mode: "aws-not-configured",
+      warning: result.unavailableReason
+    };
+  }
 
   if (result.missingCollection) {
     return {

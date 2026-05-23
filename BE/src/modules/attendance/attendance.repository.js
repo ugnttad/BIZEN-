@@ -108,7 +108,7 @@ export async function getApprovedFaceEnrollment(employeeId) {
       rekognition_face_id AS "rekognitionFaceId",
       rekognition_collection_id AS "rekognitionCollectionId"
      FROM face_enrollments
-     WHERE employee_id = $1 AND status = 'Approved' AND rekognition_face_id IS NOT NULL
+     WHERE employee_id = $1 AND status = 'Approved'
      ORDER BY reviewed_at DESC NULLS LAST, requested_at DESC
      LIMIT 1`,
     [employeeId]

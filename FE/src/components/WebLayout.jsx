@@ -6,6 +6,7 @@ import {
   Bell,
   Building2,
   CalendarCheck2,
+  ChevronDown,
   ChevronRight,
   Clock3,
   Command,
@@ -21,12 +22,14 @@ import {
   ShieldCheck,
   Sparkles,
   UserCheck,
+  UserRound,
   UsersRound,
   X
 } from "lucide-react";
 import Avatar from "./Avatar";
 import AiChat from "./AiChat";
-import { clearAuthSession, getAuthUser } from "../modules/auth/authStore";
+import { bizenApi } from "../modules/api/bizenApi";
+import { clearAuthSession, getAuthUser, getDefaultPathForRole } from "../modules/auth/authStore";
 
 const webNavItems = [
   { label: "Tổng quan", path: "/web/dashboard", icon: LayoutDashboard, roles: ["Admin", "HR", "Manager"] },
@@ -51,15 +54,37 @@ function getTitle(pathname) {
 
 export default function WebLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [alerts, setAlerts] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
   const user = getAuthUser();
   const visibleNavItems = webNavItems.filter((item) => item.roles.includes(user?.role));
   const title = getTitle(location.pathname);
+  const homePath = getDefaultPathForRole(user?.role);
 
   useEffect(() => {
     setMenuOpen(false);
+    setNotificationsOpen(false);
+    setProfileOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    let active = true;
+    bizenApi
+      .aiAlerts()
+      .then((items) => {
+        if (active) setAlerts(items.slice(0, 4));
+      })
+      .catch(() => {
+        if (active) setAlerts([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function logout() {
     clearAuthSession();
@@ -70,7 +95,7 @@ export default function WebLayout() {
     return (
       <>
         <Link
-          to="/"
+          to={homePath}
           className="group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-all duration-200 hover:bg-white hover:text-slate-950 hover:shadow-sm"
         >
           <span className="flex items-center gap-3">
@@ -123,7 +148,7 @@ export default function WebLayout() {
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-72" />
 
       <aside className="fixed inset-y-4 left-4 z-30 hidden w-72 rounded-2xl border border-white/70 bg-white/80 px-3 py-4 shadow-soft backdrop-blur-2xl lg:block">
-        <Link to="/" className="group flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-300 hover:bg-white hover:shadow-sm">
+        <Link to={homePath} className="group flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-300 hover:bg-white hover:shadow-sm">
           <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 transition duration-300 group-hover:scale-105 group-hover:bg-blue-600">
             <Building2 className="h-5 w-5" />
           </div>
@@ -175,7 +200,7 @@ export default function WebLayout() {
           <button className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" aria-label="Đóng menu" onClick={() => setMenuOpen(false)} />
           <aside className="animate-slide-over relative h-full w-[min(88vw,340px)] border-r border-white/70 bg-white px-4 py-4 shadow-2xl">
             <div className="flex items-center justify-between">
-              <Link to="/" className="flex items-center gap-3 rounded-xl">
+              <Link to={homePath} className="flex items-center gap-3 rounded-xl">
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-white">
                   <Building2 className="h-5 w-5" />
                 </span>
@@ -233,11 +258,98 @@ export default function WebLayout() {
                 <Sparkles className="h-4 w-4" />
                 AI
               </Link>
-              <button className="btn-motion relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50" aria-label="Thông báo">
-                <Bell className="h-4 w-4" />
-                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
-              </button>
-              <Avatar name={user?.name || "BIZEN"} size="sm" />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNotificationsOpen((value) => !value);
+                    setProfileOpen(false);
+                  }}
+                  className="btn-motion relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+                  aria-label="Thông báo"
+                  aria-expanded={notificationsOpen}
+                >
+                  <Bell className="h-4 w-4" />
+                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
+                </button>
+                {notificationsOpen ? (
+                  <div className="animate-panel-in absolute right-0 top-12 z-30 w-[min(86vw,360px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-950/10">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-950">Thông báo</p>
+                        <p className="text-xs text-slate-500">Tín hiệu vận hành mới nhất</p>
+                      </div>
+                      <span className="rounded-full bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700">{alerts.length || 0}</span>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {alerts.length ? (
+                        alerts.map((alert) => (
+                          <Link key={alert.id} to="/web/reports" className="block rounded-xl border border-slate-100 bg-slate-50 p-3 hover:border-blue-200 hover:bg-blue-50">
+                            <p className="text-sm font-bold text-slate-950">{alert.title}</p>
+                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{alert.detail}</p>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+                          Chưa có thông báo mới. Khi có cảnh báo AI hoặc việc HR cần xử lý, chúng sẽ hiện ở đây.
+                        </div>
+                      )}
+                    </div>
+                    <Link to="/web/assistant" className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white hover:bg-blue-600">
+                      <Sparkles className="h-4 w-4" />
+                      Mở trợ lý AI
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen((value) => !value);
+                    setNotificationsOpen(false);
+                  }}
+                  className="flex items-center gap-2 rounded-xl border border-transparent p-1 pr-2 transition hover:border-slate-200 hover:bg-white"
+                  aria-label="Mở menu hồ sơ"
+                  aria-expanded={profileOpen}
+                >
+                  <Avatar name={user?.name || "BIZEN"} size="sm" />
+                  <ChevronDown className={`hidden h-4 w-4 text-slate-400 transition sm:block ${profileOpen ? "rotate-180" : ""}`} />
+                </button>
+                {profileOpen ? (
+                  <div className="animate-panel-in absolute right-0 top-12 z-30 w-[min(86vw,280px)] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-950/10">
+                    <div className="px-3 py-3">
+                      <p className="truncate text-sm font-bold text-slate-950">{user?.name || "BIZEN User"}</p>
+                      <p className="truncate text-xs text-slate-500">{user?.email || user?.role}</p>
+                    </div>
+                    <div className="border-t border-slate-100 py-2">
+                      <Link to={homePath} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                        <Home className="h-4 w-4" />
+                        Trang chủ
+                      </Link>
+                      {user?.role === "Admin" ? (
+                        <Link to="/web/settings" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                          <Settings className="h-4 w-4" />
+                          Cài đặt tài khoản
+                        </Link>
+                      ) : null}
+                      <Link to="/web/assistant" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                        <UserRound className="h-4 w-4" />
+                        Trợ lý / hồ sơ
+                      </Link>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-50"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </header>

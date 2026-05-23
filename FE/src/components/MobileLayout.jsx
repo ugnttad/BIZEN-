@@ -1,8 +1,9 @@
-import { Link, Navigate, NavLink, Outlet } from "react-router-dom";
-import { Bell, CalendarDays, CreditCard, Home, ScanFace, UserRound } from "lucide-react";
+import { useState } from "react";
+import { Link, Navigate, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Bell, CalendarDays, ChevronDown, CreditCard, Home, LogOut, ScanFace, UserRound } from "lucide-react";
 import Avatar from "./Avatar";
 import AiChat from "./AiChat";
-import { getFirstName, getMobileEmployeeSession } from "../modules/auth/mobileSession";
+import { clearMobileEmployeeSession, getFirstName, getMobileEmployeeSession } from "../modules/auth/mobileSession";
 
 const mobileNav = [
   { label: "Home", path: "/mobile/home", icon: Home },
@@ -13,10 +14,17 @@ const mobileNav = [
 ];
 
 export default function MobileLayout() {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const navigate = useNavigate();
   const employee = getMobileEmployeeSession();
 
   if (!employee?.id) {
     return <Navigate to="/mobile/login" replace />;
+  }
+
+  function logout() {
+    clearMobileEmployeeSession();
+    navigate("/mobile/login", { replace: true });
   }
 
   return (
@@ -39,7 +47,44 @@ export default function MobileLayout() {
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
               </NavLink>
-              <Avatar name={employee.name || employee.id} size="sm" />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setProfileOpen((value) => !value)}
+                  className="flex items-center gap-1 rounded-xl border border-transparent p-1 transition hover:border-slate-200 hover:bg-white"
+                  aria-label="Mở menu hồ sơ"
+                  aria-expanded={profileOpen}
+                >
+                  <Avatar name={employee.name || employee.id} size="sm" />
+                  <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition ${profileOpen ? "rotate-180" : ""}`} />
+                </button>
+                {profileOpen ? (
+                  <div className="animate-panel-in absolute right-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 text-left shadow-2xl shadow-slate-950/10">
+                    <div className="px-3 py-3">
+                      <p className="truncate text-sm font-bold text-slate-950">{employee.name || employee.id}</p>
+                      <p className="truncate text-xs text-slate-500">{employee.email || "Employee"}</p>
+                    </div>
+                    <div className="border-t border-slate-100 py-2">
+                      <Link to="/mobile/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                        <UserRound className="h-4 w-4" />
+                        Hồ sơ cá nhân
+                      </Link>
+                      <Link to="/mobile/notifications" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                        <Bell className="h-4 w-4" />
+                        Thông báo
+                      </Link>
+                      <Link to="/mobile/home" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                        <Home className="h-4 w-4" />
+                        Trang chủ
+                      </Link>
+                    </div>
+                    <button type="button" onClick={logout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-rose-700 hover:bg-rose-50">
+                      <LogOut className="h-4 w-4" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </header>

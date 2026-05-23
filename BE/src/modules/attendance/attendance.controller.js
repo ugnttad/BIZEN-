@@ -126,12 +126,17 @@ export async function faceCheckinHandler(req, res) {
     totalHours: event.totalHours,
     status: event.status,
     location: payload.location || "Mobile app",
-    note: `AWS Rekognition face match ${Math.round(face.similarity)}%`
+    note:
+      face.provider === "local-demo"
+        ? "Face ID demo mode: AWS Rekognition is not configured"
+        : `AWS Rekognition face match ${Math.round(face.similarity)}%`
   });
 
   res.status(201).json({
     verified: true,
-    provider: "aws-rekognition",
+    provider: face.provider || "aws-rekognition",
+    mode: face.mode,
+    warning: face.warning,
     action: event.action,
     employeeId: payload.employeeId,
     employeeName: context.employeeName,
@@ -144,7 +149,9 @@ export async function faceCheckinHandler(req, res) {
       matchedEmployeeId: face.matchedEmployeeId,
       collectionId: face.collectionId,
       faceId: face.faceId,
-      faceCount: face.faceCount
+      faceCount: face.faceCount,
+      provider: face.provider || "aws-rekognition",
+      mode: face.mode
     }
   });
 }

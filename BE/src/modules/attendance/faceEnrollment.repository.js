@@ -76,7 +76,7 @@ export async function getLatestFaceEnrollment(employeeId, companyId = null) {
 export async function getApprovedFaceEnrollment(employeeId) {
   const result = await query(
     `${enrollmentSelect}
-     WHERE fe.employee_id = $1 AND fe.status = 'Approved' AND fe.rekognition_face_id IS NOT NULL
+     WHERE fe.employee_id = $1 AND fe.status = 'Approved'
      ORDER BY fe.reviewed_at DESC NULLS LAST, fe.requested_at DESC
      LIMIT 1`,
     [employeeId]
