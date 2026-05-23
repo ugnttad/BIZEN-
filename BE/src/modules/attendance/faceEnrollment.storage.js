@@ -1,6 +1,7 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { query } from "../../config/db.js";
 import { httpError } from "../../shared/httpError.js";
 
 const storageRoot = resolve(process.cwd(), "storage", "face-enrollments");
@@ -35,14 +36,28 @@ export async function storeFaceEnrollmentImage(image) {
   const { buffer, mimeType } = decodeImageDataUrl(image);
   const extension = mimeExtensions[mimeType] || ".jpg";
   const key = `${randomUUID()}${extension}`;
-  await mkdir(storageRoot, { recursive: true });
-  await writeFile(resolve(storageRoot, key), buffer);
+
+  await query(
+    `INSERT INTO face_enrollment_images (storage_key, image_data, mime_type, size_bytes)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (storage_key) DO UPDATE SET
+       image_data = EXCLUDED.image_data,
+       mime_type = EXCLUDED.mime_type,
+       size_bytes = EXCLUDED.size_bytes`,
+    [key, buffer, mimeType, buffer.length]
+  );
+
   return { key, mimeType, size: buffer.length };
 }
 
 export async function readFaceEnrollmentImage(key) {
   if (!key || extname(key) === "") {
     throw httpError(404, "Face image not found");
+  }
+
+  const result = await query("SELECT image_data FROM face_enrollment_images WHERE storage_key = $1", [key]);
+  if (result.rows[0]?.image_data) {
+    return Buffer.from(result.rows[0].image_data);
   }
 
   const path = resolve(storageRoot, key);

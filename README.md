@@ -54,6 +54,8 @@ npm run db:migrate --prefix BE
 npm run db:seed --prefix BE
 ```
 
+Run migration again after pulling deploy changes. It creates the database-backed Face ID image table used by Vercel serverless.
+
 ## Development
 
 Run backend:
@@ -79,4 +81,28 @@ Frontend: http://localhost:5173
 
 ```bash
 npm run build --prefix FE
+```
+
+## Vercel deployment
+
+This repo deploys the React app and the Express API together on Vercel.
+
+Set these Vercel environment variables:
+
+```text
+DATABASE_URL=postgresql://...
+GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+JWT_SECRET=replace-with-a-long-random-secret
+PASSWORD_LOGIN_SECRET=replace-this-login-password
+PLATFORM_ADMIN_EMAIL=platform@your-domain.com
+PLATFORM_ADMIN_PASSWORD=replace-with-a-strong-platform-password
+```
+
+Leave `VITE_API_URL` empty when frontend and backend are deployed in this same Vercel project. The frontend will call `/api` on the current domain. If the backend is deployed on a separate domain, set `VITE_API_URL` to that full API URL and set `CLIENT_ORIGINS` on the backend to the frontend domain.
+
+After deploy, verify the backend with:
+
+```text
+https://your-vercel-domain.vercel.app/api/health
 ```

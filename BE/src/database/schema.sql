@@ -203,6 +203,14 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_app_users_employee ON app_users(employee_id);
 CREATE INDEX IF NOT EXISTS idx_app_users_company_status ON app_users(company_id, status);
 
+CREATE TABLE IF NOT EXISTS face_enrollment_images (
+  storage_key TEXT PRIMARY KEY,
+  image_data BYTEA NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS face_enrollments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,

@@ -1,14 +1,40 @@
 import "dotenv/config";
 
+function parseOrigins(value) {
+  return (value || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map(toOrigin)
+    .filter(Boolean);
+}
+
+function toOrigin(value) {
+  if (!value) return "";
+
+  try {
+    const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+    return new URL(withProtocol).origin;
+  } catch {
+    return "";
+  }
+}
+
+const configuredClientOrigins = parseOrigins(process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "http://localhost:5173");
+const vercelClientOrigins = [
+  process.env.VERCEL_URL,
+  process.env.VERCEL_BRANCH_URL,
+  process.env.VERCEL_PROJECT_PRODUCTION_URL
+]
+  .map(toOrigin)
+  .filter(Boolean);
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 4000),
   databaseUrl: process.env.DATABASE_URL,
-  clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
-  clientOrigins: (process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  clientOrigin: configuredClientOrigins[0] || "http://localhost:5173",
+  clientOrigins: [...new Set([...configuredClientOrigins, ...vercelClientOrigins])],
   googleClientId: process.env.GOOGLE_CLIENT_ID,
   awsRegion: process.env.AWS_REGION || "ap-southeast-1",
   awsRekognitionCollectionId: process.env.AWS_REKOGNITION_COLLECTION_ID || "bizen-employees",

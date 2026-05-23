@@ -25,9 +25,23 @@ function isDevLanOrigin(origin) {
   }
 }
 
-function resolveCorsOrigin(origin, callback) {
-  if (!origin || env.clientOrigins.includes(origin) || isDevLanOrigin(origin)) {
-    callback(null, true);
+function isSameHostOrigin(origin, host) {
+  if (!origin || !host) return false;
+
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
+function resolveCorsOptions(req, callback) {
+  const origin = req.headers.origin;
+  const isAllowedOrigin =
+    !origin || isSameHostOrigin(origin, req.headers.host) || env.clientOrigins.includes(origin) || isDevLanOrigin(origin);
+
+  if (isAllowedOrigin) {
+    callback(null, { origin: true, credentials: true });
     return;
   }
 
@@ -38,16 +52,11 @@ export function createApp() {
   const app = express();
 
   app.use(helmet());
-  app.use(
-    cors({
-      origin: resolveCorsOrigin,
-      credentials: true
-    })
-  );
+  app.use(cors(resolveCorsOptions));
   app.use(express.json({ limit: "5mb" }));
   app.use(morgan("dev"));
 
-  app.get("/health", (_req, res) => {
+  app.get(["/health", "/api/health"], (_req, res) => {
     res.json({ ok: true, service: "bizen-backend" });
   });
 

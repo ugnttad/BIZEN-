@@ -23,7 +23,7 @@ function buildReply(text) {
   if (lower.includes("thiếu")) {
     return "Tôi chưa gọi được AI backend. Dashboard phòng ban đang dùng headcount thật từ Neon để xác định thiếu nhân sự.";
   }
-  return "Tôi chưa gọi được AI backend. Kiểm tra lại BE đang chạy ở port 4000 và cấu hình VITE_API_URL.";
+  return "Tôi chưa gọi được AI backend. Kiểm tra backend deploy, API URL và CORS.";
 }
 
 export default function AiChat({ compact = false }) {

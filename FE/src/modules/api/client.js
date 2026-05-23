@@ -1,21 +1,47 @@
 function resolveApiUrl() {
-  const configuredUrl = import.meta.env.VITE_API_URL;
+  const configuredUrl = normalizeApiUrl(import.meta.env.VITE_API_URL);
 
   if (typeof window === "undefined") {
-    return configuredUrl || "http://localhost:4000/api";
+    return configuredUrl || "/api";
   }
 
-  const { protocol, hostname } = window.location;
-  const isLanHost = hostname.startsWith("192.168.") || hostname.startsWith("10.") || /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+  const { protocol, hostname, origin } = window.location;
+  const isLocalBrowser = isLocalLikeHost(hostname);
 
-  if (isLanHost) {
+  if (configuredUrl && !(isLocalOnlyApiUrl(configuredUrl) && !isLocalBrowser)) {
+    return configuredUrl;
+  }
+
+  if (isLocalBrowser) {
     return `${protocol}//${hostname}:4000/api`;
   }
 
-  return configuredUrl || "http://localhost:4000/api";
+  return `${origin}/api`;
 }
 
 const API_URL = resolveApiUrl();
+
+function normalizeApiUrl(value) {
+  return value ? value.trim().replace(/\/+$/, "") : "";
+}
+
+function isLocalLikeHost(hostname) {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.startsWith("192.168.") ||
+    hostname.startsWith("10.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
+  );
+}
+
+function isLocalOnlyApiUrl(value) {
+  try {
+    return isLocalLikeHost(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+}
 
 async function request(path, options = {}) {
   const token = localStorage.getItem("bizen_auth_token");
@@ -30,7 +56,7 @@ async function request(path, options = {}) {
       ...options
     });
   } catch (error) {
-    throw new Error(`Cannot reach BIZEN API at ${API_URL}. Check backend port 4000 and CORS. ${error.message}`);
+    throw new Error(`Cannot reach BIZEN API at ${API_URL}. Check backend deployment, API URL, and CORS. ${error.message}`);
   }
 
   if (!response.ok) {
@@ -54,7 +80,7 @@ async function requestBlob(path, options = {}) {
       ...options
     });
   } catch (error) {
-    throw new Error(`Cannot reach BIZEN API at ${API_URL}. Check backend port 4000 and CORS. ${error.message}`);
+    throw new Error(`Cannot reach BIZEN API at ${API_URL}. Check backend deployment, API URL, and CORS. ${error.message}`);
   }
 
   if (!response.ok) {
