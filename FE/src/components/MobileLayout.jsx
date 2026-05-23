@@ -20,30 +20,38 @@ export default function MobileLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-0 py-0 sm:px-6 sm:py-8">
-      <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-slate-50 shadow-soft sm:min-h-[860px] sm:rounded-[28px] sm:border sm:border-slate-200">
-        <header className="flex items-center justify-between bg-white px-5 py-4">
-          <Link to="/mobile/home" className="group rounded-lg">
-            <p className="text-xs font-semibold uppercase tracking-normal text-blue-600">BIZEN Mobile</p>
-            <h1 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">Xin chào, {getFirstName(employee.name)}</h1>
-          </Link>
-          <div className="flex items-center gap-2">
-            <NavLink to="/mobile/notifications" className="relative grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-600" aria-label="Thông báo">
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500" />
-            </NavLink>
-            <Avatar name={employee.name || employee.id} size="sm" />
+    <div className="app-background min-h-screen px-0 py-0 sm:px-6 sm:py-8">
+      <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-64" />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-slate-50 shadow-2xl shadow-slate-950/10 sm:min-h-[860px] sm:rounded-[30px] sm:border sm:border-white/70">
+        <header className="relative overflow-hidden border-b border-white/70 bg-white/90 px-5 py-4 backdrop-blur-xl">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-teal-400 to-amber-400" />
+          <div className="relative flex items-center justify-between">
+            <Link to="/mobile/home" className="group min-w-0 rounded-lg">
+              <p className="text-xs font-bold uppercase tracking-normal text-blue-600">BIZEN Mobile</p>
+              <h1 className="truncate text-lg font-bold text-slate-950 transition-colors group-hover:text-blue-700">Xin chào, {getFirstName(employee.name)}</h1>
+            </Link>
+            <div className="flex items-center gap-2">
+              <NavLink
+                to="/mobile/notifications"
+                className="btn-motion relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+                aria-label="Thông báo"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
+              </NavLink>
+              <Avatar name={employee.name || employee.id} size="sm" />
+            </div>
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-24 pt-4 no-scrollbar animate-page-enter">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-28 pt-5 no-scrollbar animate-page-enter">
           <Outlet />
           <div className="mt-5">
             <AiChat compact />
           </div>
         </div>
 
-        <nav className="grid grid-cols-5 border-t border-slate-200 bg-white px-2 py-2">
+        <nav className="absolute inset-x-3 bottom-3 grid grid-cols-5 rounded-2xl border border-white/70 bg-white/90 p-1.5 shadow-2xl shadow-slate-950/10 backdrop-blur-xl">
           {mobileNav.map((item) => {
             const Icon = item.icon;
             return (
@@ -51,13 +59,13 @@ export default function MobileLayout() {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[11px] font-semibold transition-all duration-200 ${
-                    isActive ? "bg-blue-50 text-blue-700" : "text-slate-500"
+                  `flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-bold transition-all duration-200 ${
+                    isActive ? "bg-slate-950 text-white shadow-lg shadow-slate-950/10" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                   }`
                 }
               >
                 <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <span className="truncate">{item.label}</span>
               </NavLink>
             );
           })}

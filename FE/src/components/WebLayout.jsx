@@ -1,5 +1,29 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Bell, Building2, CalendarCheck2, ChevronRight, Clock3, CreditCard, FileText, Home, LayoutDashboard, LogOut, Menu, ScanFace, Search, Settings, Sparkles, UserCheck, UsersRound } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  Bell,
+  Building2,
+  CalendarCheck2,
+  ChevronRight,
+  Clock3,
+  Command,
+  CreditCard,
+  FileText,
+  Home,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  ScanFace,
+  Search,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  UserCheck,
+  UsersRound,
+  X
+} from "lucide-react";
 import Avatar from "./Avatar";
 import AiChat from "./AiChat";
 import { clearAuthSession, getAuthUser } from "../modules/auth/authStore";
@@ -26,99 +50,199 @@ function getTitle(pathname) {
 }
 
 export default function WebLayout() {
+  const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const user = getAuthUser();
   const visibleNavItems = webNavItems.filter((item) => item.roles.includes(user?.role));
   const title = getTitle(location.pathname);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   function logout() {
     clearAuthSession();
     navigate("/login", { replace: true });
   }
 
+  function renderNavItems() {
+    return (
+      <>
+        <Link
+          to="/"
+          className="group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-all duration-200 hover:bg-white hover:text-slate-950 hover:shadow-sm"
+        >
+          <span className="flex items-center gap-3">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-500 transition-colors group-hover:bg-slate-950 group-hover:text-white">
+              <Home className="h-4 w-4" />
+            </span>
+            Trang chủ
+          </span>
+          <ChevronRight className="h-3.5 w-3.5 opacity-40 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+
+        {visibleNavItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                  isActive
+                    ? "nav-item-active bg-white text-blue-700"
+                    : "text-slate-600 hover:bg-white hover:text-slate-950 hover:shadow-sm"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span className="flex items-center gap-3">
+                    <span
+                      className={`grid h-8 w-8 place-items-center rounded-lg transition-all duration-200 ${
+                        isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-slate-100 text-slate-500 group-hover:bg-slate-950 group-hover:text-white"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    {item.label}
+                  </span>
+                  <ChevronRight className={`h-3.5 w-3.5 opacity-40 transition-transform ${isActive ? "translate-x-0.5 opacity-80" : "group-hover:translate-x-0.5"}`} />
+                </>
+              )}
+            </NavLink>
+          );
+        })}
+      </>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 bg-white px-3 py-4 lg:block">
-        <Link to="/" className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-blue-50">
-          <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-white transition duration-300 group-hover:scale-105 group-hover:bg-blue-700">
+    <div className="app-background relative min-h-screen overflow-hidden">
+      <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-72" />
+
+      <aside className="fixed inset-y-4 left-4 z-30 hidden w-72 rounded-2xl border border-white/70 bg-white/80 px-3 py-4 shadow-soft backdrop-blur-2xl lg:block">
+        <Link to="/" className="group flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-300 hover:bg-white hover:shadow-sm">
+          <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 transition duration-300 group-hover:scale-105 group-hover:bg-blue-600">
             <Building2 className="h-5 w-5" />
           </div>
-          <div>
-            <p className="text-lg font-semibold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
-            <p className="text-xs text-slate-500">Cloud HR & Payroll</p>
+          <div className="min-w-0">
+            <p className="text-xl font-bold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
+            <p className="text-xs font-medium text-slate-500">Cloud HR & Payroll</p>
           </div>
         </Link>
 
-        <nav className="mt-6 space-y-1">
-          <Link
-            to="/"
-            className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
-          >
-            <span className="flex items-center gap-3">
-              <Home className="h-4 w-4" />
-              Trang chủ
+        <div className="mt-4 rounded-xl border border-slate-200/80 bg-white/70 p-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
             </span>
-            <ChevronRight className="h-3.5 w-3.5 opacity-50" />
-          </Link>
-          {visibleNavItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                    isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                  }`
-                }
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </span>
-                <ChevronRight className="h-3.5 w-3.5 opacity-50" />
-              </NavLink>
-            );
-          })}
-        </nav>
+            Live workspace
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-slate-950">BIZEN Đà Nẵng</p>
+              <p className="text-xs text-slate-500">{user?.role || "Workspace"} dashboard</p>
+            </div>
+            <ShieldCheck className="h-5 w-5 text-blue-600" />
+          </div>
+        </div>
 
-        <button
-          onClick={logout}
-          className="btn-motion absolute bottom-4 left-3 right-3 flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-3 text-sm font-medium text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-        >
-          <LogOut className="h-4 w-4" />
-          Đăng xuất
-        </button>
+        <nav className="mt-4 space-y-1.5">{renderNavItems()}</nav>
+
+        <div className="absolute bottom-4 left-3 right-3 space-y-3">
+          <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-3">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-normal text-blue-700">
+              <Activity className="h-4 w-4" />
+              AI ready
+            </div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Trợ lý có thể đọc dữ liệu chấm công, lịch ca và payroll.</p>
+          </div>
+          <button
+            onClick={logout}
+            className="btn-motion flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+          >
+            <LogOut className="h-4 w-4" />
+            Đăng xuất
+          </button>
+        </div>
       </aside>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:px-6">
-          <div className="flex items-center justify-between gap-3">
+      {menuOpen ? (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" aria-label="Đóng menu" onClick={() => setMenuOpen(false)} />
+          <aside className="animate-slide-over relative h-full w-[min(88vw,340px)] border-r border-white/70 bg-white px-4 py-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <Link to="/" className="flex items-center gap-3 rounded-xl">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-white">
+                  <Building2 className="h-5 w-5" />
+                </span>
+                <span>
+                  <span className="block text-lg font-bold text-slate-950">BIZEN</span>
+                  <span className="block text-xs font-medium text-slate-500">Cloud HR & Payroll</span>
+                </span>
+              </Link>
+              <button className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-600" onClick={() => setMenuOpen(false)} aria-label="Đóng menu">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="mt-6 space-y-1.5">{renderNavItems()}</nav>
+            <button
+              onClick={logout}
+              className="btn-motion mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+            >
+              <LogOut className="h-4 w-4" />
+              Đăng xuất
+            </button>
+          </aside>
+        </div>
+      ) : null}
+
+      <div className="relative lg:pl-[19rem]">
+        <header className="sticky top-0 z-20 px-3 py-3 md:px-6">
+          <div className="glass-panel mx-auto flex items-center justify-between gap-3 rounded-2xl px-3 py-3 md:px-4">
             <div className="flex min-w-0 items-center gap-3">
-              <button className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-600 lg:hidden" aria-label="Menu">
+              <button
+                className="btn-motion grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm lg:hidden"
+                aria-label="Mở menu"
+                onClick={() => setMenuOpen(true)}
+              >
                 <Menu className="h-5 w-5" />
               </button>
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-normal text-slate-500">BIZEN Đà Nẵng</p>
-                <h1 className="truncate text-lg font-semibold text-slate-950">{title}</h1>
+                <p className="text-xs font-bold uppercase tracking-normal text-blue-600">BIZEN Đà Nẵng</p>
+                <h1 className="truncate text-lg font-bold text-slate-950 md:text-xl">{title}</h1>
               </div>
             </div>
-            <div className="hidden min-w-[280px] max-w-sm flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:flex">
+
+            <label className="soft-focus hidden min-w-[280px] max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 md:flex">
               <Search className="h-4 w-4 text-slate-400" />
               <input className="w-full bg-transparent text-sm outline-none" placeholder="Tìm nhân viên, ca làm, bảng lương" />
-            </div>
+              <span className="hidden items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-bold text-slate-400 xl:inline-flex">
+                <Command className="h-3 w-3" /> K
+              </span>
+            </label>
+
             <div className="flex items-center gap-2">
-              <button className="relative grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100" aria-label="Thông báo">
+              <Link
+                to="/web/assistant"
+                className="btn-motion hidden items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white shadow-lg shadow-slate-950/10 hover:bg-blue-600 sm:inline-flex"
+              >
+                <Sparkles className="h-4 w-4" />
+                AI
+              </Link>
+              <button className="btn-motion relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50" aria-label="Thông báo">
                 <Bell className="h-4 w-4" />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500" />
+                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
               </button>
               <Avatar name={user?.name || "BIZEN"} size="sm" />
             </div>
           </div>
         </header>
 
-        <main className="grid gap-5 p-4 md:p-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <main className="grid gap-5 px-3 pb-6 pt-2 md:px-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 animate-page-enter">
             <Outlet />
           </div>

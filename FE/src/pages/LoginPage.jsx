@@ -66,11 +66,12 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="flex flex-col justify-between bg-white px-6 py-8 md:px-12">
+    <main className="app-background relative min-h-screen overflow-hidden">
+      <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-80" />
+      <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="flex flex-col justify-between bg-white/70 px-6 py-8 backdrop-blur-xl md:px-12">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-lg bg-blue-600 text-white">
+            <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
               <Building2 className="h-6 w-6" />
             </div>
             <div>
@@ -92,7 +93,7 @@ export default function LoginPage() {
             </p>
             <div className="mt-8 grid gap-3">
               {accessHighlights.map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-lg border border-slate-200 p-4">
+                <div key={item} className="motion-card flex items-center gap-3 rounded-xl border border-slate-200 bg-white/70 p-4 hover:border-blue-200 hover:shadow-soft">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                   <p className="text-sm font-semibold text-slate-700">{item}</p>
                 </div>
@@ -104,7 +105,7 @@ export default function LoginPage() {
         </section>
 
         <section className="flex items-center justify-center px-6 py-10">
-          <form onSubmit={submit} className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-soft">
+          <form onSubmit={submit} className="premium-card w-full max-w-md rounded-2xl p-6">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold tracking-normal text-slate-950">Đăng nhập BIZEN</h2>
               <p className="mt-2 text-sm text-slate-500">Admin/HR/Manager → web · Nhân viên → mobile · Chủ nền tảng BIZEN → duyệt doanh nghiệp.</p>
@@ -123,7 +124,7 @@ export default function LoginPage() {
 
             <label className="block text-sm font-medium text-slate-700">
               Email
-              <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+              <span className="soft-focus mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                 <UserRound className="h-4 w-4 text-slate-400" />
                 <input value={email} onChange={(event) => setEmail(event.target.value)} className="w-full outline-none" placeholder="name@company.com" />
               </span>
@@ -131,7 +132,7 @@ export default function LoginPage() {
 
             <label className="mt-4 block text-sm font-medium text-slate-700">
               Mật khẩu
-              <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+              <span className="soft-focus mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                 <LockKeyhole className="h-4 w-4 text-slate-400" />
                 <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full outline-none" />
               </span>
@@ -139,7 +140,7 @@ export default function LoginPage() {
 
             {error ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p> : null}
 
-            <button type="submit" disabled={loading} className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300">
+            <button type="submit" disabled={loading} className="btn-motion mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:bg-slate-300">
               {loading ? "Đang đăng nhập" : "Vào hệ thống"}
             </button>
 
@@ -151,7 +152,7 @@ export default function LoginPage() {
 
             <GoogleLoginButton onSuccess={handleGoogleSuccess} />
 
-            <details className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <details className="mt-6 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
               <summary className="cursor-pointer text-sm font-semibold text-slate-700">Luồng SaaS (3 tính năng demo)</summary>
               <div className="mt-3 space-y-3">
                 {mvpDemoFeatures.map((feature) => (

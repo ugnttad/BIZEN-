@@ -78,11 +78,11 @@ export default function EmployeeHome() {
   }, [employeeId, todayDisplay]);
 
   if (error) {
-    return <section className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</section>;
+    return <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">{error}</section>;
   }
 
   if (!employee || !attendance) {
-    return <section className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải dữ liệu nhân viên…</section>;
+    return <section className="premium-card rounded-2xl p-4 text-sm text-slate-500">Đang tải dữ liệu nhân viên…</section>;
   }
 
   const salaryLabel = payroll?.isEstimate ? "Lương tạm tính" : "Lương tháng này";
@@ -90,29 +90,30 @@ export default function EmployeeHome() {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg bg-slate-950 p-5 text-white">
+      <section className="relative overflow-hidden rounded-2xl bg-slate-950 p-5 text-white shadow-2xl shadow-slate-950/20">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-teal-300 to-amber-300" />
         <p className="text-sm text-blue-100">Hôm nay · {todayDisplay}</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-normal">{shift?.name || "Chưa xếp ca"}</h2>
         <p className="mt-1 text-sm text-slate-300">{shift?.time || "Liên hệ quản lý ca"}</p>
-        <div className="mt-4 flex items-center justify-between rounded-lg bg-white/10 px-3 py-2">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/10 px-3 py-2 backdrop-blur">
           <span className="text-sm text-slate-200">{attendance.checkIn === "-" ? "Bạn chưa check-in" : `Check-in ${attendance.checkIn}`}</span>
           <StatusBadge status={attendance.status} />
         </div>
-        <Link to="/mobile/checkin" className="mt-5 flex items-center justify-center gap-2 rounded-lg bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-400">
+        <Link to="/mobile/checkin" className="btn-motion mt-5 flex items-center justify-center gap-2 rounded-xl bg-blue-500 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/25 hover:bg-blue-400">
           <ScanFace className="h-5 w-5" />
           Chấm công Face ID
         </Link>
       </section>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="premium-card rounded-2xl p-4">
           <CreditCard className="h-5 w-5 text-blue-600" />
           <p className="mt-3 text-xs font-medium text-slate-500">{salaryLabel}</p>
           <p className="mt-1 text-lg font-semibold text-slate-950">{salaryValue}</p>
           {payroll?.isEstimate ? <p className="mt-1 text-xs text-amber-700">HR chưa chốt bảng lương — số liệu từ công + BH</p> : null}
           {!payroll ? <p className="mt-1 text-xs text-slate-500">HR sẽ tính lương trên web</p> : null}
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div className="premium-card rounded-2xl p-4">
           <Umbrella className="h-5 w-5 text-violet-600" />
           <p className="mt-3 text-xs font-medium text-slate-500">Phép còn lại</p>
           <p className="mt-1 text-lg font-semibold text-slate-950">{employee.leaveRemaining} ngày</p>
@@ -120,12 +121,12 @@ export default function EmployeeHome() {
       </div>
 
       {shift ? (
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
+        <section className="premium-card rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-slate-950">Lịch hôm nay</h2>
             <CalendarDays className="h-5 w-5 text-slate-400" />
           </div>
-          <div className="mt-4 rounded-lg bg-blue-50 p-3">
+          <div className="mt-4 rounded-xl bg-blue-50 p-3 ring-1 ring-blue-100">
             <p className="font-semibold text-blue-900">{shift.name}</p>
             <p className="mt-1 text-sm text-blue-700">
               {shift.time} · {employee.department}
@@ -134,10 +135,10 @@ export default function EmployeeHome() {
         </section>
       ) : null}
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
+      <section className="premium-card rounded-2xl p-4">
         <Link to="/mobile/attendance" className="flex items-center justify-between">
           <span className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-slate-100 text-slate-600">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-600 ring-1 ring-slate-200">
               <Clock3 className="h-5 w-5" />
             </span>
             <span>
@@ -151,7 +152,7 @@ export default function EmployeeHome() {
         </Link>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
+      <section className="premium-card rounded-2xl p-4">
         <Link to="/mobile/leave" className="flex items-center justify-between">
           <span>
             <span className="block font-semibold text-slate-950">Gửi đơn nghỉ phép</span>

@@ -10,30 +10,42 @@ const toneStyles = {
   slate: "bg-slate-100 text-slate-700 ring-slate-200"
 };
 
+const toneBars = {
+  blue: "from-blue-600 via-sky-400 to-teal-300",
+  violet: "from-violet-600 via-fuchsia-400 to-blue-400",
+  emerald: "from-emerald-500 via-teal-400 to-sky-400",
+  amber: "from-amber-500 via-orange-400 to-rose-400",
+  rose: "from-rose-500 via-pink-400 to-amber-300",
+  slate: "from-slate-700 via-slate-400 to-slate-200"
+};
+
 export default function StatCard({ title, value, helper, icon: Icon, tone = "blue", trend }) {
   const isDown = trend?.startsWith("-");
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-normal text-slate-950">{value}</p>
-        </div>
-        {Icon ? (
-          <div className={cn("grid h-10 w-10 place-items-center rounded-lg ring-1", toneStyles[tone])}>
-            <Icon className="h-5 w-5" />
+    <section className="premium-card group rounded-2xl p-4">
+      <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", toneBars[tone] || toneBars.blue)} />
+      <div className="relative z-10">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-500">{title}</p>
+            <p className="mt-2 truncate text-2xl font-bold tracking-normal text-slate-950">{value}</p>
           </div>
-        ) : null}
-      </div>
-      <div className="mt-3 flex min-h-5 items-center gap-2 text-xs text-slate-500">
-        {trend ? (
-          <span className={cn("inline-flex items-center gap-1 font-semibold", isDown ? "text-rose-600" : "text-emerald-600")}>
-            {isDown ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
-            {trend}
-          </span>
-        ) : null}
-        <span>{helper}</span>
+          {Icon ? (
+            <div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-xl ring-1 transition-transform duration-300 group-hover:scale-105", toneStyles[tone])}>
+              <Icon className="h-5 w-5" />
+            </div>
+          ) : null}
+        </div>
+        <div className="mt-4 flex min-h-5 items-center gap-2 text-xs text-slate-500">
+          {trend ? (
+            <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 font-bold", isDown ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600")}>
+              {isDown ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
+              {trend}
+            </span>
+          ) : null}
+          <span className="min-w-0 truncate">{helper}</span>
+        </div>
       </div>
     </section>
   );

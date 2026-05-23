@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import {
+  Activity,
   AlertTriangle,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   CreditCard,
+  Sparkles,
   TrendingUp,
   UserCheck,
   UsersRound
@@ -27,6 +30,11 @@ import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 const colors = ["#2563eb", "#6d5dfc", "#0891b2", "#10b981", "#f59e0b"];
+const tooltipStyle = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 12,
+  boxShadow: "0 18px 55px rgba(15, 23, 42, 0.12)"
+};
 
 function formatDisplayDate(date = new Date()) {
   return new Intl.DateTimeFormat("vi-VN", {
@@ -48,6 +56,8 @@ export default function AdminDashboard() {
   }, []);
 
   const payrollShort = `${Math.round((summary.payrollTotal || 0) / 1000000)} triệu`;
+  const attendanceRate = summary.employees ? Math.round((summary.checkedIn / summary.employees) * 100) : 0;
+  const alertCount = summary.aiAlerts.length;
   const departmentHeadcount = summary.departments.map((item, index) => ({
     ...item,
     productivity: [88, 92, 84, 89, 86][index] || 85,
@@ -61,11 +71,47 @@ export default function AdminDashboard() {
         title="Tổng quan vận hành hôm nay"
         description={`Dữ liệu vận hành ngày ${formatDisplayDate()} cho doanh nghiệp SME tại Đà Nẵng.`}
         actions={
-          <button className="rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+          <button className="btn-motion rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 hover:bg-blue-600">
             Xuất báo cáo nhanh
           </button>
         }
       />
+
+      <div className="mb-5 grid gap-3 lg:grid-cols-3">
+        <div className="premium-card rounded-2xl p-4">
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-normal text-slate-500">Attendance health</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">{attendanceRate}% nhân sự đã check-in hôm nay</p>
+            </div>
+          </div>
+        </div>
+        <div className="premium-card rounded-2xl p-4">
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-normal text-slate-500">AI signal</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">{alertCount} cảnh báo cần HR xem nhanh</p>
+            </div>
+          </div>
+        </div>
+        <div className="premium-card rounded-2xl p-4">
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+              <Activity className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-normal text-slate-500">Payroll pulse</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">Dự kiến {payrollShort} cho kỳ tháng 05/2026</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard title="Tổng nhân viên" value={summary.employees} helper={`${departmentHeadcount.length} phòng ban`} icon={UsersRound} tone="blue" trend="+2" />
@@ -76,7 +122,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="mt-5 grid gap-5 2xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="premium-card rounded-2xl p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-slate-950">Chấm công theo tuần</h2>
@@ -90,8 +136,8 @@ export default function AdminDashboard() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="day" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
-                <Tooltip />
-                <Bar dataKey="present" stackId="a" fill="#2563eb" radius={[6, 6, 0, 0]} name="Đúng giờ" />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(37, 99, 235, 0.06)" }} />
+                <Bar dataKey="present" stackId="a" fill="#2563eb" radius={[8, 8, 0, 0]} name="Đúng giờ" />
                 <Bar dataKey="late" stackId="a" fill="#f59e0b" name="Đi trễ" />
                 <Bar dataKey="leave" stackId="a" fill="#6d5dfc" name="Nghỉ phép" />
                 <Bar dataKey="absent" stackId="a" fill="#ef4444" name="Vắng" />
@@ -100,7 +146,7 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="premium-card rounded-2xl p-4">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold text-slate-950">Chi phí lương</h2>
@@ -120,7 +166,7 @@ export default function AdminDashboard() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${value / 1000000}tr`} />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(value) => formatCurrency(value)} />
                 <Area type="monotone" dataKey="payroll" stroke="#2563eb" strokeWidth={3} fill="url(#payrollFill)" name="Lương" />
                 <Area type="monotone" dataKey="overtime" stroke="#6d5dfc" strokeWidth={2} fill="transparent" name="OT" />
               </AreaChart>
@@ -130,11 +176,11 @@ export default function AdminDashboard() {
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="premium-card rounded-2xl p-4">
           <h2 className="text-base font-semibold text-slate-950">Cảnh báo AI</h2>
           <div className="mt-4 space-y-3">
             {summary.aiAlerts.map((alert) => (
-              <div key={alert.id} className="flex gap-3 rounded-lg border border-slate-200 p-3">
+              <div key={alert.id} className="motion-card flex gap-3 rounded-xl border border-slate-200 bg-white/70 p-3 hover:border-blue-200">
                 <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${alert.type === "danger" ? "bg-rose-50 text-rose-600" : alert.type === "warning" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>
                   <AlertTriangle className="h-4 w-4" />
                 </div>
@@ -147,7 +193,7 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="premium-card rounded-2xl p-4">
           <div className="mb-4">
             <h2 className="text-base font-semibold text-slate-950">Nhân sự theo phòng ban</h2>
             <p className="text-sm text-slate-500">Headcount và hiệu suất dự kiến</p>
@@ -158,7 +204,7 @@ export default function AdminDashboard() {
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                 <XAxis type="number" axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="department" axisLine={false} tickLine={false} width={92} />
-                <Tooltip />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(15, 23, 42, 0.04)" }} />
                 <Bar dataKey="employees" name="Nhân viên" radius={[0, 8, 8, 0]}>
                   {departmentHeadcount.map((_, index) => (
                     <Cell key={index} fill={colors[index % colors.length]} />
