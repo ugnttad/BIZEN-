@@ -2,6 +2,7 @@ import { z } from "zod";
 import { httpError } from "../../shared/httpError.js";
 import { isStrongPassword, isVietnamPhone, normalizeEmail, normalizePhone } from "../../shared/validation.js";
 import { hashPassword } from "../auth/password.service.js";
+import { buildCompanyApprovedEmail, sendMail } from "../mail/mail.service.js";
 import { createCompanyAccessRequest, findCompanyAccessConflict, listCompanyAccessRequests, reviewCompanyAccessRequest } from "./tenants.repository.js";
 
 const companyAccessRequestSchema = z.object({
@@ -56,5 +57,14 @@ export async function reviewCompanyAccessRequestHandler(req, res) {
   });
 
   if (!reviewed) throw httpError(404, "Company request not found");
+  if (reviewed.status === "Approved") {
+    await sendMail({
+      to: reviewed.contactEmail,
+      ...buildCompanyApprovedEmail({
+        ownerName: reviewed.contactName,
+        companyName: reviewed.companyName
+      })
+    });
+  }
   res.json(reviewed);
 }

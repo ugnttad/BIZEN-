@@ -5,6 +5,7 @@ import { normalizeEmail } from "../../shared/validation.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
 import { updateEmployeeAccountProfile, upsertPasswordUser } from "../auth/auth.repository.js";
 import { hashPassword } from "../auth/password.service.js";
+import { buildEmployeeCreatedEmail, sendMail } from "../mail/mail.service.js";
 import { createEmployee, deleteEmployee, getEmployeeById, listEmployees, updateEmployee } from "./employees.repository.js";
 
 const employeeSchema = z.object({
@@ -88,6 +89,11 @@ async function getDepartmentName(companyId, departmentId) {
   const result = await query("SELECT name FROM departments WHERE id = $1 AND company_id = $2", [departmentId, companyId]);
   if (!result.rows[0]) throw httpError(400, "Bộ phận làm việc không hợp lệ");
   return result.rows[0].name;
+}
+
+async function getCompanyName(companyId) {
+  const result = await query("SELECT name FROM companies WHERE id = $1 LIMIT 1", [companyId]);
+  return result.rows[0]?.name || "doanh nghiệp";
 }
 
 async function assertEmailAvailable(email, currentEmployeeId = null) {
@@ -228,6 +234,13 @@ export async function createEmployeeHandler(req, res) {
     const employee = await createEmployee(companyId, data);
     if (data.accountPassword) {
       await upsertPasswordUser(companyId, employee, hashPassword(data.accountPassword), "Approved");
+      await sendMail({
+        to: employee.email,
+        ...buildEmployeeCreatedEmail({
+          employeeName: employee.name,
+          companyName: await getCompanyName(companyId)
+        })
+      });
     }
     res.status(201).json(employee);
   } catch (error) {

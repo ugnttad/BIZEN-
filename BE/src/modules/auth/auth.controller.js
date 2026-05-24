@@ -17,6 +17,7 @@ import {
 } from "./auth.repository.js";
 import { getPlatformAdminUser, isPlatformAdminCredentials, isPlatformAdminTokenPayload } from "./platformAdmin.js";
 import { hashPassword, verifyPassword } from "./password.service.js";
+import { buildEmployeeApprovedEmail, buildEmployeeRequestEmail, sendMail } from "../mail/mail.service.js";
 
 const googleLoginSchema = z.object({
   credential: z.string().min(20)
@@ -58,6 +59,12 @@ function assertSupportedTenantRole(user) {
   if (user.role && !["Admin", "Employee"].includes(user.role)) {
     throw httpError(403, "BIZEN MVP hiện chỉ hỗ trợ quyền Chủ sở hữu hoặc Nhân viên. Chủ sở hữu cần chuyển tài khoản này về quyền phù hợp.");
   }
+}
+
+async function getCompanyName(companyId) {
+  if (!companyId) return "doanh nghiệp";
+  const result = await query("SELECT name FROM companies WHERE id = $1 LIMIT 1", [companyId]);
+  return result.rows[0]?.name || "doanh nghiệp";
 }
 
 export async function googleLoginHandler(req, res) {
@@ -189,6 +196,13 @@ export async function requestEmployeeAccountHandler(req, res) {
   }
 
   const user = await createEmployeeAccountRequest(employee, hashPassword(data.password));
+  await sendMail({
+    to: user.email,
+    ...buildEmployeeRequestEmail({
+      employeeName: user.name,
+      companyName: await getCompanyName(user.companyId)
+    })
+  });
   res.status(user.status === "Approved" ? 200 : 201).json(user);
 }
 
@@ -212,6 +226,15 @@ export async function reviewAccountRequestHandler(req, res) {
 
   const user = await reviewAccountRequest(req.user.companyId, req.params.id, data.status);
   if (!user) throw httpError(404, "Account request not found");
+  if (user.status === "Approved") {
+    await sendMail({
+      to: user.email,
+      ...buildEmployeeApprovedEmail({
+        employeeName: user.name,
+        companyName: await getCompanyName(user.companyId)
+      })
+    });
+  }
 
   res.json(user);
 }

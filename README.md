@@ -97,6 +97,12 @@ JWT_SECRET=replace-with-a-long-random-secret
 PASSWORD_LOGIN_SECRET=replace-this-login-password
 PLATFORM_ADMIN_EMAIL=platform@your-domain.com
 PLATFORM_ADMIN_PASSWORD=replace-with-a-strong-platform-password
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-sender@gmail.com
+SMTP_PASS=your-app-password
+MAIL_FROM="BIZEN <your-sender@gmail.com>"
 ```
 
 Leave `VITE_API_URL` empty when frontend and backend are deployed in this same Vercel project. The frontend will call `/api` on the current domain. If the backend is deployed on a separate domain, set `VITE_API_URL` to that full API URL and set `CLIENT_ORIGINS` on the backend to the frontend domain.

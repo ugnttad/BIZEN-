@@ -46,6 +46,7 @@ const awsRekognitionEnabled =
     : awsRekognitionEnabledValue === "false" || awsRekognitionEnabledValue === "0"
       ? false
       : hasAwsStaticCredentials || hasAwsProviderCredentials;
+const smtpSecureValue = (process.env.SMTP_SECURE || "").trim().toLowerCase();
 
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
@@ -61,6 +62,12 @@ export const env = {
   awsRekognitionFaceMinConfidence: Number(process.env.AWS_REKOGNITION_FACE_MIN_CONFIDENCE || 90),
   openaiApiKey: process.env.OPENAI_API_KEY,
   openaiModel: process.env.OPENAI_MODEL || "gpt-5-mini",
+  smtpHost: process.env.SMTP_HOST || "",
+  smtpPort: Number(process.env.SMTP_PORT || 587),
+  smtpSecure: smtpSecureValue === "true" || smtpSecureValue === "1",
+  smtpUser: process.env.SMTP_USER || "",
+  smtpPass: process.env.SMTP_PASS || "",
+  mailFrom: process.env.MAIL_FROM || process.env.SMTP_USER || "BIZEN <no-reply@bizen.vn>",
   businessTimeZone: process.env.BUSINESS_TIME_ZONE || "Asia/Ho_Chi_Minh",
   platformAdminEmail: process.env.PLATFORM_ADMIN_EMAIL || "platform@bizen.vn",
   platformAdminPassword: process.env.PLATFORM_ADMIN_PASSWORD || "Platform@2026",
