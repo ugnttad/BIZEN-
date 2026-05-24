@@ -40,7 +40,7 @@ const statusLabels = {
   Pending: "Chờ duyệt",
   Rejected: "Từ chối",
   Suspended: "Tạm khóa",
-  Manager: "Quản lý ca",
+  Manager: "Quản lý / giám sát",
   HR: "Nhân sự",
   Admin: "Admin DN",
   PlatformAdmin: "Chủ nền tảng",

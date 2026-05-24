@@ -37,7 +37,7 @@ export const contractTypes = [
 
 export const employeeRoles = [
   { value: "Employee", label: "Nhân viên" },
-  { value: "Manager", label: "Quản lý ca" },
+  { value: "Manager", label: "Quản lý / giám sát" },
   { value: "HR", label: "Nhân sự (phụ quyền)" },
   { value: "Admin", label: "Admin doanh nghiệp" }
 ];

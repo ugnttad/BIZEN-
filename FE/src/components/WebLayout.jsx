@@ -147,7 +147,7 @@ export default function WebLayout() {
     <div className="app-background relative min-h-screen overflow-hidden">
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-72" />
 
-      <aside className="fixed inset-y-4 left-4 z-30 hidden w-72 rounded-2xl border border-white/70 bg-white/80 px-3 py-4 shadow-soft backdrop-blur-2xl lg:block">
+      <aside className="fixed inset-y-4 left-4 z-30 hidden min-h-0 w-72 flex-col rounded-2xl border border-white/70 bg-white/80 px-3 py-4 shadow-soft backdrop-blur-2xl lg:flex">
         <Link to={homePath} className="group flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-300 hover:bg-white hover:shadow-sm">
           <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 transition duration-300 group-hover:scale-105 group-hover:bg-blue-600">
             <Building2 className="h-5 w-5" />
@@ -175,9 +175,9 @@ export default function WebLayout() {
           </div>
         </div>
 
-        <nav className="mt-4 space-y-1.5">{renderNavItems()}</nav>
+        <nav className="mt-4 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">{renderNavItems()}</nav>
 
-        <div className="absolute bottom-4 left-3 right-3 space-y-3">
+        <div className="mt-3 shrink-0 space-y-3 border-t border-slate-200/70 pt-3">
           <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-3">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-normal text-blue-700">
               <Activity className="h-4 w-4" />
@@ -198,7 +198,7 @@ export default function WebLayout() {
       {menuOpen ? (
         <div className="fixed inset-0 z-40 lg:hidden">
           <button className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" aria-label="Đóng menu" onClick={() => setMenuOpen(false)} />
-          <aside className="animate-slide-over relative h-full w-[min(88vw,340px)] border-r border-white/70 bg-white px-4 py-4 shadow-2xl">
+          <aside className="animate-slide-over relative flex h-full w-[min(88vw,340px)] flex-col border-r border-white/70 bg-white px-4 py-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <Link to={homePath} className="flex items-center gap-3 rounded-xl">
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-white">
@@ -213,7 +213,7 @@ export default function WebLayout() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="mt-6 space-y-1.5">{renderNavItems()}</nav>
+            <nav className="mt-6 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">{renderNavItems()}</nav>
             <button
               onClick={logout}
               className="btn-motion mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"

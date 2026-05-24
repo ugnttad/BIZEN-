@@ -25,6 +25,69 @@ const emptyForm = {
   accountPassword: ""
 };
 
+const legacyDepartmentLabels = {
+  HR: "Văn phòng / nhân sự",
+  Admin: "Quản lý cửa hàng",
+  Sales: "Phục vụ / bán hàng",
+  Warehouse: "Bếp / kho",
+  "Customer Support": "Chăm sóc khách"
+};
+
+const departmentPositionOptions = {
+  "Phuc vu": ["Phục vụ", "Tổ trưởng phục vụ", "Quản lý ca phục vụ"],
+  "Phuc vu / ban hang": ["Phục vụ", "Nhân viên bán hàng", "Tổ trưởng phục vụ"],
+  "Pha che / Bar": ["Pha chế", "Barista", "Tổ trưởng bar"],
+  Bep: ["Đầu bếp", "Phụ bếp", "Giám sát bếp"],
+  "Bep / kho": ["Đầu bếp", "Phụ bếp", "Thủ kho"],
+  "Thu ngan": ["Thu ngân", "Kế toán cửa hàng", "Tổ trưởng thu ngân"],
+  "Le tan": ["Lễ tân", "Giám sát lễ tân"],
+  "Buong phong": ["Nhân viên buồng phòng", "Giám sát buồng phòng"],
+  "Kho / Tap vu": ["Thủ kho", "Tạp vụ", "Nhân viên giao hàng"],
+  "Van phong / nhan su": ["Phụ trách nhân sự", "Nhân sự kiêm vận hành", "Kế toán / hành chính"],
+  "Quan ly cua hang": ["Chủ doanh nghiệp", "Quản lý cửa hàng", "Quản lý nhà hàng"]
+};
+
+function stripVietnamese(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+}
+
+function getDepartmentLabel(name) {
+  return legacyDepartmentLabels[name] || name || "Chưa có bộ phận";
+}
+
+function getDepartmentKey(name) {
+  return stripVietnamese(getDepartmentLabel(name));
+}
+
+function getPositionOptions(departmentName, role) {
+  if (role === "Admin") return ["Chủ doanh nghiệp", "Quản lý cửa hàng", "Quản lý nhà hàng"];
+  if (role === "HR") return ["Phụ trách nhân sự", "Nhân sự kiêm vận hành", "Kế toán / hành chính"];
+
+  const base = departmentPositionOptions[getDepartmentKey(departmentName)] || hospitalityPositions;
+  if (role === "Manager") {
+    if (getDepartmentKey(departmentName) === "Van phong / nhan su") {
+      return ["Quản lý vận hành", "Quản lý văn phòng", "Giám sát hành chính"];
+    }
+
+    const leadOptions = base.filter((item) => {
+      const normalized = stripVietnamese(item).toLowerCase();
+      return normalized.includes("quan ly") || normalized.includes("to truong") || normalized.includes("giam sat");
+    });
+    return ["Quản lý ca", "Tổ trưởng ca", ...leadOptions];
+  }
+
+  return base;
+}
+
+function normalizePosition(departmentName, role, currentPosition) {
+  const options = getPositionOptions(departmentName, role);
+  return options.includes(currentPosition) ? currentPosition : options[0];
+}
+
 export default function EmployeeManagement() {
   const [rows, setRows] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -40,6 +103,7 @@ export default function EmployeeManagement() {
   const canMutateEmployees = ["Admin", "HR"].includes(authUser?.role);
   const roleOptions = authUser?.role === "Admin" ? employeeRoles : employeeRoles.filter((item) => !["Admin", "HR"].includes(item.value));
   const canEditEmployee = (employee) => canMutateEmployees && (authUser?.role === "Admin" || !["Admin", "HR"].includes(employee.role));
+  const positionOptions = useMemo(() => getPositionOptions(form.department, form.role), [form.department, form.role]);
 
   useEffect(() => {
     let active = true;
@@ -80,7 +144,7 @@ export default function EmployeeManagement() {
     setForm({
       ...emptyForm,
       department: departments[0]?.name || "Phục vụ",
-      position: hospitalityPositions[0]
+      position: normalizePosition(departments[0]?.name || "Phục vụ", "Employee", "")
     });
     setFormError("");
   }
@@ -91,8 +155,8 @@ export default function EmployeeManagement() {
     setForm({
       name: employee.name,
       department: employee.department,
-      position: employee.position,
       role: employee.role,
+      position: normalizePosition(employee.department, employee.role, employee.position),
       contractType: employee.contractType,
       baseSalary: employee.baseSalary,
       status: employee.status,
@@ -101,6 +165,36 @@ export default function EmployeeManagement() {
       accountPassword: ""
     });
     setFormError("");
+  }
+
+  function updateDepartment(nextDepartment) {
+    setForm((current) => ({
+      ...current,
+      department: nextDepartment,
+      position: normalizePosition(nextDepartment, current.role, current.position)
+    }));
+  }
+
+  function updateRole(nextRole) {
+    setForm((current) => ({
+      ...current,
+      department:
+        nextRole === "HR"
+          ? departments.find((item) => getDepartmentKey(item.name) === "Van phong / nhan su")?.name || current.department
+          : nextRole === "Admin"
+            ? departments.find((item) => getDepartmentKey(item.name) === "Quan ly cua hang")?.name || current.department
+            : current.department,
+      role: nextRole,
+      position: normalizePosition(
+        nextRole === "HR"
+          ? departments.find((item) => getDepartmentKey(item.name) === "Van phong / nhan su")?.name || current.department
+          : nextRole === "Admin"
+            ? departments.find((item) => getDepartmentKey(item.name) === "Quan ly cua hang")?.name || current.department
+            : current.department,
+        nextRole,
+        current.position
+      )
+    }));
   }
 
   async function saveEmployee(event) {
@@ -184,7 +278,7 @@ export default function EmployeeManagement() {
             <option value="All">Tất cả bộ phận</option>
             {departments.map((item) => (
               <option key={item.id} value={item.name}>
-                {item.name}
+                {getDepartmentLabel(item.name)}
               </option>
             ))}
           </select>
@@ -224,7 +318,7 @@ export default function EmployeeManagement() {
                         </span>
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{employee.department}</td>
+                    <td className="px-4 py-3 text-slate-600">{getDepartmentLabel(employee.department)}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={employee.role} />
                     </td>
@@ -278,40 +372,42 @@ export default function EmployeeManagement() {
             <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Bộ phận / nhóm
-            <select value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
+            Bộ phận làm việc
+            <select value={form.department} onChange={(event) => updateDepartment(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
               {departments.map((item) => (
                 <option key={item.id} value={item.name}>
-                  {item.name}
+                  {getDepartmentLabel(item.name)}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-slate-500">Dùng cho lịch ca, chấm công, lương và báo cáo; không phải quyền truy cập.</p>
           </label>
           <label className="text-sm font-medium text-slate-700">
             Vai trò hệ thống
-            <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
+            <select value={form.role} onChange={(event) => updateRole(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
               {roleOptions.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-slate-500">Quyền đăng nhập app: Admin doanh nghiệp &gt; Nhân sự &gt; Quản lý/giám sát &gt; Nhân viên.</p>
             {authUser?.role !== "Admin" ? <p className="mt-1 text-xs text-slate-500">Chỉ Admin doanh nghiệp được cấp quyền Admin hoặc Nhân sự.</p> : null}
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Chức vụ
-            <input
-              list="hospitality-positions"
+            Chức vụ công việc
+            <select
               value={form.position}
               onChange={(event) => setForm({ ...form, position: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              placeholder="VD: Pha chế, Phục vụ…"
-            />
-            <datalist id="hospitality-positions">
-              {hospitalityPositions.map((position) => (
-                <option key={position} value={position} />
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              {positionOptions.map((position) => (
+                <option key={position} value={position}>
+                  {position}
+                </option>
               ))}
-            </datalist>
+            </select>
+            <p className="mt-1 text-xs text-slate-500">Tên công việc thực tế, tự đổi theo bộ phận và vai trò để tránh lệch như Nhân sự nhưng chức vụ Phục vụ.</p>
           </label>
           <label className="text-sm font-medium text-slate-700">
             Loại hợp đồng
