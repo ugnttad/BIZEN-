@@ -66,7 +66,7 @@ const solutionCards = [
   {
     title: "Cho nhân viên",
     icon: ShieldCheck,
-    text: "Mobile app đơn giản: hôm nay làm ca nào, đã check-in chưa, lương tạm tính và ngày phép còn lại."
+    text: "Cổng web/mobile đơn giản: hôm nay làm ca nào, đã check-in chưa, lương tạm tính và ngày phép còn lại."
   }
 ];
 
@@ -87,7 +87,7 @@ const faqs = [
   },
   {
     question: "Có phân quyền cho HR, quản lý và nhân viên không?",
-    answer: "Có. Hệ thống đã tách luồng web cho quản trị và mobile-first cho nhân viên, có nền tảng role-based access."
+    answer: "Có. Hệ thống tách dashboard quản trị, cổng web nhân viên và mobile-first cho chấm công nhanh, có nền tảng role-based access."
   }
 ];
 
@@ -316,7 +316,7 @@ export default function LandingPage() {
             <p className="text-sm font-bold uppercase tracking-normal text-blue-600">Kịch bản demo live</p>
             <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Thứ tự trình diễn gợi ý (10–15 phút).</h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Dùng hai trình duyệt: một tab Platform Admin (bạn), một tab Admin công ty + mobile nhân viên.
+              Dùng hai trình duyệt: một tab Platform Admin (bạn), một tab Admin công ty + cổng nhân viên.
             </p>
             <WorkflowStepsCard className="mt-6" title="Thứ tự demo" steps={demoScriptOrder} />
           </div>

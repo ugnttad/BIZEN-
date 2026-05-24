@@ -19,8 +19,11 @@ import LeaveRequests from "./pages/web/LeaveRequests";
 import Reports from "./pages/web/Reports";
 import Settings from "./pages/web/Settings";
 import AIAssistantPage from "./pages/web/AIAssistantPage";
+import EmployeeWebPortal from "./pages/web/EmployeeWebPortal";
+import EmployeeWebCheckin from "./pages/web/EmployeeWebCheckin";
 import MobileLogin from "./pages/mobile/MobileLogin";
 import ProtectedRoute from "./modules/auth/ProtectedRoute";
+import { getAuthUser } from "./modules/auth/authStore";
 import EmployeeHome from "./pages/mobile/EmployeeHome";
 import FaceIDCheckin from "./pages/mobile/FaceIDCheckin";
 import MySchedule from "./pages/mobile/MySchedule";
@@ -29,6 +32,11 @@ import MyPayroll from "./pages/mobile/MyPayroll";
 import MobileLeaveRequest from "./pages/mobile/MobileLeaveRequest";
 import Notifications from "./pages/mobile/Notifications";
 import Profile from "./pages/mobile/Profile";
+
+function WebIndexRedirect() {
+  const user = getAuthUser();
+  return <Navigate to={user?.role === "Employee" ? "/web/me" : "/web/dashboard"} replace />;
+}
 
 export default function App() {
   return (
@@ -48,16 +56,60 @@ export default function App() {
       <Route
         path="/web"
         element={
-          <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+          <ProtectedRoute roles={["Admin", "HR", "Manager", "Employee"]}>
             <WebLayout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/web/dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="employees" element={<EmployeeManagement />} />
-        <Route path="employees/:id" element={<EmployeeDetail />} />
-        <Route path="attendance" element={<AttendanceDashboard />} />
+        <Route index element={<WebIndexRedirect />} />
+        <Route
+          path="me"
+          element={
+            <ProtectedRoute roles={["Employee"]}>
+              <EmployeeWebPortal />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="me/checkin"
+          element={
+            <ProtectedRoute roles={["Employee"]}>
+              <EmployeeWebCheckin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="dashboard"
+          element={
+            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="employees"
+          element={
+            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+              <EmployeeManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="employees/:id"
+          element={
+            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+              <EmployeeDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="attendance"
+          element={
+            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+              <AttendanceDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="accounts"
           element={
@@ -74,7 +126,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="scheduling" element={<ShiftScheduling />} />
+        <Route
+          path="scheduling"
+          element={
+            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+              <ShiftScheduling />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="payroll"
           element={
@@ -91,9 +150,30 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="leaves" element={<LeaveRequests />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="assistant" element={<AIAssistantPage />} />
+        <Route
+          path="leaves"
+          element={
+            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+              <LeaveRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="reports"
+          element={
+            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+              <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="assistant"
+          element={
+            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+              <AIAssistantPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="settings"
           element={

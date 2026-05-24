@@ -30,4 +30,4 @@ apiRouter.use("/leaves", authenticate, leavesRouter);
 apiRouter.use("/notifications", authenticate, notificationsRouter);
 apiRouter.use("/settings", authenticate, requireRoles("Admin"), settingsRouter);
 apiRouter.use("/reports", authenticate, requireRoles("Admin", "HR", "Manager"), reportsRouter);
-apiRouter.use("/ai", authenticate, aiRouter);
+apiRouter.use("/ai", authenticate, requireRoles("Admin", "HR", "Manager"), aiRouter);

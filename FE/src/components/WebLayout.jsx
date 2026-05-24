@@ -32,6 +32,8 @@ import { bizenApi } from "../modules/api/bizenApi";
 import { clearAuthSession, getAuthUser, getDefaultPathForRole } from "../modules/auth/authStore";
 
 const webNavItems = [
+  { label: "Cổng nhân viên", path: "/web/me", icon: UserRound, roles: ["Employee"] },
+  { label: "Chấm công Face ID", path: "/web/me/checkin", icon: ScanFace, roles: ["Employee"] },
   { label: "Tổng quan", path: "/web/dashboard", icon: LayoutDashboard, roles: ["Admin", "HR", "Manager"] },
   { label: "Nhân viên", path: "/web/employees", icon: UsersRound, roles: ["Admin", "HR", "Manager"] },
   { label: "Chấm công", path: "/web/attendance", icon: Clock3, roles: ["Admin", "HR", "Manager"] },
@@ -45,8 +47,15 @@ const webNavItems = [
   { label: "Cài đặt", path: "/web/settings", icon: Settings, roles: ["Admin"] }
 ];
 
+const roleLabels = {
+  Admin: "Admin doanh nghiệp",
+  HR: "Nhân sự",
+  Manager: "Quản lý / giám sát",
+  Employee: "Nhân viên"
+};
+
 function getTitle(pathname) {
-  const match = webNavItems.find((item) => pathname.startsWith(item.path));
+  const match = [...webNavItems].sort((a, b) => b.path.length - a.path.length).find((item) => pathname.startsWith(item.path));
   if (pathname.includes("/web/employees/")) return "Chi tiết nhân viên";
   if (pathname.includes("/web/payroll/")) return "Chi tiết lương";
   return match?.label || "BIZEN";
@@ -60,9 +69,12 @@ export default function WebLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = getAuthUser();
+  const isEmployee = user?.role === "Employee";
   const visibleNavItems = webNavItems.filter((item) => item.roles.includes(user?.role));
   const title = getTitle(location.pathname);
   const homePath = getDefaultPathForRole(user?.role);
+  const showAiPanel = !isEmployee;
+  const searchPlaceholder = isEmployee ? "Tìm lịch, chấm công, đơn nghỉ" : "Tìm nhân viên, ca làm, bảng lương";
 
   useEffect(() => {
     setMenuOpen(false);
@@ -72,10 +84,20 @@ export default function WebLayout() {
 
   useEffect(() => {
     let active = true;
-    bizenApi
-      .aiAlerts()
+    const request = isEmployee ? bizenApi.notifications(user?.employeeId) : bizenApi.aiAlerts();
+
+    request
       .then((items) => {
-        if (active) setAlerts(items.slice(0, 4));
+        if (!active) return;
+        setAlerts(
+          items.slice(0, 4).map((item) => ({
+            id: item.id,
+            title: item.title,
+            detail: item.detail || item.body,
+            time: item.time,
+            href: isEmployee ? "/web/me" : "/web/reports"
+          }))
+        );
       })
       .catch(() => {
         if (active) setAlerts([]);
@@ -84,7 +106,7 @@ export default function WebLayout() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isEmployee, user?.employeeId]);
 
   function logout() {
     clearAuthSession();
@@ -113,6 +135,7 @@ export default function WebLayout() {
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.path === "/web/me"}
               className={({ isActive }) =>
                 `group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
                   isActive
@@ -169,7 +192,7 @@ export default function WebLayout() {
           <div className="mt-3 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-bold text-slate-950">BIZEN Đà Nẵng</p>
-              <p className="text-xs text-slate-500">{user?.role || "Workspace"} dashboard</p>
+              <p className="text-xs text-slate-500">{roleLabels[user?.role] || "Workspace"} workspace</p>
             </div>
             <ShieldCheck className="h-5 w-5 text-blue-600" />
           </div>
@@ -180,10 +203,12 @@ export default function WebLayout() {
         <div className="mt-3 shrink-0 space-y-3 border-t border-slate-200/70 pt-3">
           <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-3">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-normal text-blue-700">
-              <Activity className="h-4 w-4" />
-              AI ready
+              {isEmployee ? <UserRound className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
+              {isEmployee ? "Cổng nhân viên" : "AI ready"}
             </div>
-            <p className="mt-1 text-xs leading-5 text-slate-600">Trợ lý có thể đọc dữ liệu chấm công, lịch ca và payroll.</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              {isEmployee ? "Xem lịch, chấm công, lương và đơn nghỉ trên web." : "Trợ lý có thể đọc dữ liệu chấm công, lịch ca và payroll."}
+            </p>
           </div>
           <button
             onClick={logout}
@@ -244,20 +269,22 @@ export default function WebLayout() {
 
             <label className="soft-focus hidden min-w-[280px] max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 md:flex">
               <Search className="h-4 w-4 text-slate-400" />
-              <input className="w-full bg-transparent text-sm outline-none" placeholder="Tìm nhân viên, ca làm, bảng lương" />
+              <input className="w-full bg-transparent text-sm outline-none" placeholder={searchPlaceholder} />
               <span className="hidden items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-bold text-slate-400 xl:inline-flex">
                 <Command className="h-3 w-3" /> K
               </span>
             </label>
 
             <div className="flex items-center gap-2">
-              <Link
-                to="/web/assistant"
-                className="btn-motion hidden items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white shadow-lg shadow-slate-950/10 hover:bg-blue-600 sm:inline-flex"
-              >
-                <Sparkles className="h-4 w-4" />
-                AI
-              </Link>
+              {showAiPanel ? (
+                <Link
+                  to="/web/assistant"
+                  className="btn-motion hidden items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white shadow-lg shadow-slate-950/10 hover:bg-blue-600 sm:inline-flex"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  AI
+                </Link>
+              ) : null}
               <div className="relative">
                 <button
                   type="button"
@@ -270,35 +297,38 @@ export default function WebLayout() {
                   aria-expanded={notificationsOpen}
                 >
                   <Bell className="h-4 w-4" />
-                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
+                  {alerts.length ? <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" /> : null}
                 </button>
                 {notificationsOpen ? (
                   <div className="animate-panel-in absolute right-0 top-12 z-30 w-[min(86vw,360px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-950/10">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <div>
                         <p className="text-sm font-bold text-slate-950">Thông báo</p>
-                        <p className="text-xs text-slate-500">Tín hiệu vận hành mới nhất</p>
+                        <p className="text-xs text-slate-500">{isEmployee ? "Cập nhật dành cho bạn" : "Tín hiệu vận hành mới nhất"}</p>
                       </div>
                       <span className="rounded-full bg-rose-50 px-2 py-1 text-xs font-bold text-rose-700">{alerts.length || 0}</span>
                     </div>
                     <div className="mt-3 space-y-2">
                       {alerts.length ? (
                         alerts.map((alert) => (
-                          <Link key={alert.id} to="/web/reports" className="block rounded-xl border border-slate-100 bg-slate-50 p-3 hover:border-blue-200 hover:bg-blue-50">
+                          <Link key={alert.id} to={alert.href} className="block rounded-xl border border-slate-100 bg-slate-50 p-3 hover:border-blue-200 hover:bg-blue-50">
                             <p className="text-sm font-bold text-slate-950">{alert.title}</p>
                             <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{alert.detail}</p>
+                            {alert.time ? <p className="mt-2 text-[11px] font-bold text-slate-400">{alert.time}</p> : null}
                           </Link>
                         ))
                       ) : (
                         <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
-                          Chưa có thông báo mới. Khi có cảnh báo AI hoặc việc Admin/HR cần xử lý, chúng sẽ hiện ở đây.
+                          {isEmployee ? "Chưa có thông báo mới cho tài khoản của bạn." : "Chưa có thông báo mới. Khi có cảnh báo AI hoặc việc Admin/HR cần xử lý, chúng sẽ hiện ở đây."}
                         </div>
                       )}
                     </div>
-                    <Link to="/web/assistant" className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white hover:bg-blue-600">
-                      <Sparkles className="h-4 w-4" />
-                      Mở trợ lý AI
-                    </Link>
+                    {showAiPanel ? (
+                      <Link to="/web/assistant" className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white hover:bg-blue-600">
+                        <Sparkles className="h-4 w-4" />
+                        Mở trợ lý AI
+                      </Link>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -334,9 +364,9 @@ export default function WebLayout() {
                           Cài đặt tài khoản
                         </Link>
                       ) : null}
-                      <Link to="/web/assistant" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                      <Link to={isEmployee ? "/web/me" : "/web/assistant"} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
                         <UserRound className="h-4 w-4" />
-                        Trợ lý / hồ sơ
+                        {isEmployee ? "Hồ sơ của tôi" : "Trợ lý / hồ sơ"}
                       </Link>
                     </div>
                     <button
@@ -354,13 +384,15 @@ export default function WebLayout() {
           </div>
         </header>
 
-        <main className="grid gap-5 px-3 pb-6 pt-2 md:px-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <main className={`grid gap-5 px-3 pb-6 pt-2 md:px-6 ${showAiPanel ? "xl:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
           <div className="min-w-0 animate-page-enter">
             <Outlet />
           </div>
-          <div className="hidden xl:block animate-page-enter">
-            <AiChat />
-          </div>
+          {showAiPanel ? (
+            <div className="hidden xl:block animate-page-enter">
+              <AiChat />
+            </div>
+          ) : null}
         </main>
       </div>
     </div>

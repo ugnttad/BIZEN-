@@ -27,6 +27,6 @@ export function clearAuthSession() {
 
 export function getDefaultPathForRole(role) {
   if (role === "PlatformAdmin") return "/platform/companies";
-  if (role === "Employee") return "/mobile/home";
+  if (role === "Employee") return "/web/me";
   return "/web/dashboard";
 }
