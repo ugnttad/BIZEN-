@@ -89,7 +89,7 @@ export default function LoginPage() {
               Đăng nhập để vào đúng khu vực làm việc.
             </h1>
             <p className="mt-4 max-w-lg text-base leading-7 text-slate-600">
-              BIZEN tự điều hướng theo quyền tài khoản: nhân viên vào cổng web tự phục vụ, đội vận hành vào web dashboard.
+              BIZEN tự điều hướng theo quyền tài khoản và thiết bị: nhân viên vào cổng web/mobile, đội vận hành vào web dashboard.
             </p>
             <div className="mt-8 grid gap-3">
               {accessHighlights.map((item) => (

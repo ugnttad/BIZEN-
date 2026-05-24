@@ -1,0 +1,18 @@
+{
+  "name": "BIZEN Employee",
+  "short_name": "BIZEN",
+  "description": "Cổng nhân viên BIZEN cho chấm công, lịch ca, nghỉ phép và lương.",
+  "start_url": "/mobile/home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/assets/bizen-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

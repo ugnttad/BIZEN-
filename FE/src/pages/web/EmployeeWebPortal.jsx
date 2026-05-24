@@ -12,6 +12,7 @@ import {
   ScanFace,
   Send,
   ShieldCheck,
+  Smartphone,
   Umbrella,
   UserRound
 } from "lucide-react";
@@ -20,7 +21,7 @@ import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
-import { getAuthUser } from "../../modules/auth/authStore";
+import { getAuthUser, setEmployeeExperiencePreference } from "../../modules/auth/authStore";
 import { getFirstName, getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
 function formatDateInput(date) {
@@ -240,10 +241,20 @@ export default function EmployeeWebPortal() {
         title={`Xin chào, ${getFirstName(employee.name)}`}
         description={`Hôm nay ${todayDisplay}. Bạn đang đăng nhập bằng tài khoản nhân viên trên bản web.`}
         actions={
-          <Link to="/web/me/checkin" className="btn-motion inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700">
-            <ScanFace className="h-4 w-4" />
-            Chấm công Face ID
-          </Link>
+          <>
+            <Link
+              to="/mobile/home"
+              onClick={() => setEmployeeExperiencePreference("mobile")}
+              className="btn-motion inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <Smartphone className="h-4 w-4" />
+              Mở bản mobile
+            </Link>
+            <Link to="/web/me/checkin" className="btn-motion inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700">
+              <ScanFace className="h-4 w-4" />
+              Chấm công Face ID
+            </Link>
+          </>
         }
       />
 

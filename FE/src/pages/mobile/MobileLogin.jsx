@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Building2, LockKeyhole, Mail, Smartphone } from "lucide-react";
 import GoogleLoginButton from "../../modules/auth/GoogleLoginButton";
 import { bizenApi } from "../../modules/api/bizenApi";
-import { getDefaultPathForRole, saveAuthSession } from "../../modules/auth/authStore";
+import { getDefaultPathForRole, saveAuthSession, setEmployeeExperiencePreference } from "../../modules/auth/authStore";
 import { saveMobileEmployee } from "../../modules/auth/mobileSession";
 
 export default function MobileLogin() {
@@ -28,6 +28,7 @@ export default function MobileLogin() {
 
     const employee = await bizenApi.employee(session.user.employeeId);
     saveMobileEmployee(employee);
+    setEmployeeExperiencePreference("mobile");
     navigate("/mobile/home", { replace: true });
   }
 
