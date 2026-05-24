@@ -3,7 +3,7 @@ import { Bot, Loader2, MessageCircle, SendHorizontal, Sparkles, UserRound, Zap }
 import { bizenApi } from "../modules/api/bizenApi";
 
 const quickPrompts = [
-  "Xếp lịch tuần sau cho Sales",
+  "Xếp lịch tuần sau cho Pha chế",
   "Ai đi trễ nhiều nhất tháng này?",
   "Tại sao lương của Thanh Đạt giảm?",
   "Hôm nay bộ phận nào thiếu người?"
@@ -46,6 +46,10 @@ export default function AiChat({ compact = false }) {
   async function sendMessage(text = input) {
     const clean = text.trim();
     if (!clean || loading) return;
+    if (clean.length > 500) {
+      setMessages((current) => [...current, { from: "ai", text: "Câu hỏi tối đa 500 ký tự để BIZEN AI trả lời gọn và ổn định." }]);
+      return;
+    }
     setMessages((current) => [...current, { from: "user", text: clean }]);
     setInput("");
     setLoading(true);

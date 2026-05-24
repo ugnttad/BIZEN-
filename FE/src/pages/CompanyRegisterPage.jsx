@@ -31,8 +31,24 @@ export default function CompanyRegisterPage() {
     event.preventDefault();
     setError("");
 
-    if (form.password.length < 8) {
-      setError("Mật khẩu cần tối thiểu 8 ký tự.");
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    const city = form.city.trim().toLowerCase();
+    const normalizedEmail = form.contactEmail.trim().toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setError("Email admin chưa hợp lệ.");
+      return;
+    }
+    if (!["đà nẵng", "da nang"].includes(city)) {
+      setError("BIZEN MVP hiện chỉ nhận đăng ký cửa hàng tại Đà Nẵng.");
+      return;
+    }
+    if (phoneDigits && !/^0?\d{9,10}$/.test(phoneDigits)) {
+      setError("Số điện thoại cần 9-11 chữ số.");
+      return;
+    }
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(form.password)) {
+      setError("Mật khẩu cần tối thiểu 8 ký tự, có chữ và số.");
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -44,10 +60,10 @@ export default function CompanyRegisterPage() {
     try {
       const payload = await bizenApi.createCompanyRequest({
         companyName: form.companyName,
-        city: form.city,
+        city: "Đà Nẵng",
         contactName: form.contactName,
-        contactEmail: form.contactEmail,
-        phone: form.phone,
+        contactEmail: normalizedEmail,
+        phone: phoneDigits,
         password: form.password
       });
       setRequest(payload);

@@ -36,7 +36,7 @@ const payrollSelect = `
 `;
 
 const calculateSchema = z.object({
-  month: z.string().regex(/^\d{2}\/\d{4}$/).optional()
+  month: z.string().regex(/^(0[1-9]|1[0-2])\/20\d{2}$/).optional()
 });
 
 function parseMonth(month) {
@@ -44,10 +44,18 @@ function parseMonth(month) {
   return { start: `${yyyy}-${mm}-01`, endMonth: month };
 }
 
+function parsePayrollMonth(value) {
+  const month = value || "05/2026";
+  if (!/^(0[1-9]|1[0-2])\/20\d{2}$/.test(month)) {
+    throw httpError(400, "Tháng lương cần có định dạng MM/YYYY");
+  }
+  return month;
+}
+
 payrollRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    const month = req.query.month || "05/2026";
+    const month = parsePayrollMonth(req.query.month);
     const companyId = await getCompanyIdForUser(req.user);
     const employeeFilter = req.user.role === "Employee" ? " AND pi.employee_id = $3" : "";
     const params = req.user.role === "Employee" ? [companyId, month, req.user.employeeId] : [companyId, month];
@@ -178,7 +186,7 @@ payrollRouter.post(
 payrollRouter.get(
   "/:employeeId",
   asyncHandler(async (req, res) => {
-    const month = req.query.month || "05/2026";
+    const month = parsePayrollMonth(req.query.month);
     const companyId = await getCompanyIdForUser(req.user);
     if (req.user.role === "Employee" && req.params.employeeId !== req.user.employeeId) {
       throw httpError(403, "Nhân viên chỉ xem được bảng lương của mình");

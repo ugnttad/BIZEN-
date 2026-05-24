@@ -143,6 +143,9 @@ aiRouter.post(
     if (!message) {
       return res.status(400).json({ error: "Message is required" });
     }
+    if (message.length > 500) {
+      return res.status(400).json({ error: "Câu hỏi tối đa 500 ký tự" });
+    }
 
     if (!openai) {
       return res.json({ reply: fallbackReply(message, context), mode: "neon-fallback" });

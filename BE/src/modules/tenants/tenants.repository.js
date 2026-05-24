@@ -1,4 +1,6 @@
 import { query, withTransaction } from "../../config/db.js";
+import { httpError } from "../../shared/httpError.js";
+import { normalizeEmail, normalizePhone } from "../../shared/validation.js";
 
 const requestSelect = `
   id,
@@ -72,9 +74,47 @@ export async function createCompanyAccessRequest(data) {
       (company_name, city, contact_name, contact_email, phone, admin_password_hash)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING ${requestSelect}`,
-    [data.companyName, data.city, data.contactName, data.contactEmail, data.phone || null, data.adminPasswordHash]
+    [
+      data.companyName.trim(),
+      data.city.trim(),
+      data.contactName.trim(),
+      normalizeEmail(data.contactEmail),
+      normalizePhone(data.phone) || null,
+      data.adminPasswordHash
+    ]
   );
   return result.rows[0];
+}
+
+export async function findCompanyAccessConflict(data) {
+  const contactEmail = normalizeEmail(data.contactEmail);
+  const companyName = data.companyName.trim();
+  const [user, employee, activeEmailRequest, company, activeCompanyRequest] = await Promise.all([
+    query("SELECT id FROM app_users WHERE lower(email) = lower($1) LIMIT 1", [contactEmail]),
+    query("SELECT id FROM employees WHERE lower(email) = lower($1) LIMIT 1", [contactEmail]),
+    query(
+      `SELECT id, status FROM company_access_requests
+       WHERE lower(contact_email) = lower($1)
+         AND status IN ('Pending', 'Approved')
+       LIMIT 1`,
+      [contactEmail]
+    ),
+    query("SELECT id FROM companies WHERE lower(name) = lower($1) LIMIT 1", [companyName]),
+    query(
+      `SELECT id, status FROM company_access_requests
+       WHERE lower(company_name) = lower($1)
+         AND status IN ('Pending', 'Approved')
+       LIMIT 1`,
+      [companyName]
+    )
+  ]);
+
+  if (user.rows[0]) return "Email này đã thuộc một tài khoản BIZEN.";
+  if (employee.rows[0]) return "Email này đã thuộc hồ sơ nhân viên trong BIZEN.";
+  if (activeEmailRequest.rows[0]) return "Email này đã có yêu cầu doanh nghiệp đang chờ duyệt hoặc đã được duyệt.";
+  if (company.rows[0]) return "Tên doanh nghiệp này đã tồn tại trên BIZEN.";
+  if (activeCompanyRequest.rows[0]) return "Tên doanh nghiệp này đã có yêu cầu đang chờ duyệt hoặc đã được duyệt.";
+  return null;
 }
 
 export async function listCompanyAccessRequests(status = "Pending") {
@@ -99,6 +139,9 @@ export async function reviewCompanyAccessRequest(id, data) {
     );
     const request = current.rows[0];
     if (!request) return null;
+    if (request.status !== "Pending") {
+      throw httpError(409, `Yêu cầu doanh nghiệp này đã ở trạng thái ${request.status}`);
+    }
 
     if (data.status === "Rejected") {
       const rejected = await client.query(
@@ -115,31 +158,41 @@ export async function reviewCompanyAccessRequest(id, data) {
       return rejected.rows[0];
     }
 
+    const email = normalizeEmail(request.contact_email);
+    const existingUser = await client.query("SELECT id FROM app_users WHERE lower(email) = lower($1) LIMIT 1", [email]);
+    const existingEmployee = await client.query("SELECT id FROM employees WHERE lower(email) = lower($1) LIMIT 1", [email]);
+    const existingCompany = await client.query("SELECT id FROM companies WHERE lower(name) = lower($1) LIMIT 1", [request.company_name.trim()]);
+    if (existingUser.rows[0] || existingEmployee.rows[0]) {
+      throw httpError(409, "Email đại diện đã được dùng trong hệ thống, không thể duyệt doanh nghiệp này.");
+    }
+    if (existingCompany.rows[0]) {
+      throw httpError(409, "Tên doanh nghiệp đã tồn tại, không thể duyệt trùng tenant.");
+    }
+
     const company = await client.query(
       `INSERT INTO companies (name, city)
        VALUES ($1, $2)
-       ON CONFLICT (name) DO UPDATE SET city = EXCLUDED.city
+       ON CONFLICT (name) DO NOTHING
        RETURNING id`,
-      [request.company_name, request.city]
+      [request.company_name.trim(), request.city.trim()]
     );
+    if (!company.rows[0]) {
+      throw httpError(409, "Tên doanh nghiệp đã tồn tại, không thể tạo tenant trùng.");
+    }
     const companyId = company.rows[0].id;
     await createCompanyDefaults(client, companyId);
 
-    await client.query(
+    const admin = await client.query(
       `INSERT INTO app_users
         (company_id, employee_id, google_sub, email, name, picture_url, password_hash, role, status, last_login_at)
        VALUES ($1, NULL, $2, $3, $4, NULL, $5, 'Admin', 'Approved', now())
-       ON CONFLICT (email) DO UPDATE SET
-        company_id = EXCLUDED.company_id,
-        employee_id = NULL,
-        name = EXCLUDED.name,
-        password_hash = EXCLUDED.password_hash,
-        role = 'Admin',
-        status = 'Approved',
-        updated_at = now()
+       ON CONFLICT (email) DO NOTHING
        RETURNING id`,
-      [companyId, `company-admin:${request.contact_email.toLowerCase()}`, request.contact_email, request.contact_name, request.admin_password_hash]
+      [companyId, `company-admin:${email}`, email, request.contact_name.trim(), request.admin_password_hash]
     );
+    if (!admin.rows[0]) {
+      throw httpError(409, "Email đại diện đã được dùng, không thể tạo tài khoản chủ sở hữu.");
+    }
 
     const approved = await client.query(
       `UPDATE company_access_requests

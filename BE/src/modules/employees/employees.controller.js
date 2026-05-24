@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { query } from "../../config/db.js";
 import { httpError } from "../../shared/httpError.js";
+import { normalizeEmail } from "../../shared/validation.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
 import { updateEmployeeAccountProfile, upsertPasswordUser } from "../auth/auth.repository.js";
 import { hashPassword } from "../auth/password.service.js";
@@ -73,7 +74,7 @@ function normalizePhone(value = "") {
 
 function normalizeEmployeePayload(data) {
   if (data.name) data.name = data.name.trim();
-  if (data.email) data.email = data.email.trim().toLowerCase();
+  if (data.email) data.email = normalizeEmail(data.email);
   if (data.phone) data.phone = normalizePhone(data.phone);
   return data;
 }
@@ -87,6 +88,42 @@ async function getDepartmentName(companyId, departmentId) {
   const result = await query("SELECT name FROM departments WHERE id = $1 AND company_id = $2", [departmentId, companyId]);
   if (!result.rows[0]) throw httpError(400, "Bộ phận làm việc không hợp lệ");
   return result.rows[0].name;
+}
+
+async function assertEmailAvailable(email, currentEmployeeId = null) {
+  const [employee, user, companyRequest] = await Promise.all([
+    query(
+      `SELECT id FROM employees
+       WHERE lower(email) = lower($1)
+         AND ($2::text IS NULL OR id <> $2)
+       LIMIT 1`,
+      [email, currentEmployeeId]
+    ),
+    query(
+      `SELECT id, employee_id AS "employeeId", role FROM app_users
+       WHERE lower(email) = lower($1)
+       LIMIT 1`,
+      [email]
+    ),
+    query(
+      `SELECT id FROM company_access_requests
+       WHERE lower(contact_email) = lower($1)
+         AND status IN ('Pending', 'Approved')
+       LIMIT 1`,
+      [email]
+    )
+  ]);
+
+  if (employee.rows[0]) {
+    throw httpError(409, "Email này đã được dùng cho hồ sơ nhân viên khác");
+  }
+  const existingUser = user.rows[0];
+  if (existingUser && (!currentEmployeeId || existingUser.employeeId !== currentEmployeeId)) {
+    throw httpError(409, "Email này đã thuộc một tài khoản đăng nhập khác");
+  }
+  if (companyRequest.rows[0]) {
+    throw httpError(409, "Email này đang được dùng cho yêu cầu đăng ký doanh nghiệp");
+  }
 }
 
 async function assertCafeShopConstraints(companyId, data, current = null) {
@@ -184,6 +221,7 @@ export async function createEmployeeHandler(req, res) {
   if (!data.accountPassword) {
     throw httpError(400, "Cần cấp mật khẩu đăng nhập để nhân viên dùng web/mobile ngay");
   }
+  await assertEmailAvailable(data.email);
   await assertCafeShopConstraints(companyId, data);
 
   try {
@@ -213,6 +251,7 @@ export async function updateEmployeeHandler(req, res) {
   if (req.user.role !== "Admin" && current.role === "Admin") {
     throw httpError(403, "Chỉ chủ sở hữu được sửa tài khoản chủ sở hữu");
   }
+  if (data.email) await assertEmailAvailable(data.email, current.id);
   await assertCafeShopConstraints(companyId, data, current);
 
   const employee = await updateEmployee(req.params.id, companyId, data);

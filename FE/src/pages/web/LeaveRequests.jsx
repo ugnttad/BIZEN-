@@ -38,22 +38,36 @@ export default function LeaveRequests() {
   }, [requests, status]);
 
   async function updateStatus(id, nextStatus) {
-    await bizenApi.updateLeaveStatus(id, nextStatus);
-    setRequests((current) => current.map((request) => (request.id === id ? { ...request, status: nextStatus } : request)));
+    try {
+      await bizenApi.updateLeaveStatus(id, nextStatus);
+      setRequests((current) => current.map((request) => (request.id === id ? { ...request, status: nextStatus } : request)));
+    } catch (err) {
+      setError(err.message || "Không cập nhật được đơn nghỉ phép.");
+    }
   }
 
   async function submitLeave(event) {
     event.preventDefault();
+    const fromTime = new Date(`${form.from}T00:00:00`).getTime();
+    const toTime = new Date(`${form.to}T00:00:00`).getTime();
     if (!form.reason.trim() || Number(form.days) <= 0) {
       setError("Vui lòng nhập lý do và số ngày nghỉ hợp lệ.");
       return;
     }
-    await bizenApi.createLeave({ ...form, days: Number(form.days), approver: "Võ Khánh Linh" });
-    const leaveRows = await bizenApi.leaves();
-    setRequests(leaveRows);
-    setForm(emptyForm);
-    setError("");
-    setFormOpen(false);
+    if (fromTime > toTime) {
+      setError("Ngày bắt đầu không được sau ngày kết thúc.");
+      return;
+    }
+    try {
+      await bizenApi.createLeave({ ...form, days: Number(form.days), reason: form.reason.trim(), approver: "Chủ sở hữu" });
+      const leaveRows = await bizenApi.leaves();
+      setRequests(leaveRows);
+      setForm({ ...emptyForm, employeeId: employees[0]?.id || "" });
+      setError("");
+      setFormOpen(false);
+    } catch (err) {
+      setError(err.message || "Không gửi được đơn nghỉ phép.");
+    }
   }
 
   const pending = requests.filter((request) => request.status === "Pending").length;

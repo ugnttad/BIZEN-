@@ -174,8 +174,13 @@ export default function EmployeeWebPortal() {
 
   async function submitLeave(event) {
     event.preventDefault();
+    const today = formatDateInput(new Date());
     if (!leaveForm.reason.trim() || Number(leaveForm.days) <= 0) {
       setLeaveError("Vui lòng nhập lý do và số ngày nghỉ hợp lệ.");
+      return;
+    }
+    if (leaveForm.from < today) {
+      setLeaveError("Không thể gửi đơn nghỉ cho ngày đã qua.");
       return;
     }
 
@@ -190,8 +195,8 @@ export default function EmployeeWebPortal() {
         from: leaveForm.from,
         to: addDays(leaveForm.from, Math.max(Math.ceil(Number(leaveForm.days)) - 1, 0)),
         days: Number(leaveForm.days),
-        reason: leaveForm.reason,
-        approver: employee?.manager || "Quản lý"
+        reason: leaveForm.reason.trim(),
+        approver: "Chủ sở hữu"
       });
       const leaveRows = await bizenApi.leaves();
       setLeaves(leaveRows);

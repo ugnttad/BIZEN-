@@ -1,8 +1,10 @@
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
+import { query } from "../../config/db.js";
 import { env } from "../../config/env.js";
 import { httpError } from "../../shared/httpError.js";
+import { isStrongPassword, normalizeEmail } from "../../shared/validation.js";
 import {
   createEmployeeAccountRequest,
   findEmployeeByEmail,
@@ -21,13 +23,13 @@ const googleLoginSchema = z.object({
 });
 
 const passwordLoginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email().transform(normalizeEmail),
   password: z.string().min(6)
 });
 
 const employeeAccountRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/, "Password must have at least 8 characters, one letter and one number")
+  email: z.string().trim().email().transform(normalizeEmail),
+  password: z.string().refine(isStrongPassword, "Password must have at least 8 characters, one letter and one number")
 });
 
 const accountRequestStatusSchema = z.object({
@@ -74,8 +76,9 @@ export async function googleLoginHandler(req, res) {
     throw httpError(401, "Invalid Google account payload");
   }
 
-  const existingUser = await getUserByEmail(payload.email);
-  const employee = await findEmployeeByEmail(payload.email);
+  const googleEmail = normalizeEmail(payload.email);
+  const existingUser = await getUserByEmail(googleEmail);
+  const employee = await findEmployeeByEmail(googleEmail);
 
   if (existingUser) assertSupportedTenantRole(existingUser);
   if (employee) assertSupportedTenantRole(employee);
@@ -97,8 +100,8 @@ export async function googleLoginHandler(req, res) {
     existingUser.companyId || employee?.companyId,
     {
       sub: payload.sub,
-      email: payload.email,
-      name: payload.name || payload.email,
+      email: googleEmail,
+      name: payload.name || googleEmail,
       picture: payload.picture || null
     },
     employee,
@@ -114,7 +117,7 @@ export async function googleLoginHandler(req, res) {
 
 export async function passwordLoginHandler(req, res) {
   const data = passwordLoginSchema.parse(req.body);
-  const email = data.email.trim().toLowerCase();
+  const email = data.email;
 
   if (isPlatformAdminCredentials(email, data.password)) {
     const user = getPlatformAdminUser();
@@ -158,6 +161,32 @@ export async function requestEmployeeAccountHandler(req, res) {
     throw httpError(404, "The owner must create this employee profile before an account can be requested");
   }
   assertSupportedTenantRole(employee);
+
+  const [existingUser, activeCompanyRequest] = await Promise.all([
+    getUserByEmail(data.email),
+    query(
+      `SELECT id FROM company_access_requests
+       WHERE lower(contact_email) = lower($1)
+         AND status IN ('Pending', 'Approved')
+       LIMIT 1`,
+      [data.email]
+    )
+  ]);
+  if (activeCompanyRequest.rows[0]) {
+    throw httpError(409, "Email này đang được dùng cho yêu cầu đăng ký doanh nghiệp");
+  }
+  if (existingUser && existingUser.employeeId !== employee.id) {
+    throw httpError(409, "Email này đã thuộc một tài khoản đăng nhập khác");
+  }
+  if (existingUser?.status === "Approved") {
+    throw httpError(409, "Email này đã có tài khoản được duyệt. Hãy đăng nhập thay vì đăng ký lại.");
+  }
+  if (existingUser?.status === "Pending") {
+    throw httpError(409, "Email này đã gửi yêu cầu tài khoản và đang chờ chủ sở hữu duyệt.");
+  }
+  if (existingUser?.status === "Suspended") {
+    throw httpError(409, "Tài khoản này đang bị khóa. Hãy liên hệ chủ sở hữu.");
+  }
 
   const user = await createEmployeeAccountRequest(employee, hashPassword(data.password));
   res.status(user.status === "Approved" ? 200 : 201).json(user);

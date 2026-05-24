@@ -198,6 +198,7 @@ export default function EmployeeManagement() {
     }
 
     const trimmedName = form.name.trim();
+    const normalizedEmail = form.email.trim().toLowerCase();
     const salary = Number(form.baseSalary);
     const phoneDigits = normalizePhone(form.phone);
     const editingEmployee = rows.find((employee) => employee.id === editingId);
@@ -217,8 +218,13 @@ export default function EmployeeManagement() {
       return;
     }
 
-    if (!form.email.includes("@")) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setFormError("Email đăng nhập chưa hợp lệ.");
+      return;
+    }
+
+    if (rows.some((employee) => employee.id !== editingId && employee.email?.toLowerCase() === normalizedEmail)) {
+      setFormError("Email này đã được dùng cho nhân viên khác trong danh sách.");
       return;
     }
 
@@ -266,6 +272,7 @@ export default function EmployeeManagement() {
     const payload = {
       ...form,
       name: trimmedName,
+      email: normalizedEmail,
       phone: phoneDigits,
       departmentId,
       baseSalary: salary,

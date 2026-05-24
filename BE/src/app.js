@@ -73,6 +73,18 @@ export function createApp() {
   });
 
   app.use((error, _req, res, _next) => {
+    if (error?.name === "ZodError") {
+      const firstIssue = error.issues?.[0];
+      res.status(400).json({
+        error: firstIssue?.message || "Dữ liệu gửi lên chưa hợp lệ",
+        issues: error.issues?.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+      return;
+    }
+
     const status = error.status || 500;
     res.status(status).json({
       error: error.message || "Internal server error",

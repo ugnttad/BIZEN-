@@ -18,8 +18,9 @@ export default function EmployeeAccountRequestPage() {
   async function submit(event) {
     event.preventDefault();
     setError("");
+    const normalizedEmail = email.trim().toLowerCase();
 
-    if (!email.includes("@")) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setError("Email chưa hợp lệ.");
       return;
     }
@@ -34,7 +35,7 @@ export default function EmployeeAccountRequestPage() {
 
     setLoading(true);
     try {
-      const payload = await bizenApi.requestEmployeeAccount({ email, password });
+      const payload = await bizenApi.requestEmployeeAccount({ email: normalizedEmail, password });
       setResult(payload);
       setPassword("");
       setConfirmPassword("");

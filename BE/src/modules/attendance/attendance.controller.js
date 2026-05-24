@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getBusinessDate, getBusinessTime } from "../../shared/businessDate.js";
 import { httpError } from "../../shared/httpError.js";
+import { isIsoDate, isTime } from "../../shared/validation.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
 import {
   getAttendanceRecord,
@@ -13,14 +14,14 @@ import {
 import { verifyEmployeeFace } from "./faceVerification.service.js";
 
 const attendanceSchema = z.object({
-  employeeId: z.string(),
-  workDate: z.string(),
-  checkIn: z.string().nullable().optional(),
-  checkOut: z.string().nullable().optional(),
-  totalHours: z.coerce.number().optional(),
+  employeeId: z.string().min(1),
+  workDate: z.string().refine(isIsoDate, "Ngày chấm công chưa hợp lệ"),
+  checkIn: z.string().nullable().optional().refine((value) => !value || isTime(value), "Giờ vào chưa hợp lệ"),
+  checkOut: z.string().nullable().optional().refine((value) => !value || isTime(value), "Giờ ra chưa hợp lệ"),
+  totalHours: z.coerce.number().min(0).max(24).optional(),
   status: z.enum(["Present", "Late", "Absent", "Leave", "Overtime"]),
-  location: z.string().nullable().optional(),
-  note: z.string().optional()
+  location: z.string().trim().max(120).nullable().optional(),
+  note: z.string().trim().max(300).optional()
 });
 
 const faceCheckinSchema = z.object({
@@ -79,6 +80,23 @@ export async function listAttendanceHandler(req, res) {
 export async function upsertAttendanceHandler(req, res) {
   const data = attendanceSchema.parse(req.body);
   const companyId = await getCompanyIdForUser(req.user);
+  const context = await getEmployeeAttendanceContext(data.employeeId);
+  if (!context) throw httpError(404, "Không tìm thấy nhân viên");
+  if (context.companyId !== companyId) throw httpError(403, "Nhân viên thuộc doanh nghiệp khác");
+
+  if (data.checkOut && !data.checkIn) {
+    throw httpError(400, "Không thể có giờ ra khi chưa có giờ vào");
+  }
+  if (["Present", "Late", "Overtime"].includes(data.status) && !data.checkIn) {
+    throw httpError(400, "Trạng thái đi làm cần có giờ vào");
+  }
+  if (["Absent", "Leave"].includes(data.status) && (data.checkIn || data.checkOut)) {
+    throw httpError(400, "Trạng thái nghỉ/vắng không được có giờ vào hoặc giờ ra");
+  }
+  if (data.checkIn && data.checkOut) {
+    data.totalHours = calculateHours(data.checkIn, data.checkOut);
+  }
+
   res.status(201).json(await upsertAttendance(companyId, data));
 }
 

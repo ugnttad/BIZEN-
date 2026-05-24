@@ -33,6 +33,10 @@ export default function MobileLeaveRequest() {
       setError("Vui lòng nhập lý do và số ngày nghỉ.");
       return;
     }
+    if (fromDate < formatDateInput(new Date())) {
+      setError("Không thể gửi đơn nghỉ cho ngày đã qua.");
+      return;
+    }
 
     setSubmitting(true);
     setError("");
@@ -43,7 +47,7 @@ export default function MobileLeaveRequest() {
         from: fromDate,
         to: addDays(fromDate, Math.max(Math.ceil(Number(days)) - 1, 0)),
         days: Number(days),
-        reason,
+        reason: reason.trim(),
         approver: "Chủ sở hữu"
       });
       setSent(true);

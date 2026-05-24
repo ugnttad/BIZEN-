@@ -29,8 +29,16 @@ export default function Settings() {
 
   async function saveSettings(event) {
     event.preventDefault();
-    if (Number(settings.lateGraceMinutes) < 0 || Number(settings.annualLeaveDays) < 0) {
-      setError("Quy định đi trễ và ngày phép không được âm.");
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.workStart) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.workEnd)) {
+      setError("Giờ làm cần đúng định dạng HH:mm.");
+      return;
+    }
+    if (settings.workStart === settings.workEnd) {
+      setError("Giờ bắt đầu và giờ kết thúc không được trùng nhau.");
+      return;
+    }
+    if (Number(settings.lateGraceMinutes) < 0 || Number(settings.lateGraceMinutes) > 60 || Number(settings.annualLeaveDays) < 0 || Number(settings.annualLeaveDays) > 24) {
+      setError("Đi trễ cho phép 0-60 phút, ngày phép năm 0-24 ngày.");
       return;
     }
     setError("");

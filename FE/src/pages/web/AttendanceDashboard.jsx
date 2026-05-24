@@ -106,6 +106,14 @@ export default function AttendanceDashboard() {
 
   async function closeCheckout() {
     if (!checkoutRecord || !checkoutTime) return;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(checkoutTime)) {
+      setCheckoutMessage("Giờ ra cần đúng định dạng HH:mm.");
+      return;
+    }
+    if (!checkoutRecord.checkIn) {
+      setCheckoutMessage("Bản ghi chưa có giờ vào nên không thể chốt giờ ra.");
+      return;
+    }
     setClosingCheckout(true);
     setCheckoutMessage("");
     try {
