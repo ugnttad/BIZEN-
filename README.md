@@ -107,6 +107,15 @@ MAIL_FROM="BIZEN <your-sender@gmail.com>"
 
 Leave `VITE_API_URL` empty when frontend and backend are deployed in this same Vercel project. The frontend will call `/api` on the current domain. If the backend is deployed on a separate domain, set `VITE_API_URL` to that full API URL and set `CLIENT_ORIGINS` on the backend to the frontend domain.
 
+For SMTP, keep the real values in `BE/.env` locally, link the project once, then sync them to Vercel:
+
+```bash
+npx vercel link
+npm run vercel:env:smtp
+```
+
+The sync script sends `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `MAIL_FROM` to Vercel `production` and `preview` without printing secret values. Redeploy after syncing.
+
 After deploy, verify the backend with:
 
 ```text
