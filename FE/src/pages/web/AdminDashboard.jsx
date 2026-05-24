@@ -67,7 +67,7 @@ export default function AdminDashboard() {
   return (
     <div>
       <PageHeader
-        eyebrow="Admin Dashboard"
+        eyebrow="Owner Dashboard"
         title="Tổng quan vận hành hôm nay"
         description={`Dữ liệu vận hành ngày ${formatDisplayDate()} cho doanh nghiệp SME tại Đà Nẵng.`}
         actions={
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-normal text-slate-500">AI signal</p>
-              <p className="mt-1 text-sm font-semibold text-slate-950">{alertCount} cảnh báo cần Admin/HR xem nhanh</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">{alertCount} cảnh báo cần chủ sở hữu xem nhanh</p>
             </div>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function AdminDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard title="Tổng nhân viên" value={summary.employees} helper={`${departmentHeadcount.length} bộ phận`} icon={UsersRound} tone="blue" trend="+2" />
         <StatCard title="Đã chấm công" value={summary.checkedIn} helper="người hôm nay" icon={UserCheck} tone="emerald" trend="+4%" />
-        <StatCard title="Đi trễ" value={summary.late} helper="cần Admin/HR nhắc" icon={Clock3} tone="amber" trend="+1" />
+        <StatCard title="Đi trễ" value={summary.late} helper="cần chủ sở hữu nhắc" icon={Clock3} tone="amber" trend="+1" />
         <StatCard title="Nghỉ phép" value={summary.leave} helper="đã duyệt" icon={CalendarDays} tone="violet" />
         <StatCard title="Lương dự kiến" value={payrollShort} helper="tháng 05/2026" icon={CreditCard} tone="rose" trend="+3.9%" />
       </div>

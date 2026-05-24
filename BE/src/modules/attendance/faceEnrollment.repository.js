@@ -107,7 +107,7 @@ export async function approveFaceEnrollment(id, data) {
       rejection_reason = NULL
      WHERE id = $1
      RETURNING id::text`,
-    [id, data.faceId, data.collectionId, data.faceConfidence, data.reviewedBy || "HR"]
+    [id, data.faceId, data.collectionId, data.faceConfidence, data.reviewedBy || "Chủ sở hữu"]
   );
 
   return result.rows[0] ? getFaceEnrollmentById(result.rows[0].id) : null;
@@ -123,7 +123,7 @@ export async function rejectFaceEnrollment(id, data) {
       updated_at = now()
      WHERE id = $1
      RETURNING id::text`,
-    [id, data.rejectionReason || "Rejected by HR", data.reviewedBy || "HR"]
+    [id, data.rejectionReason || "Rejected by owner", data.reviewedBy || "Chủ sở hữu"]
   );
 
   return result.rows[0] ? getFaceEnrollmentById(result.rows[0].id) : null;

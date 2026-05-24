@@ -63,7 +63,7 @@ export default function MySchedule() {
           <p className="font-semibold text-amber-900">Ca 23/05 cần xác nhận</p>
           <StatusBadge status="Pending" />
         </div>
-        <p className="mt-1 text-sm text-amber-800">Manager đang kiểm tra workload trước khi chốt lịch.</p>
+        <p className="mt-1 text-sm text-amber-800">Chủ sở hữu đang kiểm tra lịch trước khi chốt ca.</p>
       </section>
     </div>
   );

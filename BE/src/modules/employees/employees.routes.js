@@ -7,6 +7,6 @@ export const employeesRouter = Router();
 
 employeesRouter.get("/", asyncHandler(listEmployeesHandler));
 employeesRouter.get("/:id", asyncHandler(getEmployeeHandler));
-employeesRouter.post("/", requireRoles("Admin", "HR"), asyncHandler(createEmployeeHandler));
-employeesRouter.patch("/:id", requireRoles("Admin", "HR"), asyncHandler(updateEmployeeHandler));
-employeesRouter.delete("/:id", requireRoles("Admin", "HR"), asyncHandler(deleteEmployeeHandler));
+employeesRouter.post("/", requireRoles("Admin"), asyncHandler(createEmployeeHandler));
+employeesRouter.patch("/:id", requireRoles("Admin"), asyncHandler(updateEmployeeHandler));
+employeesRouter.delete("/:id", requireRoles("Admin"), asyncHandler(deleteEmployeeHandler));

@@ -128,7 +128,7 @@ export default function EmployeeWebPortal() {
 
     async function load() {
       if (!employeeId) {
-        setError("Tài khoản chưa gắn hồ sơ nhân viên. Admin/HR cần duyệt hoặc gắn nhân viên trước khi dùng cổng web.");
+        setError("Tài khoản chưa gắn hồ sơ nhân viên. Chủ sở hữu cần duyệt hoặc gắn nhân viên trước khi dùng cổng web.");
         setLoading(false);
         return;
       }
@@ -297,7 +297,7 @@ export default function EmployeeWebPortal() {
 
             {missingCheckout ? (
               <div className="relative z-10 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-                Có {missingCheckout} ngày thiếu check-out, Admin/HR cần chốt giờ ra trước khi tính lương.
+                Có {missingCheckout} ngày thiếu check-out, chủ sở hữu cần chốt giờ ra trước khi tính lương.
               </div>
             ) : null}
           </section>

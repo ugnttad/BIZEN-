@@ -73,7 +73,7 @@ export default function CompanyRegisterPage() {
             </div>
             <h1 className="mt-5 text-3xl font-semibold tracking-normal text-slate-950 md:text-4xl">Đăng ký doanh nghiệp sử dụng BIZEN</h1>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              Doanh nghiệp gửi thông tin trước. Chủ nền tảng BIZEN duyệt tenant, sau đó email đại diện mới trở thành Admin đầu tiên — có quyền tạo nhân sự và duyệt tài khoản nhân viên.
+              Doanh nghiệp gửi thông tin trước. Chủ nền tảng BIZEN duyệt tenant, sau đó email đại diện mới trở thành chủ sở hữu đầu tiên — có quyền tạo nhân sự và duyệt tài khoản nhân viên.
             </p>
           </div>
 

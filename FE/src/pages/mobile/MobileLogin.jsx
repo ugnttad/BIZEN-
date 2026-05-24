@@ -22,7 +22,7 @@ export default function MobileLogin() {
     }
 
     if (!session.user.employeeId) {
-      setError("Tài khoản chưa gắn hồ sơ nhân viên. Nhờ Admin/HR duyệt tài khoản và tạo hồ sơ trước.");
+      setError("Tài khoản chưa gắn hồ sơ nhân viên. Nhờ chủ sở hữu duyệt tài khoản và tạo hồ sơ trước.");
       return;
     }
 

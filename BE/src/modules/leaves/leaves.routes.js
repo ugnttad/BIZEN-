@@ -63,7 +63,7 @@ leavesRouter.post(
         (id, company_id, employee_id, leave_type, from_date, to_date, days, reason, status, approver)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Pending', $9)
        RETURNING *`,
-      [id, companyId, data.employeeId, data.type, data.from, data.to, data.days, data.reason, data.approver || "Manager"]
+      [id, companyId, data.employeeId, data.type, data.from, data.to, data.days, data.reason, data.approver || "Chủ sở hữu"]
     );
     res.status(201).json(result.rows[0]);
   })
@@ -71,7 +71,7 @@ leavesRouter.post(
 
 leavesRouter.patch(
   "/:id/status",
-  requireRoles("Admin", "HR", "Manager"),
+  requireRoles("Admin"),
   asyncHandler(async (req, res) => {
     const status = z.enum(["Pending", "Approved", "Rejected"]).parse(req.body.status);
     const companyId = await getCompanyIdForUser(req.user);

@@ -44,7 +44,7 @@ export default function MobileLeaveRequest() {
         to: addDays(fromDate, Math.max(Math.ceil(Number(days)) - 1, 0)),
         days: Number(days),
         reason,
-        approver: "Manager"
+        approver: "Chủ sở hữu"
       });
       setSent(true);
       setReason("");
@@ -96,7 +96,7 @@ export default function MobileLeaveRequest() {
             <CheckCircle2 className="h-5 w-5" />
             Đơn đã gửi
           </div>
-          <p className="mt-1 text-sm">Manager sẽ nhận thông báo và phản hồi trên app.</p>
+          <p className="mt-1 text-sm">Chủ sở hữu sẽ nhận thông báo và phản hồi trên app.</p>
         </section>
       ) : null}
     </div>

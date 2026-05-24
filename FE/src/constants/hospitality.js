@@ -1,31 +1,32 @@
-/** Bộ phận/nhóm mặc định khi tạo tenant F&B / khách sạn (khớp BE tenants.repository). */
+/** Bộ phận/nhóm mặc định cho quán cafe / trà sữa nhỏ ở Đà Nẵng (khớp BE tenants.repository). */
 export const hospitalityDepartmentNames = [
-  "Phục vụ",
-  "Pha chế / Bar",
-  "Bếp",
+  "Quản lý cửa hàng",
+  "Pha chế",
   "Thu ngân",
-  "Lễ tân",
-  "Buồng phòng",
+  "Phục vụ / Order",
+  "Topping / Bếp nhẹ",
   "Kho / Tạp vụ"
 ];
 
-/** Chức vụ gợi ý cho quán cafe, nhà hàng, khách sạn nhỏ. */
+/** Chức vụ gợi ý cho quán cafe / trà sữa 10-20 nhân viên. */
 export const hospitalityPositions = [
-  "Phục vụ",
+  "Chủ sở hữu",
+  "Quản lý cửa hàng",
+  "Quản lý ca",
+  "Trưởng ca",
   "Pha chế",
   "Barista",
-  "Đầu bếp",
-  "Phụ bếp",
+  "Pha chế trà sữa",
+  "Nhân viên topping",
   "Thu ngân",
-  "Lễ tân",
-  "Nhân viên buồng phòng",
-  "Quản lý ca",
-  "Quản lý nhà hàng",
-  "Giám sát bếp",
-  "Nhân viên giao hàng",
-  "Bảo vệ",
-  "Kế toán cửa hàng",
-  "Nhân sự"
+  "Order",
+  "Phục vụ",
+  "Runner",
+  "Nhân viên bán hàng",
+  "Thủ kho",
+  "Tạp vụ",
+  "Giao hàng",
+  "Bảo vệ"
 ];
 
 export const contractTypes = [
@@ -37,7 +38,15 @@ export const contractTypes = [
 
 export const employeeRoles = [
   { value: "Employee", label: "Nhân viên" },
-  { value: "Manager", label: "Quản lý / giám sát" },
-  { value: "HR", label: "Nhân sự (phụ quyền)" },
-  { value: "Admin", label: "Admin doanh nghiệp" }
+  { value: "Admin", label: "Chủ sở hữu" }
 ];
+
+export const cafeShopConstraints = {
+  minRecommendedEmployees: 10,
+  maxActiveEmployees: 20,
+  maxOwners: 1,
+  minBaseSalary: 1000000,
+  maxBaseSalary: 30000000,
+  passwordPattern: /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
+  phonePattern: /^0?\d{9,10}$/
+};

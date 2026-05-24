@@ -33,8 +33,8 @@ const navItems = [
 ];
 
 const metrics = [
-  { value: "20+", label: "nhân viên" },
-  { value: "4", label: "ca làm chuẩn" },
+  { value: "10-20", label: "nhân viên/quán" },
+  { value: "3-4", label: "ca làm chuẩn" },
   { value: "98%", label: "chấm công rõ trạng thái" },
   { value: "24/7", label: "cloud dashboard" }
 ];
@@ -49,24 +49,24 @@ const featureTabs = mvpDemoFeatures.map((feature, index) => ({
 
 const solutionCards = [
   {
-    title: "Cho chủ doanh nghiệp",
+    title: "Cho chủ sở hữu",
     icon: BarChart3,
-    text: "Theo dõi chi phí lương dự kiến, tỷ lệ đúng giờ, hiệu suất bộ phận và cảnh báo nhân sự."
+    text: "Một người nắm toàn quyền: hồ sơ nhân viên, lịch ca, chấm công, nghỉ phép, lương và báo cáo."
   },
   {
-    title: "Cho Admin/nhân sự",
-    icon: UsersRound,
-    text: "Quản lý hồ sơ, chấm công, lịch làm, nghỉ phép và bảng lương trên một dashboard gọn."
-  },
-  {
-    title: "Cho quản lý",
-    icon: BellRing,
-    text: "Nắm ca làm hôm nay, người vắng, nhân sự thay ca và cảnh báo tăng ca trong bộ phận."
+    title: "Cho cửa hàng nhỏ/vừa",
+    icon: Building2,
+    text: "Dành cho quán cafe/trà sữa 10-20 nhân viên ở Đà Nẵng, chưa dùng phần mềm nhân sự chuyên nghiệp."
   },
   {
     title: "Cho nhân viên",
     icon: ShieldCheck,
     text: "Cổng web/mobile đơn giản: hôm nay làm ca nào, đã check-in chưa, lương tạm tính và ngày phép còn lại."
+  },
+  {
+    title: "Cho người bán SaaS",
+    icon: BellRing,
+    text: "Bạn duyệt doanh nghiệp đăng ký trước khi họ vào hệ thống và dùng tenant riêng."
   }
 ];
 
@@ -83,11 +83,11 @@ const faqs = [
   },
   {
     question: "Có cần cài phần mềm trên máy chấm công không?",
-    answer: "Ứng dụng dùng camera mobile/web, Admin/HR duyệt ảnh đăng ký và AWS Rekognition xác minh khuôn mặt khi chấm công."
+    answer: "Không. Ứng dụng dùng camera mobile/web, chủ sở hữu duyệt ảnh đăng ký và AWS Rekognition xác minh khuôn mặt khi chấm công."
   },
   {
-    question: "Có phân quyền cho HR, quản lý và nhân viên không?",
-    answer: "Có. Hệ thống tách dashboard quản trị, cổng web nhân viên và mobile-first cho chấm công nhanh, có nền tảng role-based access."
+    question: "Có cần tách nhân sự hoặc quản lý riêng không?",
+    answer: "Không bắt buộc. MVP gọn nhất là chủ sở hữu có toàn quyền, nhân viên dùng cổng tự phục vụ; quản lý ca chỉ là chức vụ công việc."
   }
 ];
 
@@ -187,13 +187,13 @@ export default function LandingPage() {
           <div className="max-w-2xl">
             <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-3 py-1.5 text-sm font-semibold text-blue-700 shadow-sm">
               <Sparkles className="h-4 w-4" />
-              Nền tảng HRM & Payroll cho SME Đà Nẵng
+              Nền tảng nhân sự & Payroll cho quán cafe/trà sữa Đà Nẵng
             </div>
             <h1 className="animate-fade-up anim-delay-100 mt-6 text-4xl font-bold leading-tight tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
               Quản lý nhân sự, chấm công và tính lương trên một nền tảng.
             </h1>
             <p className="animate-fade-up anim-delay-200 mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-              BIZEN giúp doanh nghiệp vừa và nhỏ số hóa quy trình HR: Face ID check-in, xếp ca AI, duyệt nghỉ phép, payroll tự động và báo cáo quản trị.
+              BIZEN giúp quán cafe và trà sữa nhỏ, khoảng 10-20 nhân viên, thay Excel/Zalo bằng chấm công Face ID, xếp ca, nghỉ phép và tính lương gọn.
             </p>
             <div className="animate-fade-up anim-delay-300 mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/register-company" className="btn-motion inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30">
@@ -206,7 +206,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <p className="animate-fade-up anim-delay-300 mt-3 text-sm text-slate-500">
-              Khách hàng đăng ký trước → chủ nền tảng BIZEN duyệt → Admin công ty vận hành nội bộ.
+              Khách hàng đăng ký trước → chủ nền tảng BIZEN duyệt → chủ sở hữu cửa hàng vận hành nội bộ.
             </p>
 
             <div className="animate-fade-up anim-delay-400 mt-10 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
@@ -223,21 +223,21 @@ export default function LandingPage() {
 
       <section className="border-y border-slate-100 bg-slate-50 py-5">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold text-slate-500 sm:px-6 lg:px-8">
-          <span className="transition-colors hover:text-blue-700">Sales</span>
-          <span className="transition-colors hover:text-blue-700">Nhân sự</span>
-          <span className="transition-colors hover:text-blue-700">Warehouse</span>
-          <span className="transition-colors hover:text-blue-700">Admin</span>
-          <span className="transition-colors hover:text-blue-700">Customer Support</span>
-          <span className="transition-colors hover:text-blue-700">Payroll</span>
+          <span className="transition-colors hover:text-blue-700">Pha chế</span>
+          <span className="transition-colors hover:text-blue-700">Thu ngân</span>
+          <span className="transition-colors hover:text-blue-700">Order</span>
+          <span className="transition-colors hover:text-blue-700">Chủ sở hữu</span>
+          <span className="transition-colors hover:text-blue-700">Kho / Tạp vụ</span>
+          <span className="transition-colors hover:text-blue-700">Tính lương</span>
         </div>
       </section>
 
       <section id="solutions" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="animate-fade-up max-w-3xl">
           <p className="text-sm font-bold uppercase tracking-normal text-blue-600">Giải pháp tất cả trong một</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Một hệ thống cho mọi vai trò trong doanh nghiệp.</h2>
+          <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Một hệ thống gọn cho chủ quán cafe/trà sữa và nhân viên.</h2>
           <p className="mt-4 text-base leading-7 text-slate-600">
-            Mỗi người mở app lên là thấy ngay việc cần làm: Admin/nhân sự xử lý vận hành, quản lý theo dõi ca, nhân viên check-in và xem quyền lợi.
+            Chủ sở hữu xử lý vận hành trên dashboard; nhân viên mở web/mobile để check-in, xem lịch, lương và gửi nghỉ phép.
           </p>
         </div>
 
@@ -316,7 +316,7 @@ export default function LandingPage() {
             <p className="text-sm font-bold uppercase tracking-normal text-blue-600">Kịch bản demo live</p>
             <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Thứ tự trình diễn gợi ý (10–15 phút).</h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Dùng hai trình duyệt: một tab Platform Admin (bạn), một tab Admin công ty + cổng nhân viên.
+              Dùng hai trình duyệt: một tab Platform Admin (bạn), một tab chủ sở hữu + cổng nhân viên.
             </p>
             <WorkflowStepsCard className="mt-6" title="Thứ tự demo" steps={demoScriptOrder} />
           </div>
@@ -353,8 +353,8 @@ export default function LandingPage() {
               {[
                 "Dashboard dễ đọc, không nhồi quá nhiều menu.",
                 "Nhân viên chỉ cần một nút hành động chính mỗi ngày.",
-                "Admin/nhân sự có bảng, bộ lọc và trạng thái rõ ràng.",
-                "Quản lý nhận cảnh báo thiếu người và tăng ca."
+                "Chủ sở hữu có bảng, bộ lọc và trạng thái rõ ràng.",
+                "Cửa hàng nhận cảnh báo thiếu người và tăng ca."
               ].map((quote) => (
                 <figure key={quote} className="motion-card rounded-lg border border-blue-100 bg-white p-5 shadow-sm hover:border-blue-200 hover:shadow-soft">
                   <MessageSquareText className="h-6 w-6 text-blue-600" />

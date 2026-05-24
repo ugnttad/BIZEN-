@@ -50,5 +50,6 @@ export function getDefaultPathForRole(role) {
     if (preference === "mobile") return "/mobile/home";
     return prefersMobileExperience() ? "/mobile/home" : "/web/me";
   }
-  return "/web/dashboard";
+  if (role === "Admin") return "/web/dashboard";
+  return "/login";
 }

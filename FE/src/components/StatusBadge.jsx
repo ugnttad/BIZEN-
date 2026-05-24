@@ -42,9 +42,9 @@ const statusLabels = {
   Rejected: "Từ chối",
   "Not submitted": "Chưa đăng ký",
   Suspended: "Tạm khóa",
-  Manager: "Quản lý / giám sát",
-  HR: "Nhân sự",
-  Admin: "Admin DN",
+  Manager: "Quản lý ca",
+  HR: "Phụ quyền cũ",
+  Admin: "Chủ sở hữu",
   PlatformAdmin: "Chủ nền tảng",
   Employee: "Nhân viên"
 };

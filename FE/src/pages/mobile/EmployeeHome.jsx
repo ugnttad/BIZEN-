@@ -31,7 +31,7 @@ export default function EmployeeHome() {
   useEffect(() => {
     let active = true;
     if (!employeeId) {
-      setError("Chưa gắn hồ sơ nhân viên. Đăng xuất và đăng nhập lại sau khi Admin/HR duyệt tài khoản.");
+      setError("Chưa gắn hồ sơ nhân viên. Đăng xuất và đăng nhập lại sau khi chủ sở hữu duyệt tài khoản.");
       return;
     }
 
@@ -110,8 +110,8 @@ export default function EmployeeHome() {
           <CreditCard className="h-5 w-5 text-blue-600" />
           <p className="mt-3 text-xs font-medium text-slate-500">{salaryLabel}</p>
           <p className="mt-1 text-lg font-semibold text-slate-950">{salaryValue}</p>
-          {payroll?.isEstimate ? <p className="mt-1 text-xs text-amber-700">Admin/HR chưa chốt bảng lương — số liệu từ công + BH</p> : null}
-          {!payroll ? <p className="mt-1 text-xs text-slate-500">Admin/HR sẽ tính lương trên web</p> : null}
+          {payroll?.isEstimate ? <p className="mt-1 text-xs text-amber-700">Chủ sở hữu chưa chốt bảng lương — số liệu từ công + BH</p> : null}
+          {!payroll ? <p className="mt-1 text-xs text-slate-500">Chủ sở hữu sẽ tính lương trên web</p> : null}
         </div>
         <div className="premium-card rounded-2xl p-4">
           <Umbrella className="h-5 w-5 text-violet-600" />

@@ -101,7 +101,7 @@ export default function PlatformCompanyRequests() {
             <p className="text-sm font-semibold uppercase tracking-normal text-blue-600">Chủ nền tảng BIZEN</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950 md:text-3xl">Duyệt doanh nghiệp đăng ký SaaS</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">
-              Bạn là người bán sản phẩm — duyệt tenant trước khi khách vào hệ thống. Approve sẽ tạo company và tài khoản Admin đầu tiên.
+              Bạn là người bán sản phẩm — duyệt tenant trước khi khách vào hệ thống. Approve sẽ tạo company và tài khoản chủ sở hữu đầu tiên.
             </p>
           </div>
           <button onClick={() => loadRequests(status)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">

@@ -10,9 +10,9 @@ import { saveMobileEmployee } from "../modules/auth/mobileSession";
 
 const accessHighlights = [
   "Role lấy trực tiếp từ hồ sơ nhân viên",
-  "Admin cao nhất; HR/Manager là vai trò phụ quyền",
+  "Chủ sở hữu có toàn quyền vận hành",
   "Nhân viên dùng được cả web và mobile",
-  "Face ID cần Admin/HR duyệt trước khi chấm công"
+  "Face ID cần chủ sở hữu duyệt trước khi chấm công"
 ];
 
 export default function LoginPage() {
@@ -108,7 +108,7 @@ export default function LoginPage() {
           <form onSubmit={submit} className="premium-card login-card w-full max-w-md rounded-2xl p-6">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold tracking-normal text-slate-950">Đăng nhập BIZEN</h2>
-              <p className="mt-2 text-sm text-slate-500">Admin/nhân sự/quản lý ca → dashboard · Nhân viên → cổng web/mobile · Chủ nền tảng BIZEN → duyệt doanh nghiệp.</p>
+              <p className="mt-2 text-sm text-slate-500">Chủ sở hữu → dashboard · Nhân viên → cổng web/mobile · Chủ nền tảng BIZEN → duyệt doanh nghiệp.</p>
               <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
                 <Link to="/register-company" className="text-blue-700 hover:text-blue-800">
                   Đăng ký doanh nghiệp (khách hàng)

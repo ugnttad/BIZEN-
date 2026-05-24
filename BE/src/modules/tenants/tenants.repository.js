@@ -17,20 +17,19 @@ const requestSelect = `
 `;
 
 const defaultDepartments = [
-  ["phuc-vu", "Phục vụ", 8],
-  ["pha-che", "Pha chế / Bar", 4],
-  ["bep", "Bếp", 6],
+  ["quan-ly-cua-hang", "Quản lý cửa hàng", 1],
+  ["pha-che", "Pha chế", 5],
   ["thu-ngan", "Thu ngân", 3],
-  ["le-tan", "Lễ tân", 3],
-  ["buong-phong", "Buồng phòng", 5],
-  ["kho-tap-vu", "Kho / Tạp vụ", 3]
+  ["phuc-vu-order", "Phục vụ / Order", 6],
+  ["topping-bep-nhe", "Topping / Bếp nhẹ", 3],
+  ["kho-tap-vu", "Kho / Tạp vụ", 2]
 ];
 
 const defaultShifts = [
-  ["ca-sang", "Ca sáng", "07:00 - 15:00", "07:00", 6, "#2563eb"],
-  ["ca-chieu", "Ca chiều", "14:00 - 22:00", "14:00", 6, "#7c3aed"],
-  ["ca-toi", "Ca tối", "17:00 - 23:00", "17:00", 5, "#4f46e5"],
-  ["ca-gay", "Ca gãy (F&B)", "10:00 - 14:00, 17:00 - 21:00", "10:00", 4, "#059669"]
+  ["ca-sang", "Ca sáng", "07:00 - 15:00", "07:00", 5, "#2563eb"],
+  ["ca-chieu", "Ca chiều", "14:00 - 22:00", "14:00", 5, "#7c3aed"],
+  ["ca-toi", "Ca tối", "17:00 - 23:00", "17:00", 4, "#4f46e5"],
+  ["ca-gay", "Ca gãy giờ cao điểm", "10:00 - 14:00, 17:00 - 21:00", "10:00", 3, "#059669"]
 ];
 
 async function createCompanyDefaults(client, companyId) {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { query } from "../../config/db.js";
 import { httpError } from "../../shared/httpError.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
 import { updateEmployeeAccountProfile, upsertPasswordUser } from "../auth/auth.repository.js";
@@ -9,7 +10,7 @@ const employeeSchema = z.object({
   name: z.string().min(2),
   departmentId: z.string().min(1),
   position: z.string().min(2),
-  role: z.enum(["Admin", "HR", "Manager", "Employee"]).default("Employee"),
+  role: z.enum(["Admin", "Employee"]).default("Employee"),
   contractType: z.string().min(2),
   baseSalary: z.coerce.number().nonnegative(),
   status: z.enum(["Active", "On leave", "Inactive"]).default("Active"),
@@ -19,12 +20,138 @@ const employeeSchema = z.object({
   shiftId: z.string().optional(),
   leaveRemaining: z.coerce.number().optional(),
   address: z.string().optional(),
-  accountPassword: z.string().min(8, "Password must have at least 8 characters").optional()
+  accountPassword: z.string().optional()
 });
 
+const cafeShopConstraints = {
+  maxActiveEmployees: 20,
+  maxOwners: 1,
+  minBaseSalary: 1000000,
+  maxBaseSalary: 30000000,
+  passwordPattern: /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
+  phonePattern: /^0?\d{9,10}$/
+};
+
+const allowedAccessRoles = ["Admin", "Employee"];
+const ownerPositions = ["Chủ sở hữu", "Chủ doanh nghiệp"];
+const positionOptionsByDepartment = {
+  "Quan ly cua hang": ["Chủ sở hữu", "Quản lý cửa hàng", "Quản lý ca", "Trưởng ca"],
+  "Pha che": ["Pha chế", "Barista", "Pha chế trà sữa", "Trưởng ca pha chế"],
+  "Pha che / Bar": ["Pha chế", "Barista", "Pha chế trà sữa", "Trưởng ca pha chế"],
+  "Thu ngan": ["Thu ngân", "Thu ngân trưởng", "Kế toán cửa hàng"],
+  "Phuc vu": ["Phục vụ", "Order", "Runner", "Trưởng ca phục vụ"],
+  "Phuc vu / Order": ["Phục vụ", "Order", "Runner", "Nhân viên bán hàng", "Trưởng ca phục vụ"],
+  "Phuc vu / ban hang": ["Phục vụ", "Order", "Runner", "Nhân viên bán hàng", "Trưởng ca phục vụ"],
+  "Topping / Bep nhe": ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Bếp nhẹ"],
+  Bep: ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Bếp nhẹ"],
+  "Bep / kho": ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Thủ kho"],
+  "Kho / Tap vu": ["Thủ kho", "Tạp vụ", "Giao hàng", "Bảo vệ"],
+  "Van phong / nhan su": ["Kế toán cửa hàng", "Quản lý cửa hàng"]
+};
+const allOperationalPositions = Array.from(new Set(Object.values(positionOptionsByDepartment).flat()));
+
+function stripVietnamese(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+}
+
+function getDepartmentKey(name) {
+  return stripVietnamese(name);
+}
+
+function getPositionOptions(departmentName, role) {
+  if (role === "Admin") return ["Chủ sở hữu", "Quản lý cửa hàng"];
+  return positionOptionsByDepartment[getDepartmentKey(departmentName)] || allOperationalPositions;
+}
+
+function normalizePhone(value = "") {
+  return String(value).replace(/\D/g, "");
+}
+
+function normalizeEmployeePayload(data) {
+  if (data.name) data.name = data.name.trim();
+  if (data.email) data.email = data.email.trim().toLowerCase();
+  if (data.phone) data.phone = normalizePhone(data.phone);
+  return data;
+}
+
+function isOperational(employee) {
+  return employee.status !== "Inactive";
+}
+
+async function getDepartmentName(companyId, departmentId) {
+  if (!departmentId) return null;
+  const result = await query("SELECT name FROM departments WHERE id = $1 AND company_id = $2", [departmentId, companyId]);
+  if (!result.rows[0]) throw httpError(400, "Bộ phận làm việc không hợp lệ");
+  return result.rows[0].name;
+}
+
+async function assertCafeShopConstraints(companyId, data, current = null) {
+  const departmentName = data.departmentId ? await getDepartmentName(companyId, data.departmentId) : current?.department;
+  const nextEmployee = {
+    id: current?.id,
+    status: data.status ?? current?.status ?? "Active",
+    role: data.role ?? current?.role ?? "Employee",
+    position: data.position ?? current?.position,
+    baseSalary: Number(data.baseSalary ?? current?.baseSalary ?? 0),
+    phone: data.phone ?? current?.phone ?? "",
+    department: departmentName
+  };
+
+  if (!allowedAccessRoles.includes(nextEmployee.role)) {
+    throw httpError(400, "MVP BIZEN chỉ dùng 2 quyền truy cập: Chủ sở hữu và Nhân viên");
+  }
+
+  if (!departmentName) {
+    throw httpError(400, "Chọn bộ phận làm việc hợp lệ");
+  }
+
+  const employees = await listEmployees(companyId);
+  const nextOperationalEmployees = [
+    ...employees.filter((employee) => employee.id !== current?.id && isOperational(employee)),
+    ...(isOperational(nextEmployee) ? [nextEmployee] : [])
+  ];
+
+  if (nextOperationalEmployees.length > cafeShopConstraints.maxActiveEmployees) {
+    throw httpError(400, `BIZEN MVP giới hạn tối đa ${cafeShopConstraints.maxActiveEmployees} nhân sự đang làm cho một cửa hàng`);
+  }
+
+  if (nextOperationalEmployees.filter((employee) => employee.role === "Admin").length > cafeShopConstraints.maxOwners) {
+    throw httpError(400, "Mỗi cửa hàng chỉ nên có tối đa 1 hồ sơ chủ sở hữu");
+  }
+
+  if (nextEmployee.role === "Admin" && getDepartmentKey(departmentName) !== "Quan ly cua hang") {
+    throw httpError(400, "Chủ sở hữu phải thuộc bộ phận Quản lý cửa hàng");
+  }
+
+  if (nextEmployee.role === "Employee" && ownerPositions.includes(nextEmployee.position)) {
+    throw httpError(400, "Nhân viên không được chọn chức vụ Chủ sở hữu");
+  }
+
+  if (!getPositionOptions(departmentName, nextEmployee.role).includes(nextEmployee.position)) {
+    throw httpError(400, "Chức vụ công việc phải khớp với bộ phận làm việc");
+  }
+
+  if (nextEmployee.baseSalary < cafeShopConstraints.minBaseSalary || nextEmployee.baseSalary > cafeShopConstraints.maxBaseSalary) {
+    throw httpError(400, "Lương cơ bản cần nằm trong khoảng 1.000.000 - 30.000.000 VNĐ/tháng");
+  }
+
+  const phoneDigits = normalizePhone(nextEmployee.phone);
+  if (phoneDigits && !cafeShopConstraints.phonePattern.test(phoneDigits)) {
+    throw httpError(400, "Số điện thoại cần 9-11 chữ số, phù hợp số điện thoại Việt Nam");
+  }
+
+  if (data.accountPassword && !cafeShopConstraints.passwordPattern.test(data.accountPassword)) {
+    throw httpError(400, "Mật khẩu cần ít nhất 8 ký tự, có chữ và số");
+  }
+}
+
 function assertCanAssignRole(user, role) {
-  if (user.role !== "Admin" && ["Admin", "HR"].includes(role)) {
-    throw httpError(403, "Chỉ Admin doanh nghiệp được cấp quyền Admin hoặc Nhân sự");
+  if (user.role !== "Admin" && role === "Admin") {
+    throw httpError(403, "Chỉ chủ sở hữu được cấp quyền chủ sở hữu");
   }
 }
 
@@ -51,9 +178,13 @@ export async function getEmployeeHandler(req, res) {
 }
 
 export async function createEmployeeHandler(req, res) {
-  const data = employeeSchema.parse(req.body);
+  const data = normalizeEmployeePayload(employeeSchema.parse(req.body));
   const companyId = await getCompanyIdForUser(req.user);
   assertCanAssignRole(req.user, data.role);
+  if (!data.accountPassword) {
+    throw httpError(400, "Cần cấp mật khẩu đăng nhập để nhân viên dùng web/mobile ngay");
+  }
+  await assertCafeShopConstraints(companyId, data);
 
   try {
     const employee = await createEmployee(companyId, data);
@@ -73,15 +204,16 @@ export async function createEmployeeHandler(req, res) {
 }
 
 export async function updateEmployeeHandler(req, res) {
-  const data = employeeSchema.partial().parse(req.body);
+  const data = normalizeEmployeePayload(employeeSchema.partial().parse(req.body));
   const companyId = await getCompanyIdForUser(req.user);
   const current = await getEmployeeById(req.params.id, companyId);
   if (!current) throw httpError(404, "Employee not found");
 
   assertCanAssignRole(req.user, data.role || current.role);
   if (req.user.role !== "Admin" && current.role === "Admin") {
-    throw httpError(403, "Chỉ Admin doanh nghiệp được sửa tài khoản Admin");
+    throw httpError(403, "Chỉ chủ sở hữu được sửa tài khoản chủ sở hữu");
   }
+  await assertCafeShopConstraints(companyId, data, current);
 
   const employee = await updateEmployee(req.params.id, companyId, data);
   if (!employee) throw httpError(404, "Employee not found");
@@ -99,7 +231,7 @@ export async function deleteEmployeeHandler(req, res) {
   const companyId = await getCompanyIdForUser(req.user);
   const employee = await getEmployeeById(req.params.id, companyId);
   if (req.user.role !== "Admin" && employee?.role === "Admin") {
-    throw httpError(403, "Chỉ Admin doanh nghiệp được xóa tài khoản Admin");
+    throw httpError(403, "Chỉ chủ sở hữu được xóa tài khoản chủ sở hữu");
   }
   await deleteEmployee(req.params.id, companyId);
   res.status(204).end();

@@ -27,7 +27,7 @@ const passwordLoginSchema = z.object({
 
 const employeeAccountRequestSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, "Password must have at least 8 characters")
+  password: z.string().regex(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/, "Password must have at least 8 characters, one letter and one number")
 });
 
 const accountRequestStatusSchema = z.object({
@@ -52,6 +52,12 @@ function signToken(user) {
   );
 }
 
+function assertSupportedTenantRole(user) {
+  if (user.role && !["Admin", "Employee"].includes(user.role)) {
+    throw httpError(403, "BIZEN MVP hiện chỉ hỗ trợ quyền Chủ sở hữu hoặc Nhân viên. Chủ sở hữu cần chuyển tài khoản này về quyền phù hợp.");
+  }
+}
+
 export async function googleLoginHandler(req, res) {
   if (!env.googleClientId || env.googleClientId.includes("your-google")) {
     throw httpError(500, "GOOGLE_CLIENT_ID is not configured on the backend deployment");
@@ -71,10 +77,13 @@ export async function googleLoginHandler(req, res) {
   const existingUser = await getUserByEmail(payload.email);
   const employee = await findEmployeeByEmail(payload.email);
 
+  if (existingUser) assertSupportedTenantRole(existingUser);
+  if (employee) assertSupportedTenantRole(employee);
+
   if (!existingUser) {
     if (employee) {
       await createEmployeeAccountRequest(employee);
-      throw httpError(403, "Employee account request was sent to company HR for approval");
+      throw httpError(403, "Employee account request was sent to the owner for approval");
     }
 
     throw httpError(403, "This email is not attached to an approved BIZEN account");
@@ -95,6 +104,7 @@ export async function googleLoginHandler(req, res) {
     employee,
     existingUser
   );
+  assertSupportedTenantRole(user);
 
   res.json({
     token: signToken(user),
@@ -121,8 +131,9 @@ export async function passwordLoginHandler(req, res) {
   }
 
   if (userWithPassword.status !== "Approved") {
-    throw httpError(403, `Account status is ${userWithPassword.status}. Company admin or HR must approve it first`);
+    throw httpError(403, `Account status is ${userWithPassword.status}. The owner must approve it first`);
   }
+  assertSupportedTenantRole(userWithPassword);
 
   const hasAccountPassword = verifyPassword(data.password, userWithPassword.passwordHash);
   const hasLegacyPassword = !userWithPassword.passwordHash && data.password === env.passwordLoginSecret;
@@ -131,6 +142,7 @@ export async function passwordLoginHandler(req, res) {
   }
 
   const user = await touchUserLogin(userWithPassword.id);
+  assertSupportedTenantRole(user);
 
   res.json({
     token: signToken(user),
@@ -143,8 +155,9 @@ export async function requestEmployeeAccountHandler(req, res) {
   const employee = await findEmployeeByEmail(data.email);
 
   if (!employee) {
-    throw httpError(404, "HR must create this employee profile before an account can be requested");
+    throw httpError(404, "The owner must create this employee profile before an account can be requested");
   }
+  assertSupportedTenantRole(employee);
 
   const user = await createEmployeeAccountRequest(employee, hashPassword(data.password));
   res.status(user.status === "Approved" ? 200 : 201).json(user);
@@ -164,8 +177,8 @@ export async function reviewAccountRequestHandler(req, res) {
 
   const data = accountRequestStatusSchema.parse(req.body);
   const targetUser = await getUserById(req.params.id);
-  if (targetUser && targetUser.companyId === req.user.companyId && req.user.role !== "Admin" && ["Admin", "HR"].includes(targetUser.role)) {
-    throw httpError(403, "Chỉ Admin doanh nghiệp được duyệt hoặc khóa tài khoản Admin/Nhân sự");
+  if (targetUser && targetUser.companyId === req.user.companyId && req.user.role !== "Admin" && targetUser.role === "Admin") {
+    throw httpError(403, "Chỉ chủ sở hữu được duyệt hoặc khóa tài khoản chủ sở hữu");
   }
 
   const user = await reviewAccountRequest(req.user.companyId, req.params.id, data.status);
@@ -188,5 +201,6 @@ export async function meHandler(req, res) {
   const user = await getUserById(decoded.sub);
   if (!user) throw httpError(401, "User not found");
   if (user.status !== "Approved") throw httpError(403, "Account is not approved");
+  assertSupportedTenantRole(user);
   res.json(user);
 }

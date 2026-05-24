@@ -56,7 +56,7 @@ export default function App() {
       <Route
         path="/web"
         element={
-          <ProtectedRoute roles={["Admin", "HR", "Manager", "Employee"]}>
+          <ProtectedRoute roles={["Admin", "Employee"]}>
             <WebLayout />
           </ProtectedRoute>
         }
@@ -81,7 +81,7 @@ export default function App() {
         <Route
           path="dashboard"
           element={
-            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -89,7 +89,7 @@ export default function App() {
         <Route
           path="employees"
           element={
-            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <EmployeeManagement />
             </ProtectedRoute>
           }
@@ -97,7 +97,7 @@ export default function App() {
         <Route
           path="employees/:id"
           element={
-            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <EmployeeDetail />
             </ProtectedRoute>
           }
@@ -105,7 +105,7 @@ export default function App() {
         <Route
           path="attendance"
           element={
-            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <AttendanceDashboard />
             </ProtectedRoute>
           }
@@ -113,7 +113,7 @@ export default function App() {
         <Route
           path="accounts"
           element={
-            <ProtectedRoute roles={["Admin", "HR"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <AccountApprovals />
             </ProtectedRoute>
           }
@@ -121,7 +121,7 @@ export default function App() {
         <Route
           path="face-id"
           element={
-            <ProtectedRoute roles={["Admin", "HR"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <FaceEnrollmentReview />
             </ProtectedRoute>
           }
@@ -129,7 +129,7 @@ export default function App() {
         <Route
           path="scheduling"
           element={
-            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <ShiftScheduling />
             </ProtectedRoute>
           }
@@ -137,7 +137,7 @@ export default function App() {
         <Route
           path="payroll"
           element={
-            <ProtectedRoute roles={["Admin", "HR"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <PayrollManagement />
             </ProtectedRoute>
           }
@@ -145,7 +145,7 @@ export default function App() {
         <Route
           path="payroll/:id"
           element={
-            <ProtectedRoute roles={["Admin", "HR"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <PayrollDetail />
             </ProtectedRoute>
           }
@@ -153,7 +153,7 @@ export default function App() {
         <Route
           path="leaves"
           element={
-            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <LeaveRequests />
             </ProtectedRoute>
           }
@@ -161,7 +161,7 @@ export default function App() {
         <Route
           path="reports"
           element={
-            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <Reports />
             </ProtectedRoute>
           }
@@ -169,7 +169,7 @@ export default function App() {
         <Route
           path="assistant"
           element={
-            <ProtectedRoute roles={["Admin", "HR", "Manager"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <AIAssistantPage />
             </ProtectedRoute>
           }

@@ -12,12 +12,12 @@ import {
 
 export const attendanceRouter = Router();
 
-attendanceRouter.get("/", requireRoles("Admin", "HR", "Manager"), asyncHandler(listAttendanceHandler));
-attendanceRouter.get("/face-enrollments", requireRoles("Admin", "HR"), asyncHandler(listFaceEnrollmentsHandler));
+attendanceRouter.get("/", requireRoles("Admin"), asyncHandler(listAttendanceHandler));
+attendanceRouter.get("/face-enrollments", requireRoles("Admin"), asyncHandler(listFaceEnrollmentsHandler));
 attendanceRouter.get("/face-enrollments/employee/:employeeId/latest", asyncHandler(latestFaceEnrollmentHandler));
-attendanceRouter.get("/face-enrollments/:id/image", requireRoles("Admin", "HR"), asyncHandler(faceEnrollmentImageHandler));
+attendanceRouter.get("/face-enrollments/:id/image", requireRoles("Admin"), asyncHandler(faceEnrollmentImageHandler));
 attendanceRouter.get("/employee/:employeeId", asyncHandler(listEmployeeAttendanceHandler));
-attendanceRouter.post("/", requireRoles("Admin", "HR"), asyncHandler(upsertAttendanceHandler));
+attendanceRouter.post("/", requireRoles("Admin"), asyncHandler(upsertAttendanceHandler));
 attendanceRouter.post("/face-enroll", asyncHandler(faceEnrollHandler));
 attendanceRouter.post("/face-checkin", asyncHandler(faceCheckinHandler));
-attendanceRouter.patch("/face-enrollments/:id/status", requireRoles("Admin", "HR"), asyncHandler(reviewFaceEnrollmentHandler));
+attendanceRouter.patch("/face-enrollments/:id/status", requireRoles("Admin"), asyncHandler(reviewFaceEnrollmentHandler));

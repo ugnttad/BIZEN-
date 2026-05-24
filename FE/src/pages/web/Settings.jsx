@@ -43,7 +43,7 @@ export default function Settings() {
       <PageHeader
         eyebrow="Settings"
         title="Cấu hình hệ thống"
-        description="Thiết lập giờ làm chuẩn, quy định đi trễ, công thức lương, OT, bộ phận/nhóm và vai trò."
+        description="Thiết lập giờ làm chuẩn, quy định đi trễ, công thức lương, OT và bộ phận/nhóm cho cửa hàng."
         actions={
           <button onClick={saveSettings} className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
             Lưu cấu hình
@@ -139,10 +139,10 @@ export default function Settings() {
               <div className="grid h-10 w-10 place-items-center rounded-lg bg-slate-100 text-slate-700">
                 <ShieldCheck className="h-5 w-5" />
               </div>
-              <h2 className="text-base font-semibold text-slate-950">Vai trò</h2>
+              <h2 className="text-base font-semibold text-slate-950">Quyền truy cập</h2>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {["Admin", "HR", "Manager", "Employee"].map((role) => (
+              {["Chủ sở hữu", "Nhân viên"].map((role) => (
                 <div key={role} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
                   {role}
                 </div>
@@ -157,7 +157,7 @@ export default function Settings() {
               </div>
               <div>
                 <h2 className="text-base font-semibold text-slate-950">Phân quyền</h2>
-                <p className="mt-1 text-sm text-slate-500">Admin doanh nghiệp có quyền cao nhất. Nhân sự và quản lý ca là vai trò phụ quyền để chia việc vận hành.</p>
+                <p className="mt-1 text-sm text-slate-500">Chủ sở hữu có toàn quyền. Nhân viên chỉ dùng cổng tự phục vụ; quản lý ca là chức vụ công việc, không phải quyền riêng.</p>
               </div>
             </div>
           </section>

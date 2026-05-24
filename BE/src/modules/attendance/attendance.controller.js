@@ -98,7 +98,7 @@ export async function faceCheckinHandler(req, res) {
 
   const approvedEnrollment = await getApprovedFaceEnrollment(payload.employeeId);
   if (!approvedEnrollment) {
-    throw httpError(409, "Face enrollment is not approved by HR yet");
+    throw httpError(409, "Face enrollment is not approved by the owner yet");
   }
 
   const face = await verifyEmployeeFace(payload.employeeId, payload.image);

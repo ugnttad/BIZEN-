@@ -64,7 +64,7 @@ export default function AccountApprovals() {
       <PageHeader
         eyebrow="Access control"
         title="Tài khoản đăng nhập"
-        description="Khi Admin/HR tạo nhân viên kèm mật khẩu, tài khoản được cấp ngay. Màn này dùng để xem, duyệt yêu cầu tự đăng ký và khóa tài khoản khi cần."
+        description="Khi chủ sở hữu tạo nhân viên kèm mật khẩu, tài khoản được cấp ngay. Màn này dùng để xem, duyệt yêu cầu tự đăng ký và khóa tài khoản khi cần."
         actions={
           <button onClick={() => loadRequests(status)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <RefreshCw className="h-4 w-4" />

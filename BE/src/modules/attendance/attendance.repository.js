@@ -34,7 +34,7 @@ function enrichAttendanceRow(row, { mobile = false } = {}) {
       ["Present", "Late", "Overtime"].includes(row.status) &&
       isPastCheckoutDeadline(row.workDate, row.shiftTime)
   );
-  const missingNote = "Thiếu check-out - Admin/HR cần chốt giờ ra trước khi tính lương";
+  const missingNote = "Thiếu check-out - chủ sở hữu cần chốt giờ ra trước khi tính lương";
 
   return {
     ...row,

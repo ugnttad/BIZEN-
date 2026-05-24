@@ -7,22 +7,22 @@ export const departments = [
 ];
 
 export const employees = [
-  ["BZN001", "Nguyễn Minh Anh", "sales", "Sales Lead", "Manager", "Full-time", 18000000, "Active", "minhanh@bizen.vn", "0905 112 301", "2024-02-12", "Lê Hoài Nam", "morning", 8, "Hải Châu, Đà Nẵng"],
+  ["BZN001", "Nguyễn Minh Anh", "sales", "Quản lý ca phục vụ", "Employee", "Full-time", 18000000, "Active", "minhanh@bizen.vn", "0905 112 301", "2024-02-12", "Lê Hoài Nam", "morning", 8, "Hải Châu, Đà Nẵng"],
   ["BZN002", "Trần Quốc Bảo", "sales", "Account Executive", "Employee", "Full-time", 13500000, "Active", "quocbao@bizen.vn", "0905 112 302", "2024-04-08", "Nguyễn Minh Anh", "morning", 6, "Thanh Khê, Đà Nẵng"],
   ["BZN003", "Lê Thảo Vy", "sales", "Account Executive", "Employee", "Full-time", 12800000, "Active", "thaovy@bizen.vn", "0905 112 303", "2024-06-17", "Nguyễn Minh Anh", "afternoon", 9, "Sơn Trà, Đà Nẵng"],
   ["BZN004", "Phạm Gia Huy", "sales", "Sales Associate", "Employee", "Part-time", 9000000, "Active", "giahuy@bizen.vn", "0905 112 304", "2025-01-06", "Nguyễn Minh Anh", "evening", 5, "Ngũ Hành Sơn, Đà Nẵng"],
   ["BZN005", "Hoàng Mỹ Linh", "sales", "Sales Associate", "Employee", "Full-time", 11200000, "On leave", "mylinh@bizen.vn", "0905 112 305", "2023-11-21", "Nguyễn Minh Anh", "morning", 4, "Hải Châu, Đà Nẵng"],
-  ["BZN006", "Đỗ Thanh Tâm", "hr", "HR Manager", "HR", "Full-time", 19000000, "Active", "thanhtam@bizen.vn", "0905 112 306", "2023-05-04", "Lê Hoài Nam", "morning", 10, "Cẩm Lệ, Đà Nẵng"],
-  ["BZN007", "Võ Ngọc Hân", "hr", "HR Executive", "HR", "Full-time", 12500000, "Active", "ngochan@bizen.vn", "0905 112 307", "2024-09-10", "Đỗ Thanh Tâm", "morning", 11, "Liên Chiểu, Đà Nẵng"],
-  ["BZN008", "Nguyễn Bảo Châu", "hr", "Recruiter", "HR", "Full-time", 11800000, "Active", "baochau@bizen.vn", "0905 112 308", "2024-10-14", "Đỗ Thanh Tâm", "morning", 7, "Sơn Trà, Đà Nẵng"],
-  ["BZN009", "Phan Đức Khoa", "warehouse", "Warehouse Supervisor", "Manager", "Full-time", 16000000, "Active", "duckhoa@bizen.vn", "0905 112 309", "2023-08-02", "Lê Hoài Nam", "warehouse", 6, "Hòa Vang, Đà Nẵng"],
+  ["BZN006", "Đỗ Thanh Tâm", "hr", "Thu ngân trưởng", "Employee", "Full-time", 19000000, "Active", "thanhtam@bizen.vn", "0905 112 306", "2023-05-04", "Lê Hoài Nam", "morning", 10, "Cẩm Lệ, Đà Nẵng"],
+  ["BZN007", "Võ Ngọc Hân", "hr", "Thu ngân", "Employee", "Full-time", 12500000, "Active", "ngochan@bizen.vn", "0905 112 307", "2024-09-10", "Đỗ Thanh Tâm", "morning", 11, "Liên Chiểu, Đà Nẵng"],
+  ["BZN008", "Nguyễn Bảo Châu", "hr", "Kế toán cửa hàng", "Employee", "Full-time", 11800000, "Active", "baochau@bizen.vn", "0905 112 308", "2024-10-14", "Đỗ Thanh Tâm", "morning", 7, "Sơn Trà, Đà Nẵng"],
+  ["BZN009", "Phan Đức Khoa", "warehouse", "Giám sát bếp", "Employee", "Full-time", 16000000, "Active", "duckhoa@bizen.vn", "0905 112 309", "2023-08-02", "Lê Hoài Nam", "warehouse", 6, "Hòa Vang, Đà Nẵng"],
   ["BZN010", "Đặng Văn Lộc", "warehouse", "Warehouse Staff", "Employee", "Full-time", 10500000, "Active", "vanloc@bizen.vn", "0905 112 310", "2025-02-03", "Phan Đức Khoa", "warehouse", 8, "Cẩm Lệ, Đà Nẵng"],
   ["BZN011", "Mai Quang Tín", "warehouse", "Warehouse Staff", "Employee", "Full-time", 10800000, "Active", "quangtin@bizen.vn", "0905 112 311", "2024-12-12", "Phan Đức Khoa", "warehouse", 9, "Liên Chiểu, Đà Nẵng"],
   ["BZN012", "Bùi Kim Ngân", "warehouse", "Inventory Staff", "Employee", "Full-time", 11000000, "Active", "kimngan@bizen.vn", "0905 112 312", "2024-07-22", "Phan Đức Khoa", "afternoon", 6, "Thanh Khê, Đà Nẵng"],
-  ["BZN013", "Lê Hoài Nam", "admin", "Operations Admin", "Admin", "Full-time", 22000000, "Active", "hoainam@bizen.vn", "0905 112 313", "2022-10-18", "Board", "morning", 12, "Hải Châu, Đà Nẵng"],
-  ["BZN014", "Trần Nhật Minh", "admin", "Finance Officer", "HR", "Full-time", 14500000, "Active", "nhatminh@bizen.vn", "0905 112 314", "2024-03-11", "Lê Hoài Nam", "morning", 8, "Sơn Trà, Đà Nẵng"],
+  ["BZN013", "Lê Hoài Nam", "admin", "Chủ sở hữu", "Admin", "Full-time", 22000000, "Active", "hoainam@bizen.vn", "0905 112 313", "2022-10-18", "Board", "morning", 12, "Hải Châu, Đà Nẵng"],
+  ["BZN014", "Trần Nhật Minh", "admin", "Kế toán cửa hàng", "Employee", "Full-time", 14500000, "Active", "nhatminh@bizen.vn", "0905 112 314", "2024-03-11", "Lê Hoài Nam", "morning", 8, "Sơn Trà, Đà Nẵng"],
   ["BZN015", "Nguyễn Phương Mai", "admin", "Office Coordinator", "Employee", "Full-time", 10200000, "On leave", "phuongmai@bizen.vn", "0905 112 315", "2024-11-25", "Lê Hoài Nam", "morning", 3, "Ngũ Hành Sơn, Đà Nẵng"],
-  ["BZN016", "Võ Khánh Linh", "support", "Support Lead", "Manager", "Full-time", 15500000, "Active", "khanhlinh@bizen.vn", "0905 112 316", "2023-09-19", "Lê Hoài Nam", "afternoon", 7, "Hải Châu, Đà Nẵng"],
+  ["BZN016", "Võ Khánh Linh", "support", "Tổ trưởng chăm sóc khách", "Employee", "Full-time", 15500000, "Active", "khanhlinh@bizen.vn", "0905 112 316", "2023-09-19", "Lê Hoài Nam", "afternoon", 7, "Hải Châu, Đà Nẵng"],
   ["BZN017", "Phạm Thanh Đạt", "support", "Support Specialist", "Employee", "Full-time", 10300000, "Active", "thanhdat@bizen.vn", "0905 112 317", "2025-01-20", "Võ Khánh Linh", "afternoon", 5, "Thanh Khê, Đà Nẵng"],
   ["BZN018", "Hồ Thị Yến", "support", "Support Specialist", "Employee", "Full-time", 10000000, "Active", "thiyen@bizen.vn", "0905 112 318", "2024-08-05", "Võ Khánh Linh", "evening", 9, "Cẩm Lệ, Đà Nẵng"],
   ["BZN019", "Châu Anh Thư", "support", "Support Specialist", "Employee", "Part-time", 8500000, "Active", "anhthu@bizen.vn", "0905 112 319", "2025-03-03", "Võ Khánh Linh", "evening", 4, "Sơn Trà, Đà Nẵng"],
@@ -86,6 +86,6 @@ export const notifications = [
 
 export const aiAlerts = [
   ["warning", "Warehouse thiếu 1 người ngày 21/05", "Ca kho sớm chỉ có 2/4 nhân sự khả dụng."],
-  ["danger", "3 nhân viên đi trễ hôm nay", "Quốc Bảo, Bảo Châu, Thanh Đạt cần Admin/HR nhắc nhở."],
+  ["danger", "3 nhân viên đi trễ hôm nay", "Quốc Bảo, Bảo Châu, Thanh Đạt cần chủ sở hữu nhắc nhở."],
   ["info", "OT Support tăng 14%", "Ca chiều đang vượt ngưỡng 40 giờ/tuần."]
 ];

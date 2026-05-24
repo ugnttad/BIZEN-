@@ -104,7 +104,7 @@ function fallbackReply(text, context) {
     return "Dựa trên Neon, nên tránh xếp nhân viên đang có đơn nghỉ đã duyệt và ưu tiên bù cho ca thiếu người. Hiện cảnh báo lớn nhất là Warehouse thiếu nhân sự so với target.";
   }
   if (lower.includes("tre")) {
-    return topLate ? `Nhóm đi trễ nhiều nhất hiện là: ${topLate}. HR nên nhắc riêng và kiểm tra lại ca/địa điểm check-in.` : "Hiện chưa có dữ liệu đi trễ trong Neon.";
+    return topLate ? `Nhóm đi trễ nhiều nhất hiện là: ${topLate}. Chủ sở hữu nên nhắc riêng và kiểm tra lại ca/địa điểm check-in.` : "Hiện chưa có dữ liệu đi trễ trong Neon.";
   }
   if (lower.includes("luong")) {
     return highestDeduction
@@ -152,7 +152,7 @@ aiRouter.post(
       const response = await openai.responses.create({
         model: env.openaiModel,
         instructions:
-          "Bạn là BIZEN AI, trợ lý HR/payroll trong hệ thống SaaS BIZEN. Trả lời bằng tiếng Việt, ngắn gọn, thực dụng. Chỉ dùng dữ liệu hệ thống được cung cấp; nếu thiếu dữ liệu, nói rõ là chưa đủ dữ liệu.",
+          "Bạn là BIZEN AI, trợ lý vận hành nhân sự/payroll trong hệ thống SaaS BIZEN. Trả lời bằng tiếng Việt, ngắn gọn, thực dụng. Chỉ dùng dữ liệu hệ thống được cung cấp; nếu thiếu dữ liệu, nói rõ là chưa đủ dữ liệu.",
         input: `Câu hỏi của người dùng: ${message}\n\nDữ liệu Neon hiện có:\n${JSON.stringify(context, null, 2)}`
       });
 

@@ -59,8 +59,8 @@ payrollRouter.get(
 payrollRouter.post(
   "/calculate",
   asyncHandler(async (req, res) => {
-    if (req.user.role === "Employee") {
-      throw httpError(403, "Chỉ Admin/HR được tính lương");
+    if (req.user.role !== "Admin") {
+      throw httpError(403, "Chỉ chủ sở hữu được tính lương");
     }
 
     const { month } = calculateSchema.parse(req.body ?? {});
@@ -87,7 +87,7 @@ payrollRouter.post(
       const sample = openAttendances.rows.map((row) => `${row.name} (${row.workDate}, vào ${row.checkIn})`).join(", ");
       throw httpError(
         409,
-        `Chưa thể tính lương vì có ${openAttendances.rows.length} bản ghi thiếu check-out: ${sample}. Admin/HR cần chốt giờ ra trước.`
+        `Chưa thể tính lương vì có ${openAttendances.rows.length} bản ghi thiếu check-out: ${sample}. Chủ sở hữu cần chốt giờ ra trước.`
       );
     }
 

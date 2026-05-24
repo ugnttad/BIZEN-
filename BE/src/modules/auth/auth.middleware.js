@@ -28,6 +28,10 @@ export async function authenticate(req, res, next) {
       res.status(403).json({ error: "Account is not approved" });
       return;
     }
+    if (!["Admin", "Employee"].includes(user.role)) {
+      res.status(403).json({ error: "BIZEN MVP chỉ hỗ trợ quyền Chủ sở hữu hoặc Nhân viên" });
+      return;
+    }
 
     req.user = user;
     next();

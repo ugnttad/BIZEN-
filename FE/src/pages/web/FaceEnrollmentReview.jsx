@@ -86,7 +86,7 @@ export default function FaceEnrollmentReview() {
     try {
       await bizenApi.reviewFaceEnrollment(id, {
         status: nextStatus,
-        reviewedBy: "Admin/HR",
+        reviewedBy: "Chủ sở hữu",
         rejectionReason
       });
       loadEnrollments(status);
@@ -102,7 +102,7 @@ export default function FaceEnrollmentReview() {
       <PageHeader
         eyebrow="Security / Face ID"
         title="Duyệt đăng ký khuôn mặt"
-        description="Admin/HR kiểm tra ảnh đăng ký trước khi hệ thống index khuôn mặt vào AWS Rekognition."
+        description="Chủ sở hữu kiểm tra ảnh đăng ký trước khi hệ thống index khuôn mặt vào AWS Rekognition."
         actions={
           <button onClick={() => loadEnrollments(status)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <RefreshCw className="h-4 w-4" />
@@ -200,7 +200,7 @@ export default function FaceEnrollmentReview() {
                     ) : (
                       <div className="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
                         {item.status === "Approved" ? <ShieldCheck className="h-4 w-4 text-emerald-600" /> : <UserRound className="h-4 w-4 text-slate-500" />}
-                        {item.status === "Approved" ? `AWS FaceId: ${item.rekognitionFaceId || "-"}` : `Reviewed by ${item.reviewedBy || "Admin/HR"}`}
+                        {item.status === "Approved" ? `AWS FaceId: ${item.rekognitionFaceId || "-"}` : `Reviewed by ${item.reviewedBy || "Chủ sở hữu"}`}
                       </div>
                     )}
                   </div>

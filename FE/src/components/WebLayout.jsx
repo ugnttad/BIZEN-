@@ -34,23 +34,23 @@ import { clearAuthSession, getAuthUser, getDefaultPathForRole } from "../modules
 const webNavItems = [
   { label: "Cổng nhân viên", path: "/web/me", icon: UserRound, roles: ["Employee"] },
   { label: "Chấm công Face ID", path: "/web/me/checkin", icon: ScanFace, roles: ["Employee"] },
-  { label: "Tổng quan", path: "/web/dashboard", icon: LayoutDashboard, roles: ["Admin", "HR", "Manager"] },
-  { label: "Nhân viên", path: "/web/employees", icon: UsersRound, roles: ["Admin", "HR", "Manager"] },
-  { label: "Chấm công", path: "/web/attendance", icon: Clock3, roles: ["Admin", "HR", "Manager"] },
-  { label: "Tài khoản", path: "/web/accounts", icon: UserCheck, roles: ["Admin", "HR"] },
-  { label: "Face ID", path: "/web/face-id", icon: ScanFace, roles: ["Admin", "HR"] },
-  { label: "Xếp ca", path: "/web/scheduling", icon: CalendarCheck2, roles: ["Admin", "HR", "Manager"] },
-  { label: "Bảng lương", path: "/web/payroll", icon: CreditCard, roles: ["Admin", "HR"] },
-  { label: "Nghỉ phép", path: "/web/leaves", icon: FileText, roles: ["Admin", "HR", "Manager"] },
-  { label: "Báo cáo", path: "/web/reports", icon: BarChart3, roles: ["Admin", "HR", "Manager"] },
-  { label: "Trợ lý AI", path: "/web/assistant", icon: Sparkles, roles: ["Admin", "HR", "Manager"] },
+  { label: "Tổng quan", path: "/web/dashboard", icon: LayoutDashboard, roles: ["Admin"] },
+  { label: "Nhân viên", path: "/web/employees", icon: UsersRound, roles: ["Admin"] },
+  { label: "Chấm công", path: "/web/attendance", icon: Clock3, roles: ["Admin"] },
+  { label: "Tài khoản", path: "/web/accounts", icon: UserCheck, roles: ["Admin"] },
+  { label: "Face ID", path: "/web/face-id", icon: ScanFace, roles: ["Admin"] },
+  { label: "Xếp ca", path: "/web/scheduling", icon: CalendarCheck2, roles: ["Admin"] },
+  { label: "Bảng lương", path: "/web/payroll", icon: CreditCard, roles: ["Admin"] },
+  { label: "Nghỉ phép", path: "/web/leaves", icon: FileText, roles: ["Admin"] },
+  { label: "Báo cáo", path: "/web/reports", icon: BarChart3, roles: ["Admin"] },
+  { label: "Trợ lý AI", path: "/web/assistant", icon: Sparkles, roles: ["Admin"] },
   { label: "Cài đặt", path: "/web/settings", icon: Settings, roles: ["Admin"] }
 ];
 
 const roleLabels = {
-  Admin: "Admin doanh nghiệp",
-  HR: "Nhân sự",
-  Manager: "Quản lý / giám sát",
+  Admin: "Chủ sở hữu",
+  HR: "Vai trò cũ",
+  Manager: "Vai trò cũ",
   Employee: "Nhân viên"
 };
 
@@ -319,7 +319,7 @@ export default function WebLayout() {
                         ))
                       ) : (
                         <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
-                          {isEmployee ? "Chưa có thông báo mới cho tài khoản của bạn." : "Chưa có thông báo mới. Khi có cảnh báo AI hoặc việc Admin/HR cần xử lý, chúng sẽ hiện ở đây."}
+                          {isEmployee ? "Chưa có thông báo mới cho tài khoản của bạn." : "Chưa có thông báo mới. Khi có cảnh báo AI hoặc việc chủ sở hữu cần xử lý, chúng sẽ hiện ở đây."}
                         </div>
                       )}
                     </div>

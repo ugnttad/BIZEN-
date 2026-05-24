@@ -118,7 +118,7 @@ export default function AttendanceDashboard() {
         totalHours,
         status: checkoutRecord.status,
         location: checkoutRecord.location,
-        note: "Admin/HR chốt giờ ra thủ công do nhân viên quên check-out"
+        note: "Chủ sở hữu chốt giờ ra thủ công do nhân viên quên check-out"
       });
       await reloadAttendance();
       setCheckoutMessage("Đã chốt giờ ra. Bản ghi này có thể đưa vào payroll.");
@@ -161,7 +161,7 @@ export default function AttendanceDashboard() {
         <StatCard title="Absent" value={attendance.filter((item) => item.status === "Absent").length} helper="vắng" tone="rose" />
         <StatCard title="Leave" value={attendance.filter((item) => item.status === "Leave").length} helper="nghỉ phép" tone="violet" />
         <StatCard title="Overtime" value={attendance.filter((item) => item.status === "Overtime").length} helper="tăng ca" tone="blue" />
-        <StatCard title="Quên check-out" value={missingCheckout.length} helper="cần Admin/HR chốt" tone="amber" />
+        <StatCard title="Quên check-out" value={missingCheckout.length} helper="cần chủ sở hữu chốt" tone="amber" />
       </div>
 
       {missingCheckout.length ? (
@@ -169,7 +169,7 @@ export default function AttendanceDashboard() {
           <ShieldAlert className="h-5 w-5 shrink-0" />
           <div>
             <p className="font-semibold">Có {missingCheckout.length} nhân viên thiếu check-out</p>
-            <p className="mt-1 text-sm">Admin/HR cần chốt giờ ra trước khi tính lương. Payroll sẽ bị chặn nếu còn bản ghi thiếu check-out.</p>
+            <p className="mt-1 text-sm">Chủ sở hữu cần chốt giờ ra trước khi tính lương. Payroll sẽ bị chặn nếu còn bản ghi thiếu check-out.</p>
           </div>
         </div>
       ) : null}
@@ -334,7 +334,7 @@ export default function AttendanceDashboard() {
             />
           </label>
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">
-            Tổng giờ dự kiến: {calculateHours(checkoutRecord?.checkIn, checkoutTime)}h. Bản ghi sẽ được gắn note Admin/HR chốt thủ công.
+            Tổng giờ dự kiến: {calculateHours(checkoutRecord?.checkIn, checkoutTime)}h. Bản ghi sẽ được gắn note chủ sở hữu chốt thủ công.
           </p>
           {checkoutMessage ? <p className="rounded-lg bg-slate-50 px-3 py-2 font-semibold text-slate-700">{checkoutMessage}</p> : null}
         </div>

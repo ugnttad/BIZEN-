@@ -64,7 +64,7 @@ function validateBasicImage(imageBuffer) {
     faceCount: 1,
     provider: "local-demo",
     mode: "aws-not-configured",
-    reason: "AWS Rekognition chưa cấu hình. Hệ thống đang dùng chế độ demo sau khi Admin/HR đã duyệt Face ID."
+    reason: "AWS Rekognition chưa cấu hình. Hệ thống đang dùng chế độ demo sau khi chủ sở hữu đã duyệt Face ID."
   };
 }
 

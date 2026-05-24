@@ -23,8 +23,8 @@ export default function EmployeeAccountRequestPage() {
       setError("Email chưa hợp lệ.");
       return;
     }
-    if (password.length < 8) {
-      setError("Mật khẩu cần tối thiểu 8 ký tự.");
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(password)) {
+      setError("Mật khẩu cần tối thiểu 8 ký tự, có chữ và số.");
       return;
     }
     if (password !== confirmPassword) {
@@ -59,7 +59,7 @@ export default function EmployeeAccountRequestPage() {
             </div>
             <h1 className="mt-5 text-3xl font-semibold tracking-normal text-slate-950 md:text-4xl">Yêu cầu tài khoản nhân viên</h1>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              Luồng này chỉ dùng khi Admin/HR chưa cấp mật khẩu sẵn trong hồ sơ nhân viên. Nếu đã có email + mật khẩu, bạn có thể đăng nhập mobile ngay.
+              Luồng này chỉ dùng khi chủ sở hữu chưa cấp mật khẩu sẵn trong hồ sơ nhân viên. Nếu đã có email + mật khẩu, bạn có thể đăng nhập mobile ngay.
             </p>
           </div>
 
@@ -68,7 +68,7 @@ export default function EmployeeAccountRequestPage() {
           ) : null}
 
           <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            Nếu hệ thống báo chưa có hồ sơ — nhờ Admin/HR tạo employee profile trước, rồi gửi lại yêu cầu với đúng email.
+            Nếu hệ thống báo chưa có hồ sơ — nhờ chủ sở hữu tạo employee profile trước, rồi gửi lại yêu cầu với đúng email.
           </div>
         </section>
 

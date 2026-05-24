@@ -23,7 +23,7 @@ export default function AIAssistantPage() {
     <div>
       <PageHeader
         eyebrow="AI Assistant Panel"
-        title="Trợ lý thông minh cho HR"
+        title="Trợ lý thông minh cho chủ sở hữu"
         description="Chatbox đọc dữ liệu Neon và dùng OpenAI khi backend có OPENAI_API_KEY; nếu chưa có key, hệ thống vẫn trả lời bằng fallback nội bộ."
       />
 

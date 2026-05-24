@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Edit3, Filter, Plus, Search, Trash2, UserRoundPlus } from "lucide-react";
+import { Edit3, Filter, Plus, Search, ShieldCheck, Trash2, UserRoundPlus } from "lucide-react";
 import Avatar from "../../components/Avatar";
 import EmptyState from "../../components/EmptyState";
 import LoadingState from "../../components/LoadingState";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
-import { contractTypes, employeeRoles, hospitalityPositions } from "../../constants/hospitality";
+import { cafeShopConstraints, contractTypes, employeeRoles, hospitalityPositions } from "../../constants/hospitality";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 import { getAuthUser } from "../../modules/auth/authStore";
@@ -26,25 +26,26 @@ const emptyForm = {
 };
 
 const legacyDepartmentLabels = {
-  HR: "Văn phòng / nhân sự",
+  HR: "Thu ngân",
   Admin: "Quản lý cửa hàng",
-  Sales: "Phục vụ / bán hàng",
-  Warehouse: "Bếp / kho",
-  "Customer Support": "Chăm sóc khách"
+  Sales: "Phục vụ / Order",
+  Warehouse: "Kho / Tạp vụ",
+  "Customer Support": "Phục vụ / Order"
 };
 
 const departmentPositionOptions = {
-  "Phuc vu": ["Phục vụ", "Tổ trưởng phục vụ", "Quản lý ca phục vụ"],
-  "Phuc vu / ban hang": ["Phục vụ", "Nhân viên bán hàng", "Tổ trưởng phục vụ"],
-  "Pha che / Bar": ["Pha chế", "Barista", "Tổ trưởng bar"],
-  Bep: ["Đầu bếp", "Phụ bếp", "Giám sát bếp"],
-  "Bep / kho": ["Đầu bếp", "Phụ bếp", "Thủ kho"],
-  "Thu ngan": ["Thu ngân", "Kế toán cửa hàng", "Tổ trưởng thu ngân"],
-  "Le tan": ["Lễ tân", "Giám sát lễ tân"],
-  "Buong phong": ["Nhân viên buồng phòng", "Giám sát buồng phòng"],
-  "Kho / Tap vu": ["Thủ kho", "Tạp vụ", "Nhân viên giao hàng"],
-  "Van phong / nhan su": ["Phụ trách nhân sự", "Nhân sự kiêm vận hành", "Kế toán / hành chính"],
-  "Quan ly cua hang": ["Chủ doanh nghiệp", "Quản lý cửa hàng", "Quản lý nhà hàng"]
+  "Quan ly cua hang": ["Chủ sở hữu", "Quản lý cửa hàng", "Quản lý ca", "Trưởng ca"],
+  "Pha che": ["Pha chế", "Barista", "Pha chế trà sữa", "Trưởng ca pha chế"],
+  "Pha che / Bar": ["Pha chế", "Barista", "Pha chế trà sữa", "Trưởng ca pha chế"],
+  "Thu ngan": ["Thu ngân", "Thu ngân trưởng", "Kế toán cửa hàng"],
+  "Phuc vu": ["Phục vụ", "Order", "Runner", "Trưởng ca phục vụ"],
+  "Phuc vu / Order": ["Phục vụ", "Order", "Runner", "Nhân viên bán hàng", "Trưởng ca phục vụ"],
+  "Phuc vu / ban hang": ["Phục vụ", "Order", "Runner", "Nhân viên bán hàng", "Trưởng ca phục vụ"],
+  "Topping / Bep nhe": ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Bếp nhẹ"],
+  Bep: ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Bếp nhẹ"],
+  "Bep / kho": ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Thủ kho"],
+  "Kho / Tap vu": ["Thủ kho", "Tạp vụ", "Giao hàng", "Bảo vệ"],
+  "Van phong / nhan su": ["Kế toán cửa hàng", "Quản lý cửa hàng"]
 };
 
 function stripVietnamese(value = "") {
@@ -64,28 +65,22 @@ function getDepartmentKey(name) {
 }
 
 function getPositionOptions(departmentName, role) {
-  if (role === "Admin") return ["Chủ doanh nghiệp", "Quản lý cửa hàng", "Quản lý nhà hàng"];
-  if (role === "HR") return ["Phụ trách nhân sự", "Nhân sự kiêm vận hành", "Kế toán / hành chính"];
-
+  if (role === "Admin") return ["Chủ sở hữu", "Quản lý cửa hàng"];
   const base = departmentPositionOptions[getDepartmentKey(departmentName)] || hospitalityPositions;
-  if (role === "Manager") {
-    if (getDepartmentKey(departmentName) === "Van phong / nhan su") {
-      return ["Quản lý vận hành", "Quản lý văn phòng", "Giám sát hành chính"];
-    }
-
-    const leadOptions = base.filter((item) => {
-      const normalized = stripVietnamese(item).toLowerCase();
-      return normalized.includes("quan ly") || normalized.includes("to truong") || normalized.includes("giam sat");
-    });
-    return ["Quản lý ca", "Tổ trưởng ca", ...leadOptions];
-  }
-
   return base;
 }
 
 function normalizePosition(departmentName, role, currentPosition) {
   const options = getPositionOptions(departmentName, role);
   return options.includes(currentPosition) ? currentPosition : options[0];
+}
+
+function normalizePhone(value = "") {
+  return value.replace(/\D/g, "");
+}
+
+function isOperational(employee) {
+  return employee.status !== "Inactive";
 }
 
 export default function EmployeeManagement() {
@@ -100,10 +95,12 @@ export default function EmployeeManagement() {
   const [editingId, setEditingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const authUser = getAuthUser();
-  const canMutateEmployees = ["Admin", "HR"].includes(authUser?.role);
-  const roleOptions = authUser?.role === "Admin" ? employeeRoles : employeeRoles.filter((item) => !["Admin", "HR"].includes(item.value));
-  const canEditEmployee = (employee) => canMutateEmployees && (authUser?.role === "Admin" || !["Admin", "HR"].includes(employee.role));
+  const canMutateEmployees = authUser?.role === "Admin";
+  const roleOptions = employeeRoles;
+  const canEditEmployee = () => canMutateEmployees;
   const positionOptions = useMemo(() => getPositionOptions(form.department, form.role), [form.department, form.role]);
+  const operationalCount = useMemo(() => rows.filter(isOperational).length, [rows]);
+  const ownerCount = useMemo(() => rows.filter((employee) => employee.role === "Admin" && isOperational(employee)).length, [rows]);
 
   useEffect(() => {
     let active = true;
@@ -179,18 +176,14 @@ export default function EmployeeManagement() {
     setForm((current) => ({
       ...current,
       department:
-        nextRole === "HR"
-          ? departments.find((item) => getDepartmentKey(item.name) === "Van phong / nhan su")?.name || current.department
-          : nextRole === "Admin"
-            ? departments.find((item) => getDepartmentKey(item.name) === "Quan ly cua hang")?.name || current.department
-            : current.department,
+        nextRole === "Admin"
+          ? departments.find((item) => getDepartmentKey(item.name) === "Quan ly cua hang")?.name || current.department
+          : current.department,
       role: nextRole,
       position: normalizePosition(
-        nextRole === "HR"
-          ? departments.find((item) => getDepartmentKey(item.name) === "Van phong / nhan su")?.name || current.department
-          : nextRole === "Admin"
-            ? departments.find((item) => getDepartmentKey(item.name) === "Quan ly cua hang")?.name || current.department
-            : current.department,
+        nextRole === "Admin"
+          ? departments.find((item) => getDepartmentKey(item.name) === "Quan ly cua hang")?.name || current.department
+          : current.department,
         nextRole,
         current.position
       )
@@ -204,13 +197,63 @@ export default function EmployeeManagement() {
       return;
     }
 
-    if (!form.name.trim() || !form.position.trim() || Number(form.baseSalary) <= 0 || !form.email.includes("@")) {
-      setFormError("Vui lòng nhập tên, chức vụ, email và lương hợp lệ.");
+    const trimmedName = form.name.trim();
+    const salary = Number(form.baseSalary);
+    const phoneDigits = normalizePhone(form.phone);
+    const editingEmployee = rows.find((employee) => employee.id === editingId);
+    const nextOperationalCount = modalMode === "create" ? operationalCount + 1 : operationalCount;
+    const nextOwnerCount =
+      form.role === "Admin"
+        ? ownerCount + (editingEmployee?.role === "Admin" ? 0 : 1)
+        : ownerCount - (editingEmployee?.role === "Admin" ? 1 : 0);
+
+    if (nextOperationalCount > cafeShopConstraints.maxActiveEmployees) {
+      setFormError(`BIZEN MVP đang ràng buộc tối đa ${cafeShopConstraints.maxActiveEmployees} nhân sự đang làm cho một quán cafe/trà sữa.`);
       return;
     }
 
-    if (modalMode === "create" && form.accountPassword.length < 8) {
-      setFormError("Mật khẩu đăng nhập cần ít nhất 8 ký tự để nhân viên dùng app ngay.");
+    if (!trimmedName || trimmedName.length < 2 || trimmedName.length > 80) {
+      setFormError("Họ tên cần từ 2 đến 80 ký tự.");
+      return;
+    }
+
+    if (!form.email.includes("@")) {
+      setFormError("Email đăng nhập chưa hợp lệ.");
+      return;
+    }
+
+    if (phoneDigits && !cafeShopConstraints.phonePattern.test(phoneDigits)) {
+      setFormError("Số điện thoại cần 9-11 chữ số, phù hợp số điện thoại Việt Nam.");
+      return;
+    }
+
+    if (salary < cafeShopConstraints.minBaseSalary || salary > cafeShopConstraints.maxBaseSalary) {
+      setFormError(`Lương cơ bản cần nằm trong khoảng ${formatCurrency(cafeShopConstraints.minBaseSalary)} - ${formatCurrency(cafeShopConstraints.maxBaseSalary)}.`);
+      return;
+    }
+
+    if (nextOwnerCount > cafeShopConstraints.maxOwners) {
+      setFormError("Mỗi quán chỉ nên có tối đa 1 hồ sơ chủ sở hữu để giữ mô hình vận hành gọn.");
+      return;
+    }
+
+    if (form.role === "Admin" && getDepartmentKey(form.department) !== "Quan ly cua hang") {
+      setFormError("Chủ sở hữu phải thuộc bộ phận Quản lý cửa hàng.");
+      return;
+    }
+
+    if (form.role === "Employee" && ["Chủ sở hữu", "Chủ doanh nghiệp"].includes(form.position)) {
+      setFormError("Nhân viên không được chọn chức vụ chủ sở hữu.");
+      return;
+    }
+
+    if (!positionOptions.includes(form.position)) {
+      setFormError("Chức vụ phải khớp với bộ phận làm việc đã chọn.");
+      return;
+    }
+
+    if ((modalMode === "create" || form.accountPassword) && !cafeShopConstraints.passwordPattern.test(form.accountPassword)) {
+      setFormError("Mật khẩu cần ít nhất 8 ký tự, có chữ và số để nhân viên dùng app ngay.");
       return;
     }
 
@@ -222,8 +265,10 @@ export default function EmployeeManagement() {
 
     const payload = {
       ...form,
+      name: trimmedName,
+      phone: phoneDigits,
       departmentId,
-      baseSalary: Number(form.baseSalary),
+      baseSalary: salary,
       accountPassword: form.accountPassword || undefined
     };
 
@@ -256,7 +301,7 @@ export default function EmployeeManagement() {
       <PageHeader
         eyebrow="Quản lý nhân sự"
         title="Hồ sơ nhân viên"
-        description="Bộ phận/nhóm chỉ dùng để gom lịch ca, chấm công, lương và báo cáo. Tạo nhân viên ở đây sẽ cấp luôn email + mật khẩu đăng nhập theo vai trò."
+        description="Mô hình gọn cho cửa hàng nhỏ: chủ sở hữu có toàn quyền, nhân viên dùng web/mobile để chấm công, xem lịch, lương và nghỉ phép."
         actions={
           canMutateEmployees ? (
             <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
@@ -266,6 +311,24 @@ export default function EmployeeManagement() {
           ) : null
         }
       />
+
+      <section className="mb-4 grid gap-3 md:grid-cols-4">
+        {[
+          { label: "Quy mô", value: `${cafeShopConstraints.minRecommendedEmployees}-${cafeShopConstraints.maxActiveEmployees}`, helper: `${operationalCount} nhân sự đang làm` },
+          { label: "Hồ sơ chủ", value: `${ownerCount}/${cafeShopConstraints.maxOwners}`, helper: "nếu chủ cũng chấm công" },
+          { label: "Mức lương", value: "1-30 triệu", helper: "ràng buộc theo tháng" },
+          { label: "Chức vụ", value: "Theo bộ phận", helper: "cafe/trà sữa nhỏ" }
+        ].map((rule) => (
+          <div key={rule.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-normal text-slate-500">
+              <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+              {rule.label}
+            </div>
+            <p className="mt-2 text-lg font-bold text-slate-950">{rule.value}</p>
+            <p className="mt-1 text-xs text-slate-500">{rule.helper}</p>
+          </div>
+        ))}
+      </section>
 
       <section className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-[1fr_220px]">
         <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
@@ -383,7 +446,7 @@ export default function EmployeeManagement() {
             <p className="mt-1 text-xs text-slate-500">Dùng cho lịch ca, chấm công, lương và báo cáo; không phải quyền truy cập.</p>
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Vai trò hệ thống
+            Quyền truy cập
             <select value={form.role} onChange={(event) => updateRole(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
               {roleOptions.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -391,8 +454,7 @@ export default function EmployeeManagement() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-slate-500">Quyền đăng nhập app: Admin doanh nghiệp &gt; Nhân sự &gt; Quản lý/giám sát &gt; Nhân viên.</p>
-            {authUser?.role !== "Admin" ? <p className="mt-1 text-xs text-slate-500">Chỉ Admin doanh nghiệp được cấp quyền Admin hoặc Nhân sự.</p> : null}
+            <p className="mt-1 text-xs text-slate-500">Chủ sở hữu có toàn quyền. Nhân viên chỉ vào cổng tự phục vụ; quản lý ca là chức vụ công việc, không phải quyền riêng.</p>
           </label>
           <label className="text-sm font-medium text-slate-700">
             Chức vụ công việc
@@ -407,7 +469,7 @@ export default function EmployeeManagement() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-slate-500">Tên công việc thực tế, tự đổi theo bộ phận và vai trò để tránh lệch như Nhân sự nhưng chức vụ Phục vụ.</p>
+            <p className="mt-1 text-xs text-slate-500">Tên công việc thực tế, tự đổi theo bộ phận và quyền truy cập để tránh lệch như làm bếp nhưng chức vụ phục vụ.</p>
           </label>
           <label className="text-sm font-medium text-slate-700">
             Loại hợp đồng
