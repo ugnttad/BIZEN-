@@ -59,7 +59,7 @@ export default function EmployeeAccountRequestPage() {
             </div>
             <h1 className="mt-5 text-3xl font-semibold tracking-normal text-slate-950 md:text-4xl">Yêu cầu tài khoản nhân viên</h1>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              Tài khoản chỉ tạo khi doanh nghiệp đã có hồ sơ nhân viên trên BIZEN. HR hoặc Admin công ty duyệt trước khi bạn đăng nhập mobile.
+              Luồng này chỉ dùng khi Admin/HR chưa cấp mật khẩu sẵn trong hồ sơ nhân viên. Nếu đã có email + mật khẩu, bạn có thể đăng nhập mobile ngay.
             </p>
           </div>
 
@@ -68,7 +68,7 @@ export default function EmployeeAccountRequestPage() {
           ) : null}
 
           <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            Nếu hệ thống báo chưa có hồ sơ — nhờ HR tạo employee profile trước, rồi gửi lại yêu cầu với đúng email.
+            Nếu hệ thống báo chưa có hồ sơ — nhờ Admin/HR tạo employee profile trước, rồi gửi lại yêu cầu với đúng email.
           </div>
         </section>
 
@@ -97,7 +97,7 @@ export default function EmployeeAccountRequestPage() {
 
           <form onSubmit={submit} className="grid gap-4">
             <label className="block text-sm font-medium text-slate-700">
-              Email nhân viên (trùng hồ sơ HR)
+              Email nhân viên (trùng hồ sơ nhân viên)
               <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
                 <Mail className="h-4 w-4 text-slate-400" />
                 <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full outline-none" placeholder="name@company.com" />

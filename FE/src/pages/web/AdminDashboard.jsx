@@ -67,7 +67,7 @@ export default function AdminDashboard() {
   return (
     <div>
       <PageHeader
-        eyebrow="Admin / HR Dashboard"
+        eyebrow="Admin Dashboard"
         title="Tổng quan vận hành hôm nay"
         description={`Dữ liệu vận hành ngày ${formatDisplayDate()} cho doanh nghiệp SME tại Đà Nẵng.`}
         actions={
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-normal text-slate-500">AI signal</p>
-              <p className="mt-1 text-sm font-semibold text-slate-950">{alertCount} cảnh báo cần HR xem nhanh</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">{alertCount} cảnh báo cần Admin/HR xem nhanh</p>
             </div>
           </div>
         </div>
@@ -114,9 +114,9 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Tổng nhân viên" value={summary.employees} helper={`${departmentHeadcount.length} phòng ban`} icon={UsersRound} tone="blue" trend="+2" />
+        <StatCard title="Tổng nhân viên" value={summary.employees} helper={`${departmentHeadcount.length} bộ phận`} icon={UsersRound} tone="blue" trend="+2" />
         <StatCard title="Đã chấm công" value={summary.checkedIn} helper="người hôm nay" icon={UserCheck} tone="emerald" trend="+4%" />
-        <StatCard title="Đi trễ" value={summary.late} helper="cần HR nhắc" icon={Clock3} tone="amber" trend="+1" />
+        <StatCard title="Đi trễ" value={summary.late} helper="cần Admin/HR nhắc" icon={Clock3} tone="amber" trend="+1" />
         <StatCard title="Nghỉ phép" value={summary.leave} helper="đã duyệt" icon={CalendarDays} tone="violet" />
         <StatCard title="Lương dự kiến" value={payrollShort} helper="tháng 05/2026" icon={CreditCard} tone="rose" trend="+3.9%" />
       </div>
@@ -195,7 +195,7 @@ export default function AdminDashboard() {
 
         <section className="premium-card rounded-2xl p-4">
           <div className="mb-4">
-            <h2 className="text-base font-semibold text-slate-950">Nhân sự theo phòng ban</h2>
+            <h2 className="text-base font-semibold text-slate-950">Nhân sự theo bộ phận</h2>
             <p className="text-sm text-slate-500">Headcount và hiệu suất dự kiến</p>
           </div>
           <div className="h-72">

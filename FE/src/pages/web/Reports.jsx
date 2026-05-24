@@ -53,7 +53,7 @@ export default function Reports() {
       <PageHeader
         eyebrow="Reports & Analytics"
         title="Báo cáo nhân sự"
-        description="Tỷ lệ đúng giờ, nhân viên đi trễ, OT, chi phí lương, nghỉ phép và hiệu suất phòng ban từ dữ liệu Neon."
+        description="Tỷ lệ đúng giờ, nhân viên đi trễ, OT, chi phí lương, nghỉ phép và hiệu suất bộ phận từ dữ liệu Neon."
       />
 
       {error ? <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p> : null}
@@ -102,7 +102,7 @@ export default function Reports() {
         </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-950">Tổng giờ tăng ca theo phòng ban</h2>
+          <h2 className="text-base font-semibold text-slate-950">Tổng giờ tăng ca theo bộ phận</h2>
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={overtimeData}>

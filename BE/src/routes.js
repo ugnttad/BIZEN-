@@ -25,7 +25,7 @@ apiRouter.use("/employees", authenticate, employeesRouter);
 apiRouter.use("/attendance", authenticate, attendanceRouter);
 apiRouter.use("/shifts", authenticate, shiftsRouter);
 apiRouter.use("/schedules", authenticate, schedulesRouter);
-apiRouter.use("/payroll", authenticate, payrollRouter);
+apiRouter.use("/payroll", authenticate, requireRoles("Admin", "HR", "Employee"), payrollRouter);
 apiRouter.use("/leaves", authenticate, leavesRouter);
 apiRouter.use("/notifications", authenticate, notificationsRouter);
 apiRouter.use("/settings", authenticate, requireRoles("Admin"), settingsRouter);

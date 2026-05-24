@@ -24,7 +24,7 @@ export default function Settings() {
         if (settingsData) setSettings(settingsData);
         setDepartments(departmentRows);
       })
-      .catch((requestError) => setError(requestError.message || "Không tải được phòng ban từ Neon."));
+      .catch((requestError) => setError(requestError.message || "Không tải được bộ phận/nhóm từ Neon."));
   }, []);
 
   async function saveSettings(event) {
@@ -43,7 +43,7 @@ export default function Settings() {
       <PageHeader
         eyebrow="Settings"
         title="Cấu hình hệ thống"
-        description="Thiết lập giờ làm chuẩn, quy định đi trễ, công thức lương, OT, phòng ban và vai trò."
+        description="Thiết lập giờ làm chuẩn, quy định đi trễ, công thức lương, OT, bộ phận/nhóm và vai trò."
         actions={
           <button onClick={saveSettings} className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
             Lưu cấu hình
@@ -108,7 +108,7 @@ export default function Settings() {
               <div className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
                 <Building2 className="h-5 w-5" />
               </div>
-              <h2 className="text-base font-semibold text-slate-950">Phòng ban</h2>
+              <h2 className="text-base font-semibold text-slate-950">Bộ phận / nhóm</h2>
             </div>
             <div className="space-y-2">
               {departments.map((department) => (
@@ -130,7 +130,7 @@ export default function Settings() {
                   </p>
                 </div>
               ))}
-              {departments.length === 0 ? <p className="text-sm text-slate-500">Chưa có phòng ban hoặc API đang lỗi.</p> : null}
+              {departments.length === 0 ? <p className="text-sm text-slate-500">Chưa có bộ phận/nhóm hoặc API đang lỗi.</p> : null}
             </div>
           </section>
 
@@ -157,7 +157,7 @@ export default function Settings() {
               </div>
               <div>
                 <h2 className="text-base font-semibold text-slate-950">Phân quyền</h2>
-                <p className="mt-1 text-sm text-slate-500">Admin cấu hình, HR vận hành, Manager duyệt nhóm, Employee dùng mobile.</p>
+                <p className="mt-1 text-sm text-slate-500">Admin doanh nghiệp có quyền cao nhất. Nhân sự và quản lý ca là vai trò phụ quyền để chia việc vận hành.</p>
               </div>
             </div>
           </section>

@@ -63,12 +63,12 @@ export default function AccountApprovals() {
     <div>
       <PageHeader
         eyebrow="Access control"
-        title="Duyet tai khoan employee"
-        description="Employee tu gui yeu cau dang nhap, Admin/HR cua doanh nghiep phai approve thi tai khoan moi vao duoc mobile app."
+        title="Tài khoản đăng nhập"
+        description="Khi Admin/HR tạo nhân viên kèm mật khẩu, tài khoản được cấp ngay. Màn này dùng để xem, duyệt yêu cầu tự đăng ký và khóa tài khoản khi cần."
         actions={
           <button onClick={() => loadRequests(status)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <RefreshCw className="h-4 w-4" />
-            Lam moi
+            Làm mới
           </button>
         }
       />
@@ -77,7 +77,7 @@ export default function AccountApprovals() {
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
           <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
             <Search className="h-4 w-4 text-slate-400" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tim nhan vien, email, phong ban" className="w-full text-sm outline-none" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm nhân viên, email, bộ phận" className="w-full text-sm outline-none" />
           </label>
           <div className="flex flex-wrap gap-2">
             {statusTabs.map((item) => (
@@ -99,17 +99,17 @@ export default function AccountApprovals() {
 
       <section className="mt-5">
         {loading ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Dang tai yeu cau...</div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải tài khoản...</div>
         ) : rows.length === 0 ? (
-          <EmptyState title="Khong co yeu cau tai khoan" description="Khong co employee account nao o trang thai nay." />
+          <EmptyState title="Không có tài khoản" description="Không có tài khoản nào ở trạng thái này." />
         ) : (
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="hidden grid-cols-[1.2fr_0.9fr_0.8fr_0.8fr_0.7fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-normal text-slate-500 lg:grid">
               <span>Nhan vien</span>
-              <span>Phong ban</span>
+              <span>Bộ phận</span>
               <span>Role</span>
-              <span>Gui luc</span>
-              <span className="text-right">Xu ly</span>
+              <span>Tạo lúc</span>
+              <span className="text-right">Xử lý</span>
             </div>
             <div className="divide-y divide-slate-100">
               {rows.map((item) => (

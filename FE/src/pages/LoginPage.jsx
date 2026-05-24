@@ -10,9 +10,9 @@ import { saveMobileEmployee } from "../modules/auth/mobileSession";
 
 const accessHighlights = [
   "Role lấy trực tiếp từ hồ sơ nhân viên",
-  "Web dashboard dành cho Admin, HR và Manager",
+  "Admin cao nhất; HR/Manager là vai trò phụ quyền",
   "Mobile app dành cho nhân viên",
-  "Face ID cần HR duyệt trước khi chấm công"
+  "Face ID cần Admin/HR duyệt trước khi chấm công"
 ];
 
 export default function LoginPage() {
@@ -105,16 +105,16 @@ export default function LoginPage() {
         </section>
 
         <section className="flex items-center justify-center px-6 py-10">
-          <form onSubmit={submit} className="premium-card w-full max-w-md rounded-2xl p-6">
+          <form onSubmit={submit} className="premium-card login-card w-full max-w-md rounded-2xl p-6">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold tracking-normal text-slate-950">Đăng nhập BIZEN</h2>
-              <p className="mt-2 text-sm text-slate-500">Admin/HR/Manager → web · Nhân viên → mobile · Chủ nền tảng BIZEN → duyệt doanh nghiệp.</p>
+              <p className="mt-2 text-sm text-slate-500">Admin/nhân sự/quản lý ca → web · Nhân viên → mobile · Chủ nền tảng BIZEN → duyệt doanh nghiệp.</p>
               <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
                 <Link to="/register-company" className="text-blue-700 hover:text-blue-800">
                   Đăng ký doanh nghiệp (khách hàng)
                 </Link>
                 <Link to="/register-employee" className="text-slate-600 hover:text-blue-700">
-                  Nhân viên yêu cầu tài khoản
+                  Nhân viên chưa được cấp mật khẩu?
                 </Link>
               </div>
               <p className="mt-2 text-xs text-slate-400">
@@ -140,8 +140,8 @@ export default function LoginPage() {
 
             {error ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p> : null}
 
-            <button type="submit" disabled={loading} className="btn-motion mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:bg-slate-300">
-              {loading ? "Đang đăng nhập" : "Vào hệ thống"}
+            <button type="submit" disabled={loading} className="btn-motion login-submit-button mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30 disabled:bg-slate-300">
+              <span>{loading ? "Đang đăng nhập" : "Vào hệ thống"}</span>
             </button>
 
             <div className="my-4 flex items-center gap-3">

@@ -116,7 +116,7 @@ function fallbackReply(text, context) {
       ? `${shortage.name} đang có ${shortage.employees}/${shortage.targetHeadcount} nhân sự so với target. Nên kiểm tra lịch nghỉ và điều phối người thay ca.`
       : shortageAlert
         ? `${shortageAlert.title}: ${shortageAlert.detail}`
-        : "Chưa thấy phòng ban nào thiếu headcount hoặc có cảnh báo thiếu người trong Neon.";
+        : "Chưa thấy bộ phận nào thiếu headcount hoặc có cảnh báo thiếu người trong Neon.";
   }
   return `Tôi đã đọc dữ liệu Neon ngày ${context.date}: ${context.summary?.employees || 0} nhân viên, ${context.summary?.checkedIn || 0} đã chấm công, ${context.summary?.late || 0} đi trễ, ${context.alerts?.length || 0} cảnh báo AI.`;
 }

@@ -16,31 +16,31 @@ export const mvpDemoFeatures = [
   },
   {
     id: "face-attendance",
-    title: "Chấm công Face ID + HR duyệt",
+    title: "Chấm công Face ID + Admin/HR duyệt",
     pain: "Chấm công giấy/Excel dễ gian lận, HR mất giờ đối soát — cần xác thực khuôn mặt và bảng công tập trung.",
     steps: [
       "Admin/HR: Tạo hồ sơ nhân viên trên web",
-      "Nhân viên: Mobile → Đăng ký khuôn mặt → Chờ HR duyệt",
-      "HR: Web → Face ID → Approve → Nhân viên Scan Face → Bảng chấm công cập nhật"
+      "Nhân viên: Mobile → Đăng ký khuôn mặt → Chờ Admin/HR duyệt",
+      "Admin/HR: Web → Face ID → Approve → Nhân viên Scan Face → Bảng chấm công cập nhật"
     ],
     skippable: [
-      { step: "HR duyệt Face ID", canSkip: false, effect: "Nút chấm công bị khóa; API trả lỗi enrollment chưa Approved." },
+      { step: "Admin/HR duyệt Face ID", canSkip: false, effect: "Nút chấm công bị khóa; API trả lỗi enrollment chưa Approved." },
       { step: "Đăng ký khuôn mặt (employee)", canSkip: false, effect: "Không có mẫu Rekognition → không chấm công được." },
       { step: "Tạo hồ sơ nhân viên", canSkip: false, effect: "Employee không có employeeId → không dùng mobile." }
     ]
   },
   {
     id: "hr-ops",
-    title: "HR vận hành: nhân sự & duyệt tài khoản",
+    title: "Vận hành nhân sự: hồ sơ & duyệt tài khoản",
     pain: "Onboarding nhân viên rời rạc (Zalo, email, Excel) — cần một cổng duyệt tài khoản gắn đúng hồ sơ công ty.",
     steps: [
-      "Nhân viên: Yêu cầu tài khoản (email trùng hồ sơ HR đã tạo)",
-      "HR: Web → Tài khoản → Approve",
+      "Nhân viên: Yêu cầu tài khoản (email trùng hồ sơ Admin/HR đã tạo)",
+      "Admin/HR: Web → Tài khoản → Approve",
       "Nhân viên: Mobile login → Home / lịch / công"
     ],
     skippable: [
-      { step: "HR duyệt tài khoản", canSkip: false, effect: "Login trả 403 Account not approved." },
-      { step: "HR tạo hồ sơ trước", canSkip: false, effect: "API từ chối — chưa có employee profile." }
+      { step: "Admin/HR duyệt tài khoản", canSkip: false, effect: "Login trả 403 Account not approved." },
+      { step: "Admin/HR tạo hồ sơ trước", canSkip: false, effect: "API từ chối — chưa có employee profile." }
     ]
   }
 ];
@@ -48,6 +48,6 @@ export const mvpDemoFeatures = [
 export const demoScriptOrder = [
   "Đăng ký công ty demo → Platform approve",
   "Admin DN tạo NV + duyệt tài khoản",
-  "NV đăng ký Face ID → HR approve → Chấm công",
-  "HR xem Bảng chấm công (tùy thời gian demo)"
+  "NV đăng ký Face ID → Admin/HR approve → Chấm công",
+  "Admin/HR xem Bảng chấm công (tùy thời gian demo)"
 ];

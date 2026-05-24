@@ -51,10 +51,10 @@ const solutionCards = [
   {
     title: "Cho chủ doanh nghiệp",
     icon: BarChart3,
-    text: "Theo dõi chi phí lương dự kiến, tỷ lệ đúng giờ, hiệu suất phòng ban và cảnh báo nhân sự."
+    text: "Theo dõi chi phí lương dự kiến, tỷ lệ đúng giờ, hiệu suất bộ phận và cảnh báo nhân sự."
   },
   {
-    title: "Cho HR/Admin",
+    title: "Cho Admin/nhân sự",
     icon: UsersRound,
     text: "Quản lý hồ sơ, chấm công, lịch làm, nghỉ phép và bảng lương trên một dashboard gọn."
   },
@@ -73,7 +73,7 @@ const solutionCards = [
 const postMvpFeatures = [
   { title: "Xếp ca AI", text: "Gợi ý lịch, cảnh báo thiếu người — phát triển sau MVP." },
   { title: "Payroll tự động", text: "Gom công, OT, phạt — đã có API, demo sau khi chốt MVP chấm công." },
-  { title: "Báo cáo & AI Assistant", text: "Dashboard quản trị và chat HR — mở rộng giai đoạn Scale." }
+  { title: "Báo cáo & AI Assistant", text: "Dashboard quản trị và AI hỗ trợ vận hành — mở rộng giai đoạn Scale." }
 ];
 
 const faqs = [
@@ -83,7 +83,7 @@ const faqs = [
   },
   {
     question: "Có cần cài phần mềm trên máy chấm công không?",
-    answer: "Ứng dụng dùng camera mobile/web, HR duyệt ảnh đăng ký và AWS Rekognition xác minh khuôn mặt khi chấm công."
+    answer: "Ứng dụng dùng camera mobile/web, Admin/HR duyệt ảnh đăng ký và AWS Rekognition xác minh khuôn mặt khi chấm công."
   },
   {
     question: "Có phân quyền cho HR, quản lý và nhân viên không?",
@@ -224,7 +224,7 @@ export default function LandingPage() {
       <section className="border-y border-slate-100 bg-slate-50 py-5">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold text-slate-500 sm:px-6 lg:px-8">
           <span className="transition-colors hover:text-blue-700">Sales</span>
-          <span className="transition-colors hover:text-blue-700">HR</span>
+          <span className="transition-colors hover:text-blue-700">Nhân sự</span>
           <span className="transition-colors hover:text-blue-700">Warehouse</span>
           <span className="transition-colors hover:text-blue-700">Admin</span>
           <span className="transition-colors hover:text-blue-700">Customer Support</span>
@@ -237,7 +237,7 @@ export default function LandingPage() {
           <p className="text-sm font-bold uppercase tracking-normal text-blue-600">Giải pháp tất cả trong một</p>
           <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Một hệ thống cho mọi vai trò trong doanh nghiệp.</h2>
           <p className="mt-4 text-base leading-7 text-slate-600">
-            Mỗi người mở app lên là thấy ngay việc cần làm: HR xử lý vận hành, quản lý theo dõi ca, nhân viên check-in và xem quyền lợi.
+            Mỗi người mở app lên là thấy ngay việc cần làm: Admin/nhân sự xử lý vận hành, quản lý theo dõi ca, nhân viên check-in và xem quyền lợi.
           </p>
         </div>
 
@@ -353,7 +353,7 @@ export default function LandingPage() {
               {[
                 "Dashboard dễ đọc, không nhồi quá nhiều menu.",
                 "Nhân viên chỉ cần một nút hành động chính mỗi ngày.",
-                "HR có bảng, bộ lọc và trạng thái rõ ràng.",
+                "Admin/nhân sự có bảng, bộ lọc và trạng thái rõ ràng.",
                 "Quản lý nhận cảnh báo thiếu người và tăng ca."
               ].map((quote) => (
                 <figure key={quote} className="motion-card rounded-lg border border-blue-100 bg-white p-5 shadow-sm hover:border-blue-200 hover:shadow-soft">

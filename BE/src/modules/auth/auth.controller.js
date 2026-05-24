@@ -163,6 +163,11 @@ export async function reviewAccountRequestHandler(req, res) {
   }
 
   const data = accountRequestStatusSchema.parse(req.body);
+  const targetUser = await getUserById(req.params.id);
+  if (targetUser && targetUser.companyId === req.user.companyId && req.user.role !== "Admin" && ["Admin", "HR"].includes(targetUser.role)) {
+    throw httpError(403, "Chỉ Admin doanh nghiệp được duyệt hoặc khóa tài khoản Admin/Nhân sự");
+  }
+
   const user = await reviewAccountRequest(req.user.companyId, req.params.id, data.status);
   if (!user) throw httpError(404, "Account request not found");
 

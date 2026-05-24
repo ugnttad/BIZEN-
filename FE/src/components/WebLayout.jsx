@@ -291,7 +291,7 @@ export default function WebLayout() {
                         ))
                       ) : (
                         <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
-                          Chưa có thông báo mới. Khi có cảnh báo AI hoặc việc HR cần xử lý, chúng sẽ hiện ở đây.
+                          Chưa có thông báo mới. Khi có cảnh báo AI hoặc việc Admin/HR cần xử lý, chúng sẽ hiện ở đây.
                         </div>
                       )}
                     </div>

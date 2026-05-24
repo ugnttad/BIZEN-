@@ -112,6 +112,21 @@ export async function upsertPasswordUser(companyId, employee, passwordHash = nul
   return result.rows[0];
 }
 
+export async function updateEmployeeAccountProfile(companyId, employee) {
+  const result = await query(
+    `UPDATE app_users
+     SET
+      email = $3,
+      name = $4,
+      role = $5,
+      updated_at = now()
+     WHERE company_id = $1 AND employee_id = $2
+     RETURNING ${userSelect()}`,
+    [companyId, employee.id, employee.email, employee.name, employee.role]
+  );
+  return result.rows[0];
+}
+
 export async function createEmployeeAccountRequest(employee, passwordHash = null) {
   const result = await query(
     `INSERT INTO app_users

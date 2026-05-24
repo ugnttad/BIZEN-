@@ -21,7 +21,7 @@ function buildReply(text) {
     return "Tôi chưa gọi được AI backend. Bảng lương vẫn có breakdown từ Neon: base salary, ngày công, OT, bonus, deduction và final salary.";
   }
   if (lower.includes("thiếu")) {
-    return "Tôi chưa gọi được AI backend. Dashboard phòng ban đang dùng headcount thật từ Neon để xác định thiếu nhân sự.";
+    return "Tôi chưa gọi được AI backend. Dashboard bộ phận đang dùng headcount thật từ Neon để xác định thiếu nhân sự.";
   }
   return "Tôi chưa gọi được AI backend. Kiểm tra backend deploy, API URL và CORS.";
 }
@@ -33,7 +33,7 @@ export default function AiChat({ compact = false }) {
   const [messages, setMessages] = useState([
     {
       from: "ai",
-      text: "Tôi là BIZEN AI. Tôi có thể đọc dữ liệu Neon về chấm công, lịch ca, nghỉ phép và lương để trả lời cho HR."
+      text: "Tôi là BIZEN AI. Tôi có thể đọc dữ liệu Neon về chấm công, lịch ca, nghỉ phép và lương để hỗ trợ người vận hành."
     }
   ]);
 

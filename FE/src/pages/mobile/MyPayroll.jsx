@@ -47,7 +47,7 @@ export default function MyPayroll() {
         </div>
         <p className="mt-5 text-sm text-blue-100">Lương tháng {payroll.month || "05/2026"}</p>
         <p className="mt-1 text-3xl font-semibold tracking-normal">{formatCurrency(payroll.finalSalary)}</p>
-        {payroll.isEstimate ? <p className="mt-2 text-xs text-blue-100">Tạm tính từ ngày công — HR chưa chốt bảng lương chính thức</p> : null}
+        {payroll.isEstimate ? <p className="mt-2 text-xs text-blue-100">Tạm tính từ ngày công — Admin/HR chưa chốt bảng lương chính thức</p> : null}
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-4">

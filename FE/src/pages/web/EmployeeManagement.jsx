@@ -10,6 +10,7 @@ import StatusBadge from "../../components/StatusBadge";
 import { contractTypes, employeeRoles, hospitalityPositions } from "../../constants/hospitality";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
+import { getAuthUser } from "../../modules/auth/authStore";
 
 const emptyForm = {
   name: "",
@@ -20,7 +21,8 @@ const emptyForm = {
   baseSalary: "",
   status: "Active",
   email: "",
-  phone: ""
+  phone: "",
+  accountPassword: ""
 };
 
 export default function EmployeeManagement() {
@@ -34,6 +36,10 @@ export default function EmployeeManagement() {
   const [formError, setFormError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const authUser = getAuthUser();
+  const canMutateEmployees = ["Admin", "HR"].includes(authUser?.role);
+  const roleOptions = authUser?.role === "Admin" ? employeeRoles : employeeRoles.filter((item) => !["Admin", "HR"].includes(item.value));
+  const canEditEmployee = (employee) => canMutateEmployees && (authUser?.role === "Admin" || !["Admin", "HR"].includes(employee.role));
 
   useEffect(() => {
     let active = true;
@@ -91,28 +97,40 @@ export default function EmployeeManagement() {
       baseSalary: employee.baseSalary,
       status: employee.status,
       email: employee.email,
-      phone: employee.phone
+      phone: employee.phone,
+      accountPassword: ""
     });
     setFormError("");
   }
 
   async function saveEmployee(event) {
     event.preventDefault();
+    if (!canMutateEmployees) {
+      setFormError("Bạn chỉ có quyền xem hồ sơ nhân viên.");
+      return;
+    }
+
     if (!form.name.trim() || !form.position.trim() || Number(form.baseSalary) <= 0 || !form.email.includes("@")) {
       setFormError("Vui lòng nhập tên, chức vụ, email và lương hợp lệ.");
       return;
     }
 
+    if (modalMode === "create" && form.accountPassword.length < 8) {
+      setFormError("Mật khẩu đăng nhập cần ít nhất 8 ký tự để nhân viên dùng app ngay.");
+      return;
+    }
+
     const departmentId = departments.find((item) => item.name === form.department)?.id;
     if (!departmentId) {
-      setFormError("Chọn phòng ban hợp lệ.");
+      setFormError("Chọn bộ phận/nhóm hợp lệ.");
       return;
     }
 
     const payload = {
       ...form,
       departmentId,
-      baseSalary: Number(form.baseSalary)
+      baseSalary: Number(form.baseSalary),
+      accountPassword: form.accountPassword || undefined
     };
 
     try {
@@ -144,12 +162,14 @@ export default function EmployeeManagement() {
       <PageHeader
         eyebrow="Quản lý nhân sự"
         title="Hồ sơ nhân viên"
-        description="Dành cho quán cafe, nhà hàng, khách sạn nhỏ — phòng ban và chức vụ F&B."
+        description="Bộ phận/nhóm chỉ dùng để gom lịch ca, chấm công, lương và báo cáo. Tạo nhân viên ở đây sẽ cấp luôn email + mật khẩu đăng nhập theo vai trò."
         actions={
-          <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
-            <Plus className="h-4 w-4" />
-            Thêm nhân viên
-          </button>
+          canMutateEmployees ? (
+            <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
+              <Plus className="h-4 w-4" />
+              Thêm nhân viên
+            </button>
+          ) : null
         }
       />
 
@@ -161,7 +181,7 @@ export default function EmployeeManagement() {
         <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
           <Filter className="h-4 w-4 text-slate-400" />
           <select value={department} onChange={(event) => setDepartment(event.target.value)} className="w-full bg-white text-sm outline-none">
-            <option value="All">Tất cả phòng ban</option>
+            <option value="All">Tất cả bộ phận</option>
             {departments.map((item) => (
               <option key={item.id} value={item.name}>
                 {item.name}
@@ -182,7 +202,7 @@ export default function EmployeeManagement() {
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-normal text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Nhân viên</th>
-                  <th className="px-4 py-3">Phòng ban</th>
+                  <th className="px-4 py-3">Bộ phận/nhóm</th>
                   <th className="px-4 py-3">Vai trò</th>
                   <th className="px-4 py-3">Hợp đồng</th>
                   <th className="px-4 py-3">Lương cơ bản</th>
@@ -215,12 +235,18 @@ export default function EmployeeManagement() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => openEdit(employee)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100" aria-label="Sửa">
-                          <Edit3 className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => setDeleteTarget(employee)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-rose-600 hover:bg-rose-50" aria-label="Xóa">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {canEditEmployee(employee) ? (
+                          <>
+                            <button onClick={() => openEdit(employee)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100" aria-label="Sửa">
+                              <Edit3 className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => setDeleteTarget(employee)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-rose-600 hover:bg-rose-50" aria-label="Xóa">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-xs font-semibold text-slate-400">Chỉ xem</span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -252,7 +278,7 @@ export default function EmployeeManagement() {
             <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Phòng ban
+            Bộ phận / nhóm
             <select value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
               {departments.map((item) => (
                 <option key={item.id} value={item.name}>
@@ -264,12 +290,13 @@ export default function EmployeeManagement() {
           <label className="text-sm font-medium text-slate-700">
             Vai trò hệ thống
             <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
-              {employeeRoles.map((item) => (
+              {roleOptions.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
                 </option>
               ))}
             </select>
+            {authUser?.role !== "Admin" ? <p className="mt-1 text-xs text-slate-500">Chỉ Admin doanh nghiệp được cấp quyền Admin hoặc Nhân sự.</p> : null}
           </label>
           <label className="text-sm font-medium text-slate-700">
             Chức vụ
@@ -307,6 +334,17 @@ export default function EmployeeManagement() {
           <label className="text-sm font-medium text-slate-700">
             Điện thoại
             <input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+          </label>
+          <label className="sm:col-span-2 text-sm font-medium text-slate-700">
+            Mật khẩu đăng nhập {modalMode === "edit" ? "(để trống nếu không đổi)" : ""}
+            <input
+              type="password"
+              value={form.accountPassword}
+              onChange={(event) => setForm({ ...form, accountPassword: event.target.value })}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              placeholder={modalMode === "edit" ? "Nhập mật khẩu mới nếu cần reset" : "Tối thiểu 8 ký tự"}
+            />
+            <p className="mt-1 text-xs text-slate-500">Email + mật khẩu này dùng để đăng nhập web/mobile theo vai trò hệ thống ở trên.</p>
           </label>
           {formError ? <p className="sm:col-span-2 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{formError}</p> : null}
         </form>

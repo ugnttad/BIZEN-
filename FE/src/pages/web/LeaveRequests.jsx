@@ -65,7 +65,7 @@ export default function LeaveRequests() {
       <PageHeader
         eyebrow="Leave Management"
         title="Đơn nghỉ phép"
-        description="Nhân viên gửi đơn, HR/Manager duyệt và dữ liệu được đưa vào lịch làm việc."
+        description="Nhân viên gửi đơn, Admin/HR/Manager duyệt và dữ liệu được đưa vào lịch làm việc."
         actions={
           <button onClick={() => setFormOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
             <CalendarPlus className="h-4 w-4" />

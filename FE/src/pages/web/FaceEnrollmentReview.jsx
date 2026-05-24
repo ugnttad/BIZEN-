@@ -86,7 +86,7 @@ export default function FaceEnrollmentReview() {
     try {
       await bizenApi.reviewFaceEnrollment(id, {
         status: nextStatus,
-        reviewedBy: "HR",
+        reviewedBy: "Admin/HR",
         rejectionReason
       });
       loadEnrollments(status);
@@ -102,7 +102,7 @@ export default function FaceEnrollmentReview() {
       <PageHeader
         eyebrow="Security / Face ID"
         title="Duyệt đăng ký khuôn mặt"
-        description="HR kiểm tra ảnh đăng ký trước khi hệ thống index khuôn mặt vào AWS Rekognition."
+        description="Admin/HR kiểm tra ảnh đăng ký trước khi hệ thống index khuôn mặt vào AWS Rekognition."
         actions={
           <button onClick={() => loadEnrollments(status)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <RefreshCw className="h-4 w-4" />
@@ -115,7 +115,7 @@ export default function FaceEnrollmentReview() {
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
           <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
             <Search className="h-4 w-4 text-slate-400" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm nhân viên hoặc phòng ban" className="w-full text-sm outline-none" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm nhân viên hoặc bộ phận" className="w-full text-sm outline-none" />
           </label>
           <div className="flex flex-wrap gap-2">
             {statusTabs.map((item) => (
@@ -153,7 +153,7 @@ export default function FaceEnrollmentReview() {
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold text-slate-950">{item.employeeName}</p>
                         <p className="mt-1 text-sm text-slate-500">
-                          {item.employeeId} · {item.department || "Chưa có phòng ban"}
+                          {item.employeeId} · {item.department || "Chưa có bộ phận"}
                         </p>
                       </div>
                       <StatusBadge status={item.status} />
@@ -200,7 +200,7 @@ export default function FaceEnrollmentReview() {
                     ) : (
                       <div className="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
                         {item.status === "Approved" ? <ShieldCheck className="h-4 w-4 text-emerald-600" /> : <UserRound className="h-4 w-4 text-slate-500" />}
-                        {item.status === "Approved" ? `AWS FaceId: ${item.rekognitionFaceId || "-"}` : `Reviewed by ${item.reviewedBy || "HR"}`}
+                        {item.status === "Approved" ? `AWS FaceId: ${item.rekognitionFaceId || "-"}` : `Reviewed by ${item.reviewedBy || "Admin/HR"}`}
                       </div>
                     )}
                   </div>

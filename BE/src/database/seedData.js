@@ -1,9 +1,9 @@
 export const departments = [
-  { id: "sales", name: "Sales", targetHeadcount: 5 },
-  { id: "hr", name: "HR", targetHeadcount: 3 },
-  { id: "warehouse", name: "Warehouse", targetHeadcount: 4 },
-  { id: "admin", name: "Admin", targetHeadcount: 3 },
-  { id: "support", name: "Customer Support", targetHeadcount: 5 }
+  { id: "sales", name: "Phục vụ / Bán hàng", targetHeadcount: 5 },
+  { id: "hr", name: "Thu ngân", targetHeadcount: 3 },
+  { id: "warehouse", name: "Bếp / Kho", targetHeadcount: 4 },
+  { id: "admin", name: "Quản lý cửa hàng", targetHeadcount: 3 },
+  { id: "support", name: "Chăm sóc khách", targetHeadcount: 5 }
 ];
 
 export const employees = [
@@ -86,6 +86,6 @@ export const notifications = [
 
 export const aiAlerts = [
   ["warning", "Warehouse thiếu 1 người ngày 21/05", "Ca kho sớm chỉ có 2/4 nhân sự khả dụng."],
-  ["danger", "3 nhân viên đi trễ hôm nay", "Quốc Bảo, Bảo Châu, Thanh Đạt cần HR nhắc nhở."],
+  ["danger", "3 nhân viên đi trễ hôm nay", "Quốc Bảo, Bảo Châu, Thanh Đạt cần Admin/HR nhắc nhở."],
   ["info", "OT Support tăng 14%", "Ca chiều đang vượt ngưỡng 40 giờ/tuần."]
 ];

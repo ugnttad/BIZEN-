@@ -87,7 +87,7 @@ payrollRouter.post(
       const sample = openAttendances.rows.map((row) => `${row.name} (${row.workDate}, vào ${row.checkIn})`).join(", ");
       throw httpError(
         409,
-        `Chưa thể tính lương vì có ${openAttendances.rows.length} bản ghi thiếu check-out: ${sample}. HR cần chốt giờ ra trước.`
+        `Chưa thể tính lương vì có ${openAttendances.rows.length} bản ghi thiếu check-out: ${sample}. Admin/HR cần chốt giờ ra trước.`
       );
     }
 

@@ -1,4 +1,4 @@
-/** Phòng ban mặc định khi tạo tenant F&B / khách sạn (khớp BE tenants.repository). */
+/** Bộ phận/nhóm mặc định khi tạo tenant F&B / khách sạn (khớp BE tenants.repository). */
 export const hospitalityDepartmentNames = [
   "Phục vụ",
   "Pha chế / Bar",
@@ -6,7 +6,7 @@ export const hospitalityDepartmentNames = [
   "Thu ngân",
   "Lễ tân",
   "Buồng phòng",
-  "Nhân sự"
+  "Kho / Tạp vụ"
 ];
 
 /** Chức vụ gợi ý cho quán cafe, nhà hàng, khách sạn nhỏ. */
@@ -38,6 +38,6 @@ export const contractTypes = [
 export const employeeRoles = [
   { value: "Employee", label: "Nhân viên" },
   { value: "Manager", label: "Quản lý ca" },
-  { value: "HR", label: "Nhân sự" },
-  { value: "Admin", label: "Quản trị" }
+  { value: "HR", label: "Nhân sự (phụ quyền)" },
+  { value: "Admin", label: "Admin doanh nghiệp" }
 ];

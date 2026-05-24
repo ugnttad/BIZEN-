@@ -134,7 +134,7 @@ export default function PayrollManagement() {
           <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
             <Filter className="h-4 w-4 text-slate-400" />
             <select value={department} onChange={(event) => setDepartment(event.target.value)} className="w-full bg-white text-sm outline-none">
-              <option value="All">Tất cả phòng ban</option>
+              <option value="All">Tất cả bộ phận</option>
               {departments.map((item) => (
                 <option key={item.id} value={item.name}>
                   {item.name}

@@ -29,7 +29,7 @@ export default function ShiftScheduling() {
       setShifts(shiftRows);
       setScheduleWeek(scheduleRows);
       setLeaveRequests(leaveRows);
-      setAiScheduleReasons(["Không xếp nhân viên đang nghỉ phép.", "Cân bằng workload theo từng phòng ban."]);
+      setAiScheduleReasons(["Không xếp nhân viên đang nghỉ phép.", "Cân bằng workload theo từng bộ phận/nhóm."]);
     });
   }, []);
 
@@ -76,7 +76,7 @@ export default function ShiftScheduling() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-slate-950">Calendar view</h2>
-              <p className="text-sm text-slate-500">HR có thể chỉnh thủ công từng ca.</p>
+              <p className="text-sm text-slate-500">Admin/HR/Manager có thể chỉnh thủ công từng ca.</p>
             </div>
             {suggested ? (
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700">

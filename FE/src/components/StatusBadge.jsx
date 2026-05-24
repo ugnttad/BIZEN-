@@ -42,7 +42,7 @@ const statusLabels = {
   Suspended: "Tạm khóa",
   Manager: "Quản lý ca",
   HR: "Nhân sự",
-  Admin: "Quản trị",
+  Admin: "Admin DN",
   PlatformAdmin: "Chủ nền tảng",
   Employee: "Nhân viên"
 };

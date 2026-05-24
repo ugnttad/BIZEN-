@@ -314,7 +314,7 @@ export default function FaceIDCheckin() {
             {state === "idle" && imageSource !== "upload" && cameraStatus === "blocked" && "Camera bị chặn"}
             {state === "scanning" && "Đang xác minh khuôn mặt"}
             {state === "enrolling" && "Đang đăng ký khuôn mặt"}
-            {state === "success" && (result?.pending ? "Đã gửi HR duyệt" : "Xác minh thành công")}
+            {state === "success" && (result?.pending ? "Đã gửi Admin/HR duyệt" : "Xác minh thành công")}
             {state === "failed" && "Xác minh thất bại"}
           </div>
         </div>
@@ -329,10 +329,10 @@ export default function FaceIDCheckin() {
             <div>
               <p className="text-sm font-semibold text-slate-950">Trạng thái Face ID</p>
             <p className="mt-1 text-xs text-slate-500">
-              {enrollment?.status === "Approved" && "HR đã duyệt. Bạn có thể chấm công bằng khuôn mặt."}
-                {enrollment?.status === "Pending" && "Yêu cầu đang chờ HR duyệt trên web dashboard."}
+              {enrollment?.status === "Approved" && "Admin/HR đã duyệt. Bạn có thể chấm công bằng khuôn mặt."}
+                {enrollment?.status === "Pending" && "Yêu cầu đang chờ Admin/HR duyệt trên web dashboard."}
                 {enrollment?.status === "Rejected" && (enrollment.rejectionReason || "Yêu cầu đã bị từ chối. Vui lòng đăng ký lại.")}
-                {!enrollment || enrollment?.status === "Not submitted" ? "Bạn cần đăng ký khuôn mặt và chờ HR duyệt trước khi chấm công." : null}
+                {!enrollment || enrollment?.status === "Not submitted" ? "Bạn cần đăng ký khuôn mặt và chờ Admin/HR duyệt trước khi chấm công." : null}
               </p>
             </div>
             <StatusBadge status={enrollment?.status === "Not submitted" ? "Reviewed" : enrollment?.status || "Reviewed"} />
@@ -343,7 +343,7 @@ export default function FaceIDCheckin() {
           <div className={`mt-3 rounded-lg border p-3 text-sm ${hasCheckedOut ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
             {hasCheckedOut
               ? `Ca hôm nay đã hoàn tất: ${todayAttendance.checkIn} - ${todayAttendance.checkOut}, ${todayAttendance.hours}h.`
-              : `Bạn đã vào ca lúc ${todayAttendance.checkIn}. Hãy scan lần nữa khi kết thúc ca để HR chốt đủ giờ.`}
+              : `Bạn đã vào ca lúc ${todayAttendance.checkIn}. Hãy scan lần nữa khi kết thúc ca để Admin/HR chốt đủ giờ.`}
           </div>
         ) : null}
 
@@ -362,14 +362,14 @@ export default function FaceIDCheckin() {
               {result?.pending ? "Đã gửi yêu cầu đăng ký" : isDemoVerification ? "Chấm công bằng chế độ demo" : "Chấm công thành công"}
             </div>
             {result?.pending ? (
-              <p className="mt-1 text-sm">HR cần duyệt ảnh đăng ký trước khi bạn được dùng Face ID để chấm công.</p>
+              <p className="mt-1 text-sm">Admin/HR cần duyệt ảnh đăng ký trước khi bạn được dùng Face ID để chấm công.</p>
             ) : (
               <p className="mt-1 text-sm">
                 {actionLabel} ghi nhận lúc {result.checkTime} ngày {formatDisplayDate(result.workDate)}.
               </p>
             )}
             {isDemoVerification ? (
-              <p className="mt-1 text-xs text-emerald-700">AWS Rekognition chưa cấu hình, hệ thống đã dùng trạng thái HR duyệt Face ID để ghi nhận demo.</p>
+              <p className="mt-1 text-xs text-emerald-700">AWS Rekognition chưa cấu hình, hệ thống đã dùng trạng thái Admin/HR duyệt Face ID để ghi nhận demo.</p>
             ) : null}
             {confidence && !isDemoVerification ? <p className="mt-1 text-xs text-emerald-700">{providerLabel} similarity {confidence}%</p> : null}
           </div>

@@ -23,7 +23,7 @@ const defaultDepartments = [
   ["thu-ngan", "Thu ngân", 3],
   ["le-tan", "Lễ tân", 3],
   ["buong-phong", "Buồng phòng", 5],
-  ["nhan-su", "Nhân sự", 2]
+  ["kho-tap-vu", "Kho / Tạp vụ", 3]
 ];
 
 const defaultShifts = [

@@ -22,7 +22,7 @@ export default function MobileLogin() {
     }
 
     if (!session.user.employeeId) {
-      setError("Tài khoản chưa gắn hồ sơ nhân viên. Nhờ HR duyệt tài khoản và tạo hồ sơ trước.");
+      setError("Tài khoản chưa gắn hồ sơ nhân viên. Nhờ Admin/HR duyệt tài khoản và tạo hồ sơ trước.");
       return;
     }
 
@@ -102,8 +102,8 @@ export default function MobileLogin() {
 
             {error ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p> : null}
 
-            <button type="submit" disabled={loading} className="btn-motion w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:bg-slate-300">
-              {loading ? "Đang đăng nhập" : "Vào app"}
+            <button type="submit" disabled={loading} className="btn-motion login-submit-button w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30 disabled:bg-slate-300">
+              <span>{loading ? "Đang đăng nhập" : "Vào app"}</span>
             </button>
 
             <div className="flex items-center gap-3">
