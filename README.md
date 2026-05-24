@@ -114,7 +114,7 @@ npx vercel link
 npm run vercel:env:smtp
 ```
 
-The sync script sends `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `MAIL_FROM` to Vercel `production` and `preview` without printing secret values. Redeploy after syncing.
+The sync script sends `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `MAIL_FROM` to Vercel `production` without printing secret values. Redeploy after syncing.
 
 After deploy, verify the backend with:
 

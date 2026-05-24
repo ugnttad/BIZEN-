@@ -5,8 +5,9 @@ import { spawnSync } from "node:child_process";
 const rootDir = process.cwd();
 const envPath = join(rootDir, "BE", ".env");
 const vercelProjectPath = join(rootDir, ".vercel", "project.json");
+const vercelRepoPath = join(rootDir, ".vercel", "repo.json");
 const smtpKeys = ["SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASS", "MAIL_FROM"];
-const targetEnvironments = process.argv.slice(2).length ? process.argv.slice(2) : ["production", "preview"];
+const targetEnvironments = process.argv.slice(2).length ? process.argv.slice(2) : ["production"];
 
 function parseDotenv(content) {
   const result = {};
@@ -29,13 +30,28 @@ function parseDotenv(content) {
   return result;
 }
 
-function runVercel(args, options = {}) {
-  const command = process.platform === "win32" ? "npx.cmd" : "npx";
+function runVercel(args) {
   const tokenArgs = process.env.VERCEL_TOKEN ? ["--token", process.env.VERCEL_TOKEN] : [];
-  return spawnSync(command, ["vercel", ...args, ...tokenArgs], {
+  const vercelArgs = [...args, ...tokenArgs];
+
+  if (process.platform === "win32") {
+    const argEnv = Object.fromEntries(vercelArgs.map((arg, index) => [`VERCEL_SYNC_ARG_${index}`, arg]));
+    const argList = vercelArgs.map((_, index) => `$env:VERCEL_SYNC_ARG_${index}`).join(", ");
+    return spawnSync(
+      "powershell.exe",
+      ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", `$vercelArgs = @(${argList}); & npx vercel @vercelArgs`],
+      {
+        cwd: rootDir,
+        encoding: "utf8",
+        env: { ...process.env, ...argEnv },
+        shell: false
+      }
+    );
+  }
+
+  return spawnSync("npx", ["vercel", ...vercelArgs], {
     cwd: rootDir,
     encoding: "utf8",
-    input: options.input,
     shell: false
   });
 }
@@ -45,7 +61,7 @@ if (!existsSync(envPath)) {
   process.exit(1);
 }
 
-if (!existsSync(vercelProjectPath)) {
+if (!existsSync(vercelProjectPath) && !existsSync(vercelRepoPath)) {
   console.error("Project is not linked to Vercel yet. Run: npx vercel link");
   process.exit(1);
 }
@@ -62,8 +78,7 @@ for (const environment of targetEnvironments) {
   console.log(`Syncing SMTP env to Vercel ${environment}...`);
 
   for (const key of smtpKeys) {
-    runVercel(["env", "rm", key, environment, "-y"]);
-    const added = runVercel(["env", "add", key, environment], { input: `${env[key]}\n` });
+    const added = runVercel(["env", "add", key, environment, "--yes", "--force", "--value", env[key]]);
 
     if (added.status !== 0) {
       console.error(`Failed to add ${key} to ${environment}.`);
