@@ -5,7 +5,7 @@ import GoogleLoginButton from "../modules/auth/GoogleLoginButton";
 import { bizenApi } from "../modules/api/bizenApi";
 import WorkflowStepsCard from "../components/WorkflowStepsCard";
 import { mvpDemoFeatures } from "../constants/saasWorkflow";
-import { getDefaultPathForRole, saveAuthSession } from "../modules/auth/authStore";
+import { getDefaultPathForRole, saveAuthSession, setEmployeeExperiencePreference } from "../modules/auth/authStore";
 import { saveMobileEmployee } from "../modules/auth/mobileSession";
 
 const accessHighlights = [
@@ -29,9 +29,10 @@ export default function LoginPage() {
     if (session.user.role === "Employee" && session.user.employeeId) {
       const employee = await bizenApi.employee(session.user.employeeId);
       saveMobileEmployee(employee);
+      setEmployeeExperiencePreference("web");
     }
 
-    const defaultPath = getDefaultPathForRole(session.user.role);
+    const defaultPath = session.user.role === "Employee" ? "/web/me" : getDefaultPathForRole(session.user.role);
     const from = location.state?.from;
     navigate(from && from.startsWith(defaultPath.split("/").slice(0, 2).join("/")) ? from : defaultPath, { replace: true });
   }
