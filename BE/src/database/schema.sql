@@ -76,6 +76,10 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   total_hours NUMERIC(5, 2) NOT NULL DEFAULT 0,
   status TEXT NOT NULL CHECK (status IN ('Present', 'Late', 'Absent', 'Leave', 'Overtime')),
   location TEXT,
+  latitude NUMERIC(10, 7),
+  longitude NUMERIC(10, 7),
+  location_accuracy_meters INTEGER,
+  distance_from_store_meters INTEGER,
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (employee_id, work_date)
@@ -174,7 +178,12 @@ CREATE TABLE IF NOT EXISTS app_settings (
   late_grace_minutes INTEGER NOT NULL DEFAULT 10,
   payroll_formula TEXT NOT NULL,
   overtime_formula TEXT NOT NULL,
-  annual_leave_days INTEGER NOT NULL DEFAULT 12
+  annual_leave_days INTEGER NOT NULL DEFAULT 12,
+  store_address TEXT NOT NULL DEFAULT 'Hải Châu, Đà Nẵng',
+  store_latitude NUMERIC(10, 7) DEFAULT 16.0678000,
+  store_longitude NUMERIC(10, 7) DEFAULT 108.2208000,
+  geofence_radius_meters INTEGER NOT NULL DEFAULT 200,
+  geofence_enabled BOOLEAN NOT NULL DEFAULT true
 );
 
 CREATE INDEX IF NOT EXISTS idx_employees_department ON employees(department_id);
@@ -249,3 +258,14 @@ ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhxh_employee NUMERIC(14, 0) 
 ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhyt_employee NUMERIC(14, 0) NOT NULL DEFAULT 0;
 ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhtn_employee NUMERIC(14, 0) NOT NULL DEFAULT 0;
 ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS other_deduction NUMERIC(14, 0) NOT NULL DEFAULT 0;
+
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 7);
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 7);
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS location_accuracy_meters INTEGER;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS distance_from_store_meters INTEGER;
+
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS store_address TEXT NOT NULL DEFAULT 'Hải Châu, Đà Nẵng';
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS store_latitude NUMERIC(10, 7) DEFAULT 16.0678000;
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS store_longitude NUMERIC(10, 7) DEFAULT 108.2208000;
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS geofence_radius_meters INTEGER NOT NULL DEFAULT 200;
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS geofence_enabled BOOLEAN NOT NULL DEFAULT true;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, CheckCircle2, Clock3, CreditCard, ShieldCheck, UsersRound } from "lucide-react";
+import { Building2, CheckCircle2, Clock3, CreditCard, MapPin, Navigation, ShieldCheck, UsersRound } from "lucide-react";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import { formatCurrency } from "../../lib/utils";
@@ -12,11 +12,17 @@ export default function Settings() {
     lateGraceMinutes: 10,
     payrollFormula: "Base salary / 22 x working days + OT + bonus - deduction",
     overtimeFormula: "Hourly rate x 150%",
-    annualLeaveDays: 12
+    annualLeaveDays: 12,
+    storeAddress: "Hải Châu, Đà Nẵng",
+    storeLatitude: 16.0678,
+    storeLongitude: 108.2208,
+    geofenceRadiusMeters: 200,
+    geofenceEnabled: true
   });
   const [departments, setDepartments] = useState([]);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     Promise.all([bizenApi.settings(), bizenApi.departments()])
@@ -41,9 +47,39 @@ export default function Settings() {
       setError("Đi trễ cho phép 0-60 phút, ngày phép năm 0-24 ngày.");
       return;
     }
+    if (settings.geofenceEnabled && (settings.storeLatitude === "" || settings.storeLongitude === "")) {
+      setError("Bật ràng buộc vị trí cần có tọa độ quán.");
+      return;
+    }
     setError("");
     await bizenApi.updateSettings(settings);
     setSaved(true);
+  }
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      setError("Trình duyệt không hỗ trợ lấy vị trí.");
+      return;
+    }
+
+    setLocating(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setSettings((current) => ({
+          ...current,
+          storeLatitude: Number(position.coords.latitude.toFixed(7)),
+          storeLongitude: Number(position.coords.longitude.toFixed(7)),
+          geofenceEnabled: true
+        }));
+        setLocating(false);
+      },
+      () => {
+        setError("Không lấy được vị trí hiện tại. Kiểm tra quyền GPS của trình duyệt.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
   }
 
   return (
@@ -83,6 +119,53 @@ export default function Settings() {
                 Grace period phút
                 <input type="number" value={settings.lateGraceMinutes} onChange={(event) => setSettings({ ...settings, lateGraceMinutes: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
               </label>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <h2 className="text-base font-semibold text-slate-950">Vị trí chấm công</h2>
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={Boolean(settings.geofenceEnabled)}
+                  onChange={(event) => setSettings({ ...settings, geofenceEnabled: event.target.checked })}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                Bật GPS
+              </label>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="text-sm font-medium text-slate-700 md:col-span-2">
+                Địa chỉ quán
+                <input value={settings.storeAddress || ""} onChange={(event) => setSettings({ ...settings, storeAddress: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                Latitude
+                <input type="number" step="0.0000001" value={settings.storeLatitude ?? ""} onChange={(event) => setSettings({ ...settings, storeLatitude: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                Longitude
+                <input type="number" step="0.0000001" value={settings.storeLongitude ?? ""} onChange={(event) => setSettings({ ...settings, storeLongitude: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                Bán kính cho phép (m)
+                <input type="number" min="30" max="2000" value={settings.geofenceRadiusMeters ?? 200} onChange={(event) => setSettings({ ...settings, geofenceRadiusMeters: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+              </label>
+              <button
+                type="button"
+                onClick={useCurrentLocation}
+                disabled={locating}
+                className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Navigation className="h-4 w-4" />
+                {locating ? "Đang lấy vị trí..." : "Dùng vị trí hiện tại"}
+              </button>
             </div>
           </div>
 

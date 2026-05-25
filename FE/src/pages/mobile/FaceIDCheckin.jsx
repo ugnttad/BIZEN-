@@ -52,6 +52,33 @@ function getFriendlyFaceError(message) {
   return message;
 }
 
+function getLocationErrorMessage(locationError) {
+  if (locationError?.code === 1) return "Bạn đã chặn quyền vị trí. Hãy cho phép GPS để chấm công tại quán.";
+  if (locationError?.code === 2) return "Không lấy được vị trí hiện tại. Thử bật GPS/Wi-Fi rồi quét lại.";
+  if (locationError?.code === 3) return "Lấy vị trí quá lâu. Di chuyển ra nơi có tín hiệu tốt hơn rồi thử lại.";
+  return locationError?.message || "Không lấy được vị trí hiện tại.";
+}
+
+function getCurrentLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Trình duyệt không hỗ trợ GPS."));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: Math.round(position.coords.accuracy || 0)
+        }),
+      reject,
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+    );
+  });
+}
+
 export default function FaceIDCheckin() {
   const employee = getMobileEmployeeSession();
   const videoRef = useRef(null);
@@ -64,6 +91,10 @@ export default function FaceIDCheckin() {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [enrollment, setEnrollment] = useState(null);
   const [todayAttendance, setTodayAttendance] = useState(null);
+  const [settings, setSettings] = useState(null);
+  const [geoStatus, setGeoStatus] = useState("idle");
+  const [geoPosition, setGeoPosition] = useState(null);
+  const [geoError, setGeoError] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
@@ -75,6 +106,22 @@ export default function FaceIDCheckin() {
     if (state === "failed") return "Late";
     return "Reviewed";
   }, [enrollment, result, state]);
+
+  useEffect(() => {
+    let active = true;
+    bizenApi
+      .checkinPolicy(employee.id)
+      .then((data) => {
+        if (active) setSettings(data);
+      })
+      .catch(() => {
+        if (active) setSettings(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [employee.id]);
 
   useEffect(() => {
     let active = true;
@@ -199,17 +246,41 @@ export default function FaceIDCheckin() {
     setState("idle");
   }
 
+  async function resolveLocationForCheckin() {
+    if (settings?.geofenceEnabled === false) {
+      return null;
+    }
+
+    setGeoStatus("loading");
+    setGeoError("");
+    try {
+      const position = await getCurrentLocation();
+      setGeoPosition(position);
+      setGeoStatus("ready");
+      return position;
+    } catch (locationError) {
+      const message = getLocationErrorMessage(locationError);
+      setGeoError(message);
+      setGeoStatus("blocked");
+      throw new Error(message);
+    }
+  }
+
   async function scanFace() {
     setState("scanning");
     setError("");
 
     try {
+      const position = await resolveLocationForCheckin();
       const image = getFaceImage();
       const response = await bizenApi.faceCheckin({
         employeeId: employee.id,
         image,
         workDate: formatLocalDate(),
-        location: defaultLocation
+        location: settings?.storeAddress || defaultLocation,
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+        locationAccuracyMeters: position?.accuracy
       });
       setResult(response);
       setState("success");
@@ -319,9 +390,18 @@ export default function FaceIDCheckin() {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
-          <MapPin className="h-4 w-4 text-blue-600" />
-          {defaultLocation} · GPS hợp lệ
+        <div className="mt-4 flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          <MapPin className="mt-0.5 h-4 w-4 text-blue-600" />
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-800">{settings?.storeAddress || defaultLocation}</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {settings?.geofenceEnabled === false && "GPS geofence đang tắt"}
+              {settings?.geofenceEnabled !== false && geoStatus === "idle" && `Yêu cầu GPS trong bán kính ${settings?.geofenceRadiusMeters || 200}m khi chấm công`}
+              {settings?.geofenceEnabled !== false && geoStatus === "loading" && "Đang lấy vị trí GPS"}
+              {settings?.geofenceEnabled !== false && geoStatus === "ready" && `GPS sẵn sàng · sai số ${geoPosition?.accuracy || 0}m`}
+              {settings?.geofenceEnabled !== false && geoStatus === "blocked" && geoError}
+            </p>
+          </div>
         </div>
 
         <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
@@ -368,6 +448,11 @@ export default function FaceIDCheckin() {
                 {actionLabel} ghi nhận lúc {result.checkTime} ngày {formatDisplayDate(result.workDate)}.
               </p>
             )}
+            {result?.geofence?.enabled ? (
+              <p className="mt-1 text-xs text-emerald-700">
+                GPS hợp lệ: cách quán {result.geofence.distance}m trong bán kính {result.geofence.radius}m.
+              </p>
+            ) : null}
             {isDemoVerification ? (
               <p className="mt-1 text-xs text-emerald-700">AWS Rekognition chưa cấu hình, hệ thống đã dùng trạng thái chủ sở hữu duyệt Face ID để ghi nhận demo.</p>
             ) : null}

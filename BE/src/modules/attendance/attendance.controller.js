@@ -28,7 +28,10 @@ const faceCheckinSchema = z.object({
   employeeId: z.string().min(1),
   image: z.string().min(200),
   workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  location: z.string().trim().max(120).optional()
+  location: z.string().trim().max(120).optional(),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
+  locationAccuracyMeters: z.coerce.number().min(0).max(10000).optional()
 });
 
 function toMinutes(time) {
@@ -72,6 +75,58 @@ function resolveAttendanceEvent(existing, context, checkTime) {
   };
 }
 
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function calculateDistanceMeters(from, to) {
+  const earthRadiusMeters = 6371000;
+  const latDelta = toRadians(to.latitude - from.latitude);
+  const lngDelta = toRadians(to.longitude - from.longitude);
+  const a =
+    Math.sin(latDelta / 2) * Math.sin(latDelta / 2) +
+    Math.cos(toRadians(from.latitude)) * Math.cos(toRadians(to.latitude)) * Math.sin(lngDelta / 2) * Math.sin(lngDelta / 2);
+  return Math.round(earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+function resolveGeofence(payload, context) {
+  if (!context.geofenceEnabled) {
+    return {
+      enabled: false,
+      allowed: true,
+      label: payload.location || "Mobile app"
+    };
+  }
+
+  if (context.storeLatitude === null || context.storeLatitude === undefined || context.storeLongitude === null || context.storeLongitude === undefined) {
+    throw httpError(409, "Chủ sở hữu chưa cấu hình tọa độ quán trong Settings.");
+  }
+
+  if (payload.latitude === undefined || payload.longitude === undefined) {
+    throw httpError(400, "Cần cấp quyền vị trí GPS để chấm công tại quán.");
+  }
+
+  const distance = calculateDistanceMeters(
+    { latitude: Number(context.storeLatitude), longitude: Number(context.storeLongitude) },
+    { latitude: Number(payload.latitude), longitude: Number(payload.longitude) }
+  );
+  const accuracyAllowance = Math.min(Math.round(Number(payload.locationAccuracyMeters || 0)), 50);
+  const radius = Number(context.geofenceRadiusMeters || 200);
+
+  if (distance > radius + accuracyAllowance) {
+    throw httpError(403, `Bạn đang cách quán khoảng ${distance}m, vượt bán kính cho phép ${radius}m.`);
+  }
+
+  return {
+    enabled: true,
+    allowed: true,
+    distance,
+    radius,
+    accuracy: payload.locationAccuracyMeters ? Math.round(Number(payload.locationAccuracyMeters)) : null,
+    label: `${context.storeAddress || "Quán"} (${distance}m)`
+  };
+}
+
 export async function listAttendanceHandler(req, res) {
   const companyId = await getCompanyIdForUser(req.user);
   res.json(await listAttendance({ date: req.query.date, companyId }));
@@ -108,6 +163,27 @@ export async function listEmployeeAttendanceHandler(req, res) {
   res.json(await listEmployeeAttendance(req.params.employeeId, companyId));
 }
 
+export async function checkinPolicyHandler(req, res) {
+  const employeeId = req.user.role === "Employee" ? req.user.employeeId : req.query.employeeId;
+  if (!employeeId) {
+    throw httpError(400, "Chọn nhân viên để xem chính sách chấm công.");
+  }
+
+  const context = await getEmployeeAttendanceContext(employeeId);
+  if (!context) {
+    throw httpError(404, "Employee not found");
+  }
+  if (req.user.companyId && context.companyId !== req.user.companyId) {
+    throw httpError(403, "Employee belongs to another company");
+  }
+
+  res.json({
+    storeAddress: context.storeAddress,
+    geofenceEnabled: context.geofenceEnabled,
+    geofenceRadiusMeters: context.geofenceRadiusMeters
+  });
+}
+
 export async function faceCheckinHandler(req, res) {
   const payload = faceCheckinSchema.parse(req.body);
   if (req.user.role === "Employee" && payload.employeeId !== req.user.employeeId) {
@@ -132,10 +208,18 @@ export async function faceCheckinHandler(req, res) {
     throw httpError(403, "Employee belongs to another company");
   }
 
+  const geofence = resolveGeofence(payload, context);
   const workDate = payload.workDate || getBusinessDate();
   const checkTime = getBusinessTime();
   const existing = await getAttendanceRecord(payload.employeeId, workDate, context.companyId);
   const event = resolveAttendanceEvent(existing, context, checkTime);
+  const faceNote =
+    face.provider === "local-demo"
+      ? "Face ID demo mode: AWS Rekognition is not configured"
+      : `AWS Rekognition face match ${Math.round(face.similarity)}%`;
+  const locationNote = geofence.enabled
+    ? `GPS within ${geofence.distance}m/${geofence.radius}m${geofence.accuracy !== null ? `, accuracy ${geofence.accuracy}m` : ""}`
+    : "GPS geofence disabled";
   const attendance = await upsertAttendance(context.companyId, {
     employeeId: payload.employeeId,
     workDate,
@@ -143,11 +227,12 @@ export async function faceCheckinHandler(req, res) {
     checkOut: event.checkOut,
     totalHours: event.totalHours,
     status: event.status,
-    location: payload.location || "Mobile app",
-    note:
-      face.provider === "local-demo"
-        ? "Face ID demo mode: AWS Rekognition is not configured"
-        : `AWS Rekognition face match ${Math.round(face.similarity)}%`
+    location: geofence.label,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
+    locationAccuracyMeters: geofence.accuracy,
+    distanceFromStoreMeters: geofence.distance,
+    note: `${faceNote} · ${locationNote}`
   });
 
   res.status(201).json({
@@ -161,6 +246,7 @@ export async function faceCheckinHandler(req, res) {
     workDate,
     checkTime,
     attendance,
+    geofence,
     face: {
       confidence: face.confidence,
       similarity: face.similarity,

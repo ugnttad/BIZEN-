@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { requireRoles } from "../auth/auth.middleware.js";
-import { faceCheckinHandler, listAttendanceHandler, listEmployeeAttendanceHandler, upsertAttendanceHandler } from "./attendance.controller.js";
+import { checkinPolicyHandler, faceCheckinHandler, listAttendanceHandler, listEmployeeAttendanceHandler, upsertAttendanceHandler } from "./attendance.controller.js";
 import {
   faceEnrollmentImageHandler,
   faceEnrollHandler,
@@ -16,6 +16,7 @@ attendanceRouter.get("/", requireRoles("Admin"), asyncHandler(listAttendanceHand
 attendanceRouter.get("/face-enrollments", requireRoles("Admin"), asyncHandler(listFaceEnrollmentsHandler));
 attendanceRouter.get("/face-enrollments/employee/:employeeId/latest", asyncHandler(latestFaceEnrollmentHandler));
 attendanceRouter.get("/face-enrollments/:id/image", requireRoles("Admin"), asyncHandler(faceEnrollmentImageHandler));
+attendanceRouter.get("/checkin-policy", asyncHandler(checkinPolicyHandler));
 attendanceRouter.get("/employee/:employeeId", asyncHandler(listEmployeeAttendanceHandler));
 attendanceRouter.post("/", requireRoles("Admin"), asyncHandler(upsertAttendanceHandler));
 attendanceRouter.post("/face-enroll", asyncHandler(faceEnrollHandler));

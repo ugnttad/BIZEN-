@@ -20,6 +20,7 @@ export const bizenApi = {
   deleteEmployee: (id) => apiClient.delete(`/employees/${id}`),
   attendance: (date) => apiClient.get(`/attendance${date ? `?date=${encodeURIComponent(date)}` : ""}`),
   employeeAttendance: (employeeId) => apiClient.get(`/attendance/employee/${employeeId}`),
+  checkinPolicy: (employeeId) => apiClient.get(`/attendance/checkin-policy${employeeId ? `?employeeId=${encodeURIComponent(employeeId)}` : ""}`),
   upsertAttendance: (payload) => apiClient.post("/attendance", payload),
   faceEnroll: (payload) => apiClient.post("/attendance/face-enroll", payload),
   faceCheckin: (payload) => apiClient.post("/attendance/face-checkin", payload),

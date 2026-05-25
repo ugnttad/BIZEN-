@@ -224,12 +224,17 @@ await withTransaction(async (client) => {
 
   await client.query(
     `INSERT INTO app_settings
-      (company_id, work_start, work_end, late_grace_minutes, payroll_formula, overtime_formula, annual_leave_days)
-     VALUES ($1, '08:00', '17:00', 10, $2, $3, 12)
+      (company_id, work_start, work_end, late_grace_minutes, payroll_formula, overtime_formula, annual_leave_days, store_address, store_latitude, store_longitude, geofence_radius_meters, geofence_enabled)
+     VALUES ($1, '08:00', '17:00', 10, $2, $3, 12, 'Hải Châu, Đà Nẵng', 16.0678000, 108.2208000, 200, true)
      ON CONFLICT (company_id) DO UPDATE SET
       late_grace_minutes = EXCLUDED.late_grace_minutes,
       payroll_formula = EXCLUDED.payroll_formula,
-      overtime_formula = EXCLUDED.overtime_formula`,
+      overtime_formula = EXCLUDED.overtime_formula,
+      store_address = COALESCE(app_settings.store_address, EXCLUDED.store_address),
+      store_latitude = COALESCE(app_settings.store_latitude, EXCLUDED.store_latitude),
+      store_longitude = COALESCE(app_settings.store_longitude, EXCLUDED.store_longitude),
+      geofence_radius_meters = COALESCE(app_settings.geofence_radius_meters, EXCLUDED.geofence_radius_meters),
+      geofence_enabled = COALESCE(app_settings.geofence_enabled, EXCLUDED.geofence_enabled)`,
     [companyId, "Base salary / 22 x working days + OT + bonus - deduction", "Hourly rate x 150%"]
   );
 });
