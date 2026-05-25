@@ -3,3 +3,4 @@
 > node src/server.js
 
 BIZEN backend running on http://localhost:4000
+[0mGET /api/health [32m200[0m 2.618 ms - 87[0m

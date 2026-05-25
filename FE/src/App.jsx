@@ -23,7 +23,7 @@ import EmployeeWebPortal from "./pages/web/EmployeeWebPortal";
 import EmployeeWebCheckin from "./pages/web/EmployeeWebCheckin";
 import MobileLogin from "./pages/mobile/MobileLogin";
 import ProtectedRoute from "./modules/auth/ProtectedRoute";
-import { getAuthUser } from "./modules/auth/authStore";
+import { getAuthUser, getDefaultPathForRole } from "./modules/auth/authStore";
 import EmployeeHome from "./pages/mobile/EmployeeHome";
 import FaceIDCheckin from "./pages/mobile/FaceIDCheckin";
 import MySchedule from "./pages/mobile/MySchedule";
@@ -38,10 +38,18 @@ function WebIndexRedirect() {
   return <Navigate to={user?.role === "Employee" ? "/web/me" : "/web/dashboard"} replace />;
 }
 
+function LandingEntry() {
+  const user = getAuthUser();
+  if (user?.role) {
+    return <Navigate to={getDefaultPathForRole(user.role)} replace />;
+  }
+  return <LandingPage />;
+}
+
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<LandingEntry />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register-company" element={<CompanyRegisterPage />} />
       <Route path="/register-employee" element={<EmployeeAccountRequestPage />} />
