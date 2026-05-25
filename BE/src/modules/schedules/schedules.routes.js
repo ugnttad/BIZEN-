@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { query, withTransaction } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
+import { getBusinessDate } from "../../shared/businessDate.js";
 import { httpError } from "../../shared/httpError.js";
 import { isIsoDate } from "../../shared/validation.js";
 import { requireRoles } from "../auth/auth.middleware.js";
@@ -40,6 +41,10 @@ const availabilityQuerySchema = z.object({
   employeeId: z.string().trim().min(1).optional()
 });
 
+const weekQuerySchema = z.object({
+  weekStart: z.string().refine(isIsoDate, "Tuần chưa hợp lệ").optional()
+});
+
 let availabilitySchemaReady = false;
 
 async function ensureAvailabilitySchema(executor = query) {
@@ -69,7 +74,20 @@ async function ensureAvailabilitySchema(executor = query) {
   availabilitySchemaReady = true;
 }
 
-async function listWeekSchedule(companyId) {
+function addDaysIso(isoDate, days) {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function getWeekStartIso(isoDate = getBusinessDate()) {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  const mondayOffset = (date.getUTCDay() + 6) % 7;
+  return addDaysIso(isoDate, -mondayOffset);
+}
+
+async function listWeekSchedule(companyId, weekStart = getWeekStartIso()) {
+  const weekEnd = addDaysIso(weekStart, 6);
   const result = await query(
     `SELECT
       sd.work_date,
@@ -86,9 +104,10 @@ async function listWeekSchedule(companyId) {
      JOIN schedule_slots ss ON ss.schedule_day_id = sd.id
      JOIN shifts sh ON sh.id = ss.shift_id
      WHERE sd.company_id = $1
+       AND sd.work_date BETWEEN $2::date AND $3::date
      GROUP BY sd.id
      ORDER BY sd.work_date`,
-    [companyId]
+    [companyId, weekStart, weekEnd]
   );
   return result.rows;
 }
@@ -216,7 +235,9 @@ schedulesRouter.get(
   "/week",
   asyncHandler(async (req, res) => {
     const companyId = await getCompanyIdForUser(req.user);
-    res.json(await listWeekSchedule(companyId));
+    const filters = weekQuerySchema.parse(req.query);
+    const weekStart = getWeekStartIso(filters.weekStart || getBusinessDate());
+    res.json(await listWeekSchedule(companyId, weekStart));
   })
 );
 
@@ -298,7 +319,7 @@ schedulesRouter.put(
       }
     });
 
-    res.json(await listWeekSchedule(companyId));
+    res.json(await listWeekSchedule(companyId, payload.days[0]?.workDate));
   })
 );
 

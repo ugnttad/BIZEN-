@@ -37,6 +37,13 @@ function addDays(value, days) {
   return formatDateInput(date);
 }
 
+function getWeekStartIso(value = formatDateInput(new Date())) {
+  const date = new Date(`${value}T00:00:00`);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - mondayOffset);
+  return formatDateInput(date);
+}
+
 function formatDisplayDate(value) {
   if (!value) return "";
   const [year, month, day] = value.split("-");
@@ -141,7 +148,7 @@ export default function EmployeeWebPortal() {
           bizenApi.employee(employeeId),
           bizenApi.employeeAttendance(employeeId),
           bizenApi.shifts(),
-          bizenApi.scheduleWeek(),
+          bizenApi.scheduleWeek(getWeekStartIso()),
           bizenApi.payrollDetail(employeeId).catch(() => null),
           bizenApi.leaves().catch(() => []),
           bizenApi.notifications(employeeId).catch(() => []),

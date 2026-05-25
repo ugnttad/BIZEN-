@@ -28,7 +28,7 @@ export const bizenApi = {
   reviewFaceEnrollment: (id, payload) => apiClient.patch(`/attendance/face-enrollments/${id}/status`, payload),
   faceEnrollmentImage: (id) => apiClient.blob(`/attendance/face-enrollments/${id}/image`),
   shifts: () => apiClient.get("/shifts"),
-  scheduleWeek: () => apiClient.get("/schedules/week"),
+  scheduleWeek: (weekStart) => apiClient.get(`/schedules/week${weekStart ? `?weekStart=${encodeURIComponent(weekStart)}` : ""}`),
   updateScheduleWeek: (payload) => apiClient.put("/schedules/week", payload),
   scheduleAvailability: (employeeId) => apiClient.get(`/schedules/availability${employeeId ? `?employeeId=${encodeURIComponent(employeeId)}` : ""}`),
   createScheduleAvailability: (payload) => apiClient.post("/schedules/availability", payload),

@@ -17,16 +17,6 @@ import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
 
-const demoWeek = [
-  { workDate: "2026-05-18", day: "Thứ 2", date: "18/05" },
-  { workDate: "2026-05-19", day: "Thứ 3", date: "19/05" },
-  { workDate: "2026-05-20", day: "Hôm nay", date: "20/05" },
-  { workDate: "2026-05-21", day: "Thứ 5", date: "21/05" },
-  { workDate: "2026-05-22", day: "Thứ 6", date: "22/05" },
-  { workDate: "2026-05-23", day: "Thứ 7", date: "23/05" },
-  { workDate: "2026-05-24", day: "CN", date: "24/05" }
-];
-
 const shiftTone = {
   blue: "border-blue-200 bg-blue-50 text-blue-700",
   violet: "border-violet-200 bg-violet-50 text-violet-700",
@@ -45,6 +35,57 @@ function normalizeWorkDate(value) {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
 }
 
+function toIsoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function fromIsoDate(value) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function addDaysIso(value, days) {
+  const date = fromIsoDate(value);
+  date.setDate(date.getDate() + days);
+  return toIsoDate(date);
+}
+
+function getTodayIso() {
+  return toIsoDate(new Date());
+}
+
+function getWeekStartIso(value = getTodayIso()) {
+  const date = fromIsoDate(value);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - mondayOffset);
+  return toIsoDate(date);
+}
+
+function formatShortDate(value) {
+  const date = fromIsoDate(value);
+  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getDayLabel(value, todayIso) {
+  if (value === todayIso) return "Hôm nay";
+  const labels = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+  return labels[fromIsoDate(value).getDay()];
+}
+
+function buildWeekDays(weekStart, todayIso) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const workDate = addDaysIso(weekStart, index);
+    return {
+      workDate,
+      day: getDayLabel(workDate, todayIso),
+      date: formatShortDate(workDate)
+    };
+  });
+}
+
 function parseLeaveDate(value) {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
@@ -56,11 +97,11 @@ function getDayKey(day) {
   return day.workDate || day.date;
 }
 
-function normalizeScheduleRows(rows, shiftRows) {
-  const sourceDays = rows?.length ? rows : demoWeek;
+function normalizeScheduleRows(rows, shiftRows, weekDays) {
+  const rowsByDate = new Map((rows || []).map((row) => [normalizeWorkDate(row.workDate || row.work_date), row]));
 
-  return sourceDays.map((row, index) => {
-    const fallback = demoWeek[index] || demoWeek[0];
+  return weekDays.map((fallback) => {
+    const row = rowsByDate.get(fallback.workDate) || {};
     const slotsByShift = new Map((row.shifts || []).map((slot) => [slot.shiftId, unique(slot.employees || [])]));
 
     return {
@@ -147,12 +188,21 @@ export default function ShiftScheduling() {
   const [applyOpen, setApplyOpen] = useState(false);
   const [scheduleMessage, setScheduleMessage] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [todayIso, setTodayIso] = useState(getTodayIso);
+  const weekStart = useMemo(() => getWeekStartIso(todayIso), [todayIso]);
+  const weekDays = useMemo(() => buildWeekDays(weekStart, todayIso), [weekStart, todayIso]);
+  const weekRangeLabel = `${weekDays[0]?.date || ""} - ${weekDays[6]?.date || ""}`;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTodayIso(getTodayIso()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
-    Promise.all([bizenApi.employees(), bizenApi.shifts(), bizenApi.scheduleWeek(), bizenApi.leaves(), bizenApi.scheduleAvailability()]).then(([employeeRows, shiftRows, scheduleRows, leaveRows, availability]) => {
+    Promise.all([bizenApi.employees(), bizenApi.shifts(), bizenApi.scheduleWeek(weekStart), bizenApi.leaves(), bizenApi.scheduleAvailability()]).then(([employeeRows, shiftRows, scheduleRows, leaveRows, availability]) => {
       if (!active) return;
-      const normalized = normalizeScheduleRows(scheduleRows, shiftRows);
+      const normalized = normalizeScheduleRows(scheduleRows, shiftRows, weekDays);
       setEmployees(employeeRows);
       setShifts(shiftRows);
       setScheduleWeek(normalized);
@@ -165,7 +215,7 @@ export default function ShiftScheduling() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [weekStart, weekDays]);
 
   const employeeMap = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
   const shiftMap = useMemo(() => new Map(shifts.map((shift) => [shift.id, shift])), [shifts]);
@@ -370,7 +420,7 @@ export default function ShiftScheduling() {
     setSaveError("");
     try {
       const saved = await bizenApi.updateScheduleWeek(serializeSchedule(scheduleWeek));
-      const normalized = normalizeScheduleRows(saved, shifts);
+      const normalized = normalizeScheduleRows(saved, shifts, weekDays);
       setScheduleWeek(normalized);
       setBaselineSchedule(normalized);
       setDirty(false);
@@ -387,7 +437,7 @@ export default function ShiftScheduling() {
     <div>
       <PageHeader
         eyebrow="AI-driven Scheduling"
-        title="Xếp lịch tuần 18/05 - 24/05"
+        title={`Xếp lịch tuần ${weekRangeLabel}`}
         description="Kéo nhân viên vào từng ca, đổi ca giữa các ngày, kiểm tra thiếu người và lưu lịch khi đã chốt."
         actions={
           <>
@@ -673,7 +723,7 @@ export default function ShiftScheduling() {
         <div className="space-y-3 text-sm text-slate-600">
           <div className="flex gap-3">
             <UsersRound className="h-5 w-5 shrink-0 text-blue-600" />
-            <p>Lịch tuần 18/05 - 24/05 sẽ được lưu xuống hệ thống và dùng làm bản lịch hiện tại cho nhân viên.</p>
+            <p>Lịch tuần {weekRangeLabel} sẽ được lưu xuống hệ thống và dùng làm bản lịch hiện tại cho nhân viên.</p>
           </div>
           <div className="rounded-lg bg-slate-50 px-3 py-2">
             Đã xếp {coverage.assigned}/{coverage.required} vị trí. {coverage.shortage ? `Còn thiếu ${coverage.shortage} vị trí.` : "Tất cả ca đã đủ người."}

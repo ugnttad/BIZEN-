@@ -5,7 +5,7 @@ import { bizenApi } from "../../modules/api/bizenApi";
 import { getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return toIsoDate(new Date());
 }
 
 function toIsoDate(date) {
@@ -13,6 +13,18 @@ function toIsoDate(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function fromIsoDate(value) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function getWeekStartIso(value = todayIso()) {
+  const date = fromIsoDate(value);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - mondayOffset);
+  return toIsoDate(date);
 }
 
 function monthLabel(monthKey) {
@@ -56,7 +68,7 @@ export default function MySchedule() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([bizenApi.scheduleWeek(), bizenApi.shifts(), bizenApi.scheduleAvailability(myId)])
+    Promise.all([bizenApi.scheduleWeek(getWeekStartIso()), bizenApi.shifts(), bizenApi.scheduleAvailability(myId)])
       .then(([scheduleRows, shiftRows, availability]) => {
         setScheduleWeek(scheduleRows);
         setShifts(shiftRows);
