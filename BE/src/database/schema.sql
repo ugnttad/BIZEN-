@@ -98,6 +98,19 @@ CREATE TABLE IF NOT EXISTS schedule_slots (
   UNIQUE (schedule_day_id, shift_id)
 );
 
+CREATE TABLE IF NOT EXISTS employee_unavailability (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE,
+  busy_date DATE NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (company_id, employee_id, busy_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_employee_unavailability_company_date ON employee_unavailability(company_id, busy_date);
+CREATE INDEX IF NOT EXISTS idx_employee_unavailability_employee_date ON employee_unavailability(employee_id, busy_date);
+
 CREATE TABLE IF NOT EXISTS payroll_runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,

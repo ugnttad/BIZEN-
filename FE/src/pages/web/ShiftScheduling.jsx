@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  CalendarX2,
   CalendarPlus2,
   CheckCircle2,
   GripVertical,
@@ -96,6 +97,32 @@ function isEmployeeOnLeave(employeeId, workDate, leaveBlocks) {
   return leaveBlocks.find((leave) => leave.employeeId === employeeId && leave.from <= workDate && workDate <= leave.to);
 }
 
+function isEmployeeBusy(employeeId, workDate, busyBlocks) {
+  return busyBlocks.find((busy) => busy.employeeId === employeeId && busy.busyDate === workDate);
+}
+
+function getEmployeeUnavailable(employeeId, workDate, leaveBlocks, busyBlocks) {
+  const leave = isEmployeeOnLeave(employeeId, workDate, leaveBlocks);
+  if (leave) {
+    return {
+      type: "Leave",
+      label: `nghỉ ${leave.label}`,
+      message: `đang nghỉ ${leave.label}`
+    };
+  }
+
+  const busy = isEmployeeBusy(employeeId, workDate, busyBlocks);
+  if (busy) {
+    return {
+      type: "Busy",
+      label: `${busy.displayDate}${busy.reason ? ` - ${busy.reason}` : ""}`,
+      message: `đã báo bận ngày ${busy.displayDate}${busy.reason ? ` (${busy.reason})` : ""}`
+    };
+  }
+
+  return null;
+}
+
 function readDragPayload(event, fallback) {
   try {
     return JSON.parse(event.dataTransfer.getData("application/json"));
@@ -110,6 +137,7 @@ export default function ShiftScheduling() {
   const [scheduleWeek, setScheduleWeek] = useState([]);
   const [baselineSchedule, setBaselineSchedule] = useState([]);
   const [leaveRequests, setLeaveRequests] = useState([]);
+  const [availabilityRows, setAvailabilityRows] = useState([]);
   const [aiScheduleReasons, setAiScheduleReasons] = useState([]);
   const [dragItem, setDragItem] = useState(null);
   const [suggesting, setSuggesting] = useState(false);
@@ -122,7 +150,7 @@ export default function ShiftScheduling() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([bizenApi.employees(), bizenApi.shifts(), bizenApi.scheduleWeek(), bizenApi.leaves()]).then(([employeeRows, shiftRows, scheduleRows, leaveRows]) => {
+    Promise.all([bizenApi.employees(), bizenApi.shifts(), bizenApi.scheduleWeek(), bizenApi.leaves(), bizenApi.scheduleAvailability()]).then(([employeeRows, shiftRows, scheduleRows, leaveRows, availability]) => {
       if (!active) return;
       const normalized = normalizeScheduleRows(scheduleRows, shiftRows);
       setEmployees(employeeRows);
@@ -130,7 +158,8 @@ export default function ShiftScheduling() {
       setScheduleWeek(normalized);
       setBaselineSchedule(normalized);
       setLeaveRequests(leaveRows);
-      setAiScheduleReasons(["Không xếp nhân viên đang nghỉ phép.", "Cân bằng workload theo từng bộ phận/nhóm."]);
+      setAvailabilityRows(availability);
+      setAiScheduleReasons(["Không xếp nhân viên đang nghỉ phép hoặc đã báo bận.", "Cân bằng workload theo từng bộ phận/nhóm."]);
     });
 
     return () => {
@@ -154,12 +183,43 @@ export default function ShiftScheduling() {
         .filter((request) => request.from && request.to),
     [leaveRequests]
   );
+  const busyBlocks = useMemo(
+    () =>
+      availabilityRows
+        .map((item) => ({
+          ...item,
+          busyDate: normalizeWorkDate(item.busyDate || item.busy_date)
+        }))
+        .filter((item) => item.employeeId && item.busyDate),
+    [availabilityRows]
+  );
+  const weekDateSet = useMemo(() => new Set(scheduleWeek.map((day) => day.workDate).filter(Boolean)), [scheduleWeek]);
+  const availabilityConflicts = useMemo(() => {
+    const leaveItems = leaveBlocks
+      .filter((leave) => scheduleWeek.some((day) => leave.from <= day.workDate && day.workDate <= leave.to))
+      .map((leave) => ({
+        id: `leave-${leave.employeeId}-${leave.from}-${leave.to}`,
+        employeeId: leave.employeeId,
+        employeeName: leave.employeeName,
+        status: "Leave",
+        label: leave.label
+      }));
+
+    const busyItems = busyBlocks
+      .filter((busy) => weekDateSet.has(busy.busyDate))
+      .map((busy) => ({
+        id: busy.id,
+        employeeId: busy.employeeId,
+        employeeName: busy.employeeName,
+        department: busy.department,
+        status: "Busy",
+        label: `${busy.displayDate || busy.busyDate}${busy.reason ? ` - ${busy.reason}` : ""}`
+      }));
+
+    return [...leaveItems, ...busyItems];
+  }, [busyBlocks, leaveBlocks, scheduleWeek, weekDateSet]);
 
   const activeEmployees = useMemo(() => employees.filter((employee) => employee.status !== "Inactive"), [employees]);
-  const leaveEmployees = useMemo(
-    () => leaveRequests.filter((request) => request.status === "Approved").map((request) => employeeMap.get(request.employeeId)).filter(Boolean),
-    [employeeMap, leaveRequests]
-  );
 
   const coverage = useMemo(() => {
     let required = 0;
@@ -196,9 +256,9 @@ export default function ShiftScheduling() {
     const employee = employeeMap.get(payload?.employeeId);
     if (!payload?.employeeId || !targetDay || !employee) return;
 
-    const leave = isEmployeeOnLeave(payload.employeeId, targetDay.workDate, leaveBlocks);
-    if (leave) {
-      setScheduleMessage(`${employee.name} đang nghỉ ${leave.label}, không thể xếp vào ngày ${targetDay.date}.`);
+    const unavailable = getEmployeeUnavailable(payload.employeeId, targetDay.workDate, leaveBlocks, busyBlocks);
+    if (unavailable) {
+      setScheduleMessage(`${employee.name} ${unavailable.message}, không thể xếp vào ngày ${targetDay.date}.`);
       setDragItem(null);
       return;
     }
@@ -278,7 +338,7 @@ export default function ShiftScheduling() {
             for (const employee of activeEmployees) {
               if (nextEmployees.length >= needed) break;
               if (assignedForDay.has(employee.id)) continue;
-              if (isEmployeeOnLeave(employee.id, day.workDate, leaveBlocks)) continue;
+              if (getEmployeeUnavailable(employee.id, day.workDate, leaveBlocks, busyBlocks)) continue;
               nextEmployees.push(employee.id);
               assignedForDay.add(employee.id);
             }
@@ -300,7 +360,7 @@ export default function ShiftScheduling() {
         setSuggested(true);
         setAiScheduleReasons(payload.reasons || []);
         autoFillMissingSlots();
-        setScheduleMessage("AI đã bổ sung nhân viên khả dụng vào các ca còn thiếu. Bạn vẫn có thể kéo-thả để tinh chỉnh trước khi Apply.");
+        setScheduleMessage("AI đã bổ sung nhân viên khả dụng vào các ca còn thiếu, có né lịch nghỉ và lịch bận đã báo. Bạn vẫn có thể kéo-thả để tinh chỉnh trước khi Apply.");
       })
       .finally(() => setSuggesting(false));
   }
@@ -506,7 +566,7 @@ export default function ShiftScheduling() {
                     <p className="truncate text-sm font-bold text-slate-950">{employee.name}</p>
                     <p className="truncate text-xs text-slate-500">{employee.department}</p>
                   </div>
-                  {leaveBlocks.some((leave) => leave.employeeId === employee.id) ? <StatusBadge status="Leave" /> : null}
+                  {leaveBlocks.some((leave) => leave.employeeId === employee.id) ? <StatusBadge status="Leave" /> : busyBlocks.some((busy) => busy.employeeId === employee.id && weekDateSet.has(busy.busyDate)) ? <StatusBadge status="Busy" /> : null}
                 </div>
               ))}
             </div>
@@ -539,21 +599,30 @@ export default function ShiftScheduling() {
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="text-base font-semibold text-slate-950">Employee availability</h2>
             <div className="mt-4 space-y-3">
-              {leaveEmployees.length ? (
-                leaveEmployees.map((employee) => (
-                  <div key={employee.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <Avatar name={employee.name} size="sm" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-950">{employee.name}</p>
-                        <p className="truncate text-xs text-slate-500">{employee.department}</p>
+              {availabilityConflicts.length ? (
+                availabilityConflicts.map((item) => {
+                  const employee = employeeMap.get(item.employeeId);
+                  const name = item.employeeName || employee?.name || item.employeeId;
+                  return (
+                    <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar name={name} size="sm" />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-950">{name}</p>
+                          <p className="truncate text-xs text-slate-500">{item.label}</p>
+                        </div>
                       </div>
+                      <StatusBadge status={item.status} />
                     </div>
-                    <StatusBadge status="Leave" />
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500">Không có nhân viên nghỉ phép đã duyệt trong tuần này.</p>
+                <div className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <CalendarX2 className="h-4 w-4 text-slate-400" />
+                    <span>Không có nghỉ phép hoặc lịch bận trong tuần này.</span>
+                  </div>
+                </div>
               )}
             </div>
           </section>

@@ -8,6 +8,8 @@ import {
   CalendarCheck2,
   ChevronDown,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Clock3,
   Command,
   CreditCard,
@@ -54,6 +56,13 @@ const roleLabels = {
   Employee: "Nhân viên"
 };
 
+const SIDEBAR_COLLAPSED_KEY = "bizen_sidebar_collapsed";
+
+function getInitialSidebarCollapsed() {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+}
+
 function getTitle(pathname) {
   const match = [...webNavItems].sort((a, b) => b.path.length - a.path.length).find((item) => pathname.startsWith(item.path));
   if (pathname.includes("/web/employees/")) return "Chi tiết nhân viên";
@@ -65,6 +74,7 @@ export default function WebLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialSidebarCollapsed);
   const [alerts, setAlerts] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
@@ -73,7 +83,8 @@ export default function WebLayout() {
   const visibleNavItems = webNavItems.filter((item) => item.roles.includes(user?.role));
   const title = getTitle(location.pathname);
   const homePath = getDefaultPathForRole(user?.role);
-  const showAiPanel = !isEmployee;
+  const canUseAi = !isEmployee;
+  const showAiPanel = canUseAi && !location.pathname.startsWith("/web/scheduling");
   const searchPlaceholder = isEmployee ? "Tìm lịch, chấm công, đơn nghỉ" : "Tìm nhân viên, ca làm, bảng lương";
 
   useEffect(() => {
@@ -108,25 +119,32 @@ export default function WebLayout() {
     };
   }, [isEmployee, user?.employeeId]);
 
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
   function logout() {
     clearAuthSession();
     navigate("/login", { replace: true });
   }
 
-  function renderNavItems() {
+  function renderNavItems(collapsed = false) {
     return (
       <>
         <Link
           to={homePath}
-          className="group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-all duration-200 hover:bg-white hover:text-slate-950 hover:shadow-sm"
+          title={collapsed ? "Trang chủ" : undefined}
+          className={`group flex items-center rounded-lg py-2.5 text-sm font-semibold text-slate-600 transition-all duration-200 hover:bg-white hover:text-slate-950 hover:shadow-sm ${
+            collapsed ? "justify-center px-2" : "justify-between px-3"
+          }`}
         >
-          <span className="flex items-center gap-3">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-500 transition-colors group-hover:bg-slate-950 group-hover:text-white">
+          <span className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500 transition-colors group-hover:bg-slate-950 group-hover:text-white">
               <Home className="h-4 w-4" />
             </span>
-            Trang chủ
+            {collapsed ? <span className="sr-only">Trang chủ</span> : "Trang chủ"}
           </span>
-          <ChevronRight className="h-3.5 w-3.5 opacity-40 transition-transform group-hover:translate-x-0.5" />
+          {collapsed ? null : <ChevronRight className="h-3.5 w-3.5 opacity-40 transition-transform group-hover:translate-x-0.5" />}
         </Link>
 
         {visibleNavItems.map((item) => {
@@ -136,8 +154,11 @@ export default function WebLayout() {
               key={item.path}
               to={item.path}
               end={item.path === "/web/me"}
+              title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
-                `group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                `group flex items-center rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${
+                  collapsed ? "justify-center px-2" : "justify-between px-3"
+                } ${
                   isActive
                     ? "nav-item-active bg-white text-blue-700"
                     : "text-slate-600 hover:bg-white hover:text-slate-950 hover:shadow-sm"
@@ -146,17 +167,19 @@ export default function WebLayout() {
             >
               {({ isActive }) => (
                 <>
-                  <span className="flex items-center gap-3">
+                  <span className={`flex min-w-0 items-center ${collapsed ? "justify-center" : "gap-3"}`}>
                     <span
-                      className={`grid h-8 w-8 place-items-center rounded-lg transition-all duration-200 ${
+                      className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-all duration-200 ${
                         isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-slate-100 text-slate-500 group-hover:bg-slate-950 group-hover:text-white"
                       }`}
                     >
                       <Icon className="h-4 w-4" />
                     </span>
-                    {item.label}
+                    {collapsed ? <span className="sr-only">{item.label}</span> : <span className="truncate">{item.label}</span>}
                   </span>
-                  <ChevronRight className={`h-3.5 w-3.5 opacity-40 transition-transform ${isActive ? "translate-x-0.5 opacity-80" : "group-hover:translate-x-0.5"}`} />
+                  {collapsed ? null : (
+                    <ChevronRight className={`h-3.5 w-3.5 opacity-40 transition-transform ${isActive ? "translate-x-0.5 opacity-80" : "group-hover:translate-x-0.5"}`} />
+                  )}
                 </>
               )}
             </NavLink>
@@ -170,52 +193,93 @@ export default function WebLayout() {
     <div className="app-background relative min-h-screen overflow-hidden">
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-72" />
 
-      <aside className="fixed inset-y-4 left-4 z-30 hidden min-h-0 w-72 flex-col rounded-2xl border border-white/70 bg-white/80 px-3 py-4 shadow-soft backdrop-blur-2xl lg:flex">
-        <Link to={homePath} className="group flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-300 hover:bg-white hover:shadow-sm">
+      <aside
+        className={`fixed inset-y-4 left-4 z-30 hidden min-h-0 flex-col rounded-2xl border border-white/70 bg-white/80 py-4 shadow-soft backdrop-blur-2xl transition-all duration-300 lg:flex ${
+          sidebarCollapsed ? "w-20 px-2" : "w-72 px-3"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed((value) => !value)}
+          className="btn-motion absolute -right-3 top-7 grid h-8 w-8 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-lg shadow-slate-950/10 hover:bg-blue-600 hover:text-white"
+          aria-label={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+          title={sidebarCollapsed ? "Mở rộng" : "Thu gọn"}
+        >
+          {sidebarCollapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+        </button>
+
+        <Link
+          to={homePath}
+          title={sidebarCollapsed ? "BIZEN" : undefined}
+          className={`group flex items-center rounded-xl py-2 transition-all duration-300 hover:bg-white hover:shadow-sm ${
+            sidebarCollapsed ? "justify-center px-1" : "gap-3 px-3"
+          }`}
+        >
           <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 transition duration-300 group-hover:scale-105 group-hover:bg-blue-600">
             <Building2 className="h-5 w-5" />
           </div>
-          <div className="min-w-0">
-            <p className="text-xl font-bold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
-            <p className="text-xs font-medium text-slate-500">Cloud HR & Payroll</p>
-          </div>
+          {sidebarCollapsed ? null : (
+            <div className="min-w-0">
+              <p className="text-xl font-bold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
+              <p className="text-xs font-medium text-slate-500">Cloud HR & Payroll</p>
+            </div>
+          )}
         </Link>
 
-        <div className="mt-4 rounded-xl border border-slate-200/80 bg-white/70 p-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <span className="relative flex h-2.5 w-2.5">
+        {sidebarCollapsed ? (
+          <div className="mt-4 grid place-items-center rounded-xl border border-slate-200/80 bg-white/70 p-3" title="Live workspace">
+            <span className="relative mb-2 flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
             </span>
-            Live workspace
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold text-slate-950">BIZEN Đà Nẵng</p>
-              <p className="text-xs text-slate-500">{roleLabels[user?.role] || "Workspace"} workspace</p>
-            </div>
             <ShieldCheck className="h-5 w-5 text-blue-600" />
           </div>
-        </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-slate-200/80 bg-white/70 p-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              </span>
+              Live workspace
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-slate-950">BIZEN Đà Nẵng</p>
+                <p className="text-xs text-slate-500">{roleLabels[user?.role] || "Workspace"} workspace</p>
+              </div>
+              <ShieldCheck className="h-5 w-5 text-blue-600" />
+            </div>
+          </div>
+        )}
 
-        <nav className="mt-4 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">{renderNavItems()}</nav>
+        <nav className={`mt-4 min-h-0 flex-1 space-y-1.5 overflow-y-auto ${sidebarCollapsed ? "" : "pr-1"}`}>{renderNavItems(sidebarCollapsed)}</nav>
 
         <div className="mt-3 shrink-0 space-y-3 border-t border-slate-200/70 pt-3">
-          <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-normal text-blue-700">
+          {sidebarCollapsed ? (
+            <div className="grid place-items-center rounded-xl border border-blue-100 bg-blue-50/80 p-3 text-blue-700" title={isEmployee ? "Cổng nhân viên" : "AI ready"}>
               {isEmployee ? <UserRound className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
-              {isEmployee ? "Cổng nhân viên" : "AI ready"}
             </div>
-            <p className="mt-1 text-xs leading-5 text-slate-600">
-              {isEmployee ? "Xem lịch, chấm công, lương và đơn nghỉ trên web." : "Trợ lý có thể đọc dữ liệu chấm công, lịch ca và payroll."}
-            </p>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-normal text-blue-700">
+                {isEmployee ? <UserRound className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
+                {isEmployee ? "Cổng nhân viên" : "AI ready"}
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                {isEmployee ? "Xem lịch, chấm công, lương và đơn nghỉ trên web." : "Trợ lý có thể đọc dữ liệu chấm công, lịch ca và payroll."}
+              </p>
+            </div>
+          )}
           <button
             onClick={logout}
-            className="btn-motion flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+            title={sidebarCollapsed ? "Đăng xuất" : undefined}
+            className={`btn-motion flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 ${
+              sidebarCollapsed ? "px-2" : "px-3"
+            }`}
           >
             <LogOut className="h-4 w-4" />
-            Đăng xuất
+            {sidebarCollapsed ? <span className="sr-only">Đăng xuất</span> : "Đăng xuất"}
           </button>
         </div>
       </aside>
@@ -250,7 +314,7 @@ export default function WebLayout() {
         </div>
       ) : null}
 
-      <div className="relative lg:pl-[19rem]">
+      <div className={`relative transition-[padding] duration-300 ${sidebarCollapsed ? "lg:pl-[6.5rem]" : "lg:pl-[19rem]"}`}>
         <header className="sticky top-0 z-20 px-3 py-3 md:px-6">
           <div className="glass-panel mx-auto flex items-center justify-between gap-3 rounded-2xl px-3 py-3 md:px-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -276,7 +340,7 @@ export default function WebLayout() {
             </label>
 
             <div className="flex items-center gap-2">
-              {showAiPanel ? (
+              {canUseAi ? (
                 <Link
                   to="/web/assistant"
                   className="btn-motion hidden items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white shadow-lg shadow-slate-950/10 hover:bg-blue-600 sm:inline-flex"
@@ -323,7 +387,7 @@ export default function WebLayout() {
                         </div>
                       )}
                     </div>
-                    {showAiPanel ? (
+                    {canUseAi ? (
                       <Link to="/web/assistant" className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white hover:bg-blue-600">
                         <Sparkles className="h-4 w-4" />
                         Mở trợ lý AI
