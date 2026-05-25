@@ -23,28 +23,26 @@ export default function StatCard({ title, value, helper, icon: Icon, tone = "blu
   const isDown = trend?.startsWith("-");
 
   return (
-    <section className="premium-card group rounded-2xl p-4">
+    <section className="premium-card group h-full min-h-[148px] overflow-hidden rounded-2xl p-4">
       <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", toneBars[tone] || toneBars.blue)} />
       <div className="relative z-10">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-500">{title}</p>
-            <p className="mt-2 truncate text-2xl font-bold tracking-normal text-slate-950">{value}</p>
-          </div>
+        <div className="flex min-h-11 items-start justify-between gap-3">
+          <p className="min-w-0 pr-1 text-sm font-semibold leading-snug text-slate-500">{title}</p>
           {Icon ? (
             <div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-xl ring-1 transition-transform duration-300 group-hover:scale-105", toneStyles[tone])}>
               <Icon className="h-5 w-5" />
             </div>
           ) : null}
         </div>
-        <div className="mt-4 flex min-h-5 items-center gap-2 text-xs text-slate-500">
+        <p className="mt-3 break-words text-2xl font-bold leading-tight tracking-normal text-slate-950">{value}</p>
+        <div className="mt-4 flex min-h-5 flex-wrap items-center gap-2 text-xs leading-snug text-slate-500">
           {trend ? (
-            <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 font-bold", isDown ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600")}>
+            <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 font-bold", isDown ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600")}>
               {isDown ? <ArrowDownRight className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
               {trend}
             </span>
           ) : null}
-          <span className="min-w-0 truncate">{helper}</span>
+          <span className="min-w-0 break-words">{helper}</span>
         </div>
       </div>
     </section>

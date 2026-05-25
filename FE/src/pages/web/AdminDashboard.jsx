@@ -113,7 +113,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:[grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
         <StatCard title="Tổng nhân viên" value={summary.employees} helper={`${departmentHeadcount.length} bộ phận`} icon={UsersRound} tone="blue" trend="+2" />
         <StatCard title="Đã chấm công" value={summary.checkedIn} helper="người hôm nay" icon={UserCheck} tone="emerald" trend="+4%" />
         <StatCard title="Đi trễ" value={summary.late} helper="cần chủ sở hữu nhắc" icon={Clock3} tone="amber" trend="+1" />
