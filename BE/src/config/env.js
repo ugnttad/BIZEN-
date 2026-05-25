@@ -20,14 +20,16 @@ function toOrigin(value) {
   }
 }
 
-const configuredClientOrigins = parseOrigins(process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "http://localhost:5173");
+const configuredClientOrigins = parseOrigins(process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "");
 const vercelClientOrigins = [
-  process.env.VERCEL_URL,
+  process.env.VERCEL_PROJECT_PRODUCTION_URL,
   process.env.VERCEL_BRANCH_URL,
-  process.env.VERCEL_PROJECT_PRODUCTION_URL
+  process.env.VERCEL_URL
 ]
   .map(toOrigin)
   .filter(Boolean);
+const localClientOrigins = parseOrigins("http://localhost:5173");
+const clientOrigin = configuredClientOrigins[0] || vercelClientOrigins[0] || localClientOrigins[0] || "http://localhost:5173";
 
 const defaultGoogleClientId = "518331039125-i79o5esjg5v5eiim93rdapvtfp0elk4n.apps.googleusercontent.com";
 const databaseUrl =
@@ -52,8 +54,8 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 4000),
   databaseUrl,
-  clientOrigin: configuredClientOrigins[0] || "http://localhost:5173",
-  clientOrigins: [...new Set([...configuredClientOrigins, ...vercelClientOrigins])],
+  clientOrigin,
+  clientOrigins: [...new Set([clientOrigin, ...configuredClientOrigins, ...vercelClientOrigins, ...localClientOrigins])],
   googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || defaultGoogleClientId,
   awsRegion: process.env.AWS_REGION || "ap-southeast-1",
   awsRekognitionEnabled,

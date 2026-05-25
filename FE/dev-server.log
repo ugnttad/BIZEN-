@@ -2,31 +2,8 @@
 > bizen-saas-prototype@0.1.0 dev
 > vite --host 0.0.0.0
 
-[2m6:17:58 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
 
-  [32m[1mVITE[22m v8.0.13[39m  [2mready in [0m[1m617[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v8.0.13[39m  [2mready in [0m[1m216[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.2.1:[1m5173[22m/[39m
-[2m10:03:22 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m10:03:41 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m10:03:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m10:04:31 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m10:04:44 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m10:05:12 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/MobileLayout.jsx[22m
-[2m10:05:31 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m10:05:49 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m10:06:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/LoginPage.jsx[22m
-[2m10:06:12 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MobileLogin.jsx[22m
-[2m10:06:18 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/platform/PlatformCompanyRequests.jsx[22m
-[2m10:06:52 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/Notifications.jsx[22m
-[2m10:34:50 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/StatusBadge.jsx[22m
-[2m10:35:03 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/AttendanceDashboard.jsx[22m
-[2m10:35:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/AttendanceDashboard.jsx[22m
-[2m10:36:08 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/AttendanceDashboard.jsx[22m
-[2m10:36:27 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/AttendanceDashboard.jsx[22m
-[2m10:36:39 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/AttendanceDashboard.jsx[22m
-[2m10:36:54 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/AttendanceDashboard.jsx[22m
-[2m10:37:27 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m10:37:58 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MyAttendance.jsx[22m
-[2m10:38:06 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/PayrollManagement.jsx[22m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.11:[1m5173[22m/[39m

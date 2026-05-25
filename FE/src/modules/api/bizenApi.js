@@ -29,6 +29,7 @@ export const bizenApi = {
   faceEnrollmentImage: (id) => apiClient.blob(`/attendance/face-enrollments/${id}/image`),
   shifts: () => apiClient.get("/shifts"),
   scheduleWeek: () => apiClient.get("/schedules/week"),
+  updateScheduleWeek: (payload) => apiClient.put("/schedules/week", payload),
   aiSuggestSchedule: () => apiClient.post("/schedules/ai-suggest", {}),
   payroll: (month = "05/2026") => apiClient.get(`/payroll?month=${encodeURIComponent(month)}`),
   calculatePayroll: (month = "05/2026") => apiClient.post("/payroll/calculate", { month }),

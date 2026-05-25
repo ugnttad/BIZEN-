@@ -28,6 +28,10 @@ function escapeHtml(value = "") {
     .replace(/'/g, "&#039;");
 }
 
+function appUrl(path = "/") {
+  return new URL(path, `${env.clientOrigin}/`).toString();
+}
+
 function wrapEmail({ title, body, ctaUrl, ctaLabel }) {
   return `
     <div style="font-family:Arial,sans-serif;background:#f8fafc;padding:24px;color:#0f172a">
@@ -38,6 +42,11 @@ function wrapEmail({ title, body, ctaUrl, ctaLabel }) {
         ${
           ctaUrl
             ? `<a href="${escapeHtml(ctaUrl)}" style="display:inline-block;margin-top:20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:12px 16px;font-weight:700">${escapeHtml(ctaLabel || "Mở BIZEN")}</a>`
+            : ""
+        }
+        ${
+          ctaUrl
+            ? `<p style="font-size:12px;line-height:1.5;color:#64748b;margin-top:12px">Nếu nút không mở được, bấm liên kết này: <a href="${escapeHtml(ctaUrl)}" style="color:#2563eb">${escapeHtml(ctaUrl)}</a></p>`
             : ""
         }
         <p style="font-size:12px;line-height:1.5;color:#64748b;margin-top:24px">Email này được gửi tự động từ BIZEN. Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email.</p>
@@ -69,10 +78,11 @@ export async function sendMail({ to, subject, text, html }) {
 
 export function buildCompanyApprovedEmail({ ownerName, companyName }) {
   const title = `${companyName} đã được tạo thành công`;
-  const text = `Chào ${ownerName}, chúc mừng! Doanh nghiệp ${companyName} đã được duyệt và tài khoản chủ sở hữu của bạn đã sẵn sàng trên BIZEN. Đăng nhập tại ${env.clientOrigin}/login.`;
+  const loginUrl = appUrl("/login");
+  const text = `Chào ${ownerName}, chúc mừng! Doanh nghiệp ${companyName} đã được duyệt và tài khoản chủ sở hữu của bạn đã sẵn sàng trên BIZEN. Đăng nhập tại ${loginUrl}.`;
   const html = wrapEmail({
     title,
-    ctaUrl: `${env.clientOrigin}/login`,
+    ctaUrl: loginUrl,
     ctaLabel: "Đăng nhập BIZEN",
     body: `
       <p>Chào <strong>${escapeHtml(ownerName)}</strong>,</p>
@@ -99,10 +109,11 @@ export function buildEmployeeRequestEmail({ employeeName, companyName }) {
 
 export function buildEmployeeApprovedEmail({ employeeName, companyName }) {
   const title = `Bạn đã được duyệt vào ${companyName}`;
-  const text = `Chào ${employeeName}, chúc mừng! Tài khoản BIZEN của bạn tại ${companyName} đã được duyệt. Đăng nhập tại ${env.clientOrigin}/login.`;
+  const loginUrl = appUrl("/login");
+  const text = `Chào ${employeeName}, chúc mừng! Tài khoản BIZEN của bạn tại ${companyName} đã được duyệt. Đăng nhập tại ${loginUrl}.`;
   const html = wrapEmail({
     title,
-    ctaUrl: `${env.clientOrigin}/login`,
+    ctaUrl: loginUrl,
     ctaLabel: "Đăng nhập tài khoản",
     body: `
       <p>Chào <strong>${escapeHtml(employeeName)}</strong>,</p>
@@ -115,10 +126,11 @@ export function buildEmployeeApprovedEmail({ employeeName, companyName }) {
 
 export function buildEmployeeCreatedEmail({ employeeName, companyName }) {
   const title = `Tài khoản BIZEN tại ${companyName} đã sẵn sàng`;
-  const text = `Chào ${employeeName}, chủ sở hữu ${companyName} đã tạo tài khoản BIZEN cho bạn. Đăng nhập bằng email này và mật khẩu được cấp tại ${env.clientOrigin}/login.`;
+  const loginUrl = appUrl("/login");
+  const text = `Chào ${employeeName}, chủ sở hữu ${companyName} đã tạo tài khoản BIZEN cho bạn. Đăng nhập bằng email này và mật khẩu được cấp tại ${loginUrl}.`;
   const html = wrapEmail({
     title,
-    ctaUrl: `${env.clientOrigin}/login`,
+    ctaUrl: loginUrl,
     ctaLabel: "Đăng nhập BIZEN",
     body: `
       <p>Chào <strong>${escapeHtml(employeeName)}</strong>,</p>
