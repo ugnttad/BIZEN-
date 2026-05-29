@@ -71,9 +71,9 @@ const solutionCards = [
 ];
 
 const postMvpFeatures = [
-  { title: "Xếp ca AI", text: "Gợi ý lịch, cảnh báo thiếu người — phát triển sau MVP." },
-  { title: "Payroll tự động", text: "Gom công, OT, phạt — đã có API, demo sau khi chốt MVP chấm công." },
-  { title: "Báo cáo & AI Assistant", text: "Dashboard quản trị và AI hỗ trợ vận hành — mở rộng giai đoạn Scale." }
+  { title: "Xếp ca AI", text: "OpenAI gợi ý lịch theo ca, ngày bận, nghỉ phép và workload gần đây." },
+  { title: "Payroll tự động", text: "Gom công, OT, phạt và đối soát dữ liệu chấm công trước khi chốt lương." },
+  { title: "Báo cáo & AI Assistant", text: "Dashboard quản trị, cảnh báo AI và trợ lý vận hành phản hồi realtime." }
 ];
 
 const faqs = [

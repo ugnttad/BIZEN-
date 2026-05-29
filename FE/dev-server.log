@@ -3,75 +3,7 @@
 > vite --host 0.0.0.0
 
 
-  [32m[1mVITE[22m v8.0.13[39m  [2mready in [0m[1m216[22m[2m[0m ms[22m
+  [32m[1mVITE[22m v8.0.13[39m  [2mready in [0m[1m187[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
-  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.11:[1m5173[22m/[39m
-[2m12:17:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.jsx, /src/index.css[22m
-[2m12:21:17 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/LoginPage.jsx[22m
-[2m12:27:14 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:27:43 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:28:22 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:28:43 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:28:53 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:29:00 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:29:08 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:29:49 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:30:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:30:33 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:30:40 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:30:58 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx[22m
-[2m12:38:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx, /src/pages/LoginPage.jsx, /src/pages/EmployeeAccountRequestPage.jsx, /src/pages/web/AccountApprovals.jsx, /src/pages/web/EmployeeManagement.jsx, /src/pages/web/FaceEnrollmentReview.jsx, /src/pages/web/AdminDashboard.jsx, /src/pages/web/AttendanceDashboard.jsx, /src/pages/web/PayrollDetail.jsx, /src/pages/web/ShiftScheduling.jsx, /src/pages/CompanyRegisterPage.jsx, /src/pages/web/EmployeeDetail.jsx, /src/pages/web/PayrollManagement.jsx and 17 more[22m
-[2m12:38:47 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/StatusBadge.jsx[22m
-[2m12:39:02 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/StatusBadge.jsx[22m
-[2m12:39:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:39:20 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:39:27 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:39:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:40:10 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:40:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:40:40 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:40:46 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:40:53 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:41:13 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:41:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m12:41:44 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:41:49 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:41:56 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:42:15 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:42:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:43:21 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:43:44 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:52:46 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:52:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:53:03 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:53:20 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:54:06 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m12:54:36 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m1:02:47 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/StatCard.jsx[22m
-[2m1:02:53 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/AdminDashboard.jsx[22m
-[2m1:09:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx, /src/pages/LoginPage.jsx, /src/pages/EmployeeAccountRequestPage.jsx, /src/pages/web/AccountApprovals.jsx, /src/pages/web/EmployeeManagement.jsx, /src/pages/web/FaceEnrollmentReview.jsx, /src/pages/web/AdminDashboard.jsx, /src/pages/web/AttendanceDashboard.jsx, /src/pages/web/PayrollDetail.jsx, /src/pages/web/ShiftScheduling.jsx, /src/pages/CompanyRegisterPage.jsx, /src/pages/web/EmployeeDetail.jsx, /src/pages/web/PayrollManagement.jsx and 17 more[22m
-[2m1:11:15 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m1:11:40 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m1:12:17 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m1:12:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m1:13:11 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m1:13:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m1:14:54 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m1:15:16 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/MySchedule.jsx[22m
-[2m1:15:37 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/EmployeeWebPortal.jsx[22m
-[2m1:16:03 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/EmployeeWebPortal.jsx[22m
-[2m1:16:31 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/ShiftScheduling.jsx[22m
-[2m1:39:48 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/Settings.jsx[22m
-[2m1:39:54 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/Settings.jsx[22m
-[2m1:40:13 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/Settings.jsx[22m
-[2m1:40:41 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/web/Settings.jsx[22m
-[2m1:41:29 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m1:41:38 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m1:41:44 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m1:41:54 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m1:42:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m1:42:54 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m1:44:25 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/WebLayout.jsx, /src/pages/LoginPage.jsx, /src/pages/EmployeeAccountRequestPage.jsx, /src/pages/web/AccountApprovals.jsx, /src/pages/web/EmployeeManagement.jsx, /src/pages/web/FaceEnrollmentReview.jsx, /src/pages/web/AdminDashboard.jsx, /src/pages/web/AttendanceDashboard.jsx, /src/pages/web/PayrollDetail.jsx, /src/pages/web/ShiftScheduling.jsx, /src/pages/CompanyRegisterPage.jsx, /src/pages/web/EmployeeDetail.jsx, /src/pages/web/PayrollManagement.jsx and 17 more[22m
-[2m1:44:34 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
-[2m1:45:38 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/mobile/FaceIDCheckin.jsx[22m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.2.1:[1m5173[22m/[39m

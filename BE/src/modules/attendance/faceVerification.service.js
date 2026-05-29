@@ -57,14 +57,185 @@ function isCredentialsError(error) {
   );
 }
 
-function validateBasicImage(imageBuffer) {
+function getLandmark(face, type) {
+  return (face.Landmarks || []).find((landmark) => landmark.Type === type);
+}
+
+function hasLandmark(face, type) {
+  const landmark = getLandmark(face, type);
+  return Boolean(landmark && Number.isFinite(Number(landmark.X)) && Number.isFinite(Number(landmark.Y)));
+}
+
+function getBoundingBox(face) {
+  const box = face.BoundingBox || {};
+  return {
+    left: Number(box.Left || 0),
+    top: Number(box.Top || 0),
+    width: Number(box.Width || 0),
+    height: Number(box.Height || 0)
+  };
+}
+
+function getFaceMetrics(face) {
+  const box = getBoundingBox(face);
+  const right = box.left + box.width;
+  const bottom = box.top + box.height;
+  return {
+    box,
+    centerX: box.left + box.width / 2,
+    centerY: box.top + box.height / 2,
+    right,
+    bottom,
+    yaw: face.Pose?.Yaw === undefined ? null : Number(face.Pose.Yaw),
+    pitch: face.Pose?.Pitch === undefined ? null : Number(face.Pose.Pitch),
+    roll: face.Pose?.Roll === undefined ? null : Number(face.Pose.Roll),
+    eyesOpen: face.EyesOpen?.Value,
+    eyesOpenConfidence: Number(face.EyesOpen?.Confidence || 0)
+  };
+}
+
+function validateBasicImage() {
+  if (!env.faceIdAllowDemoMode) {
+    return {
+      valid: false,
+      ready: false,
+      confidence: null,
+      faceCount: 0,
+      provider: "aws-rekognition",
+      mode: "aws-required",
+      reason: "AWS Rekognition chưa cấu hình. Cần cấu hình AWS credentials hoặc bật FACE_ID_ALLOW_DEMO_MODE=true cho môi trường demo."
+    };
+  }
+
   return {
     valid: true,
+    ready: true,
     confidence: null,
     faceCount: 1,
     provider: "local-demo",
     mode: "aws-not-configured",
-    reason: "AWS Rekognition chưa cấu hình. Hệ thống đang dùng chế độ demo sau khi chủ sở hữu đã duyệt Face ID."
+    reason: "AWS Rekognition chưa cấu hình. Hệ thống đang dùng chế độ demo vì FACE_ID_ALLOW_DEMO_MODE=true."
+  };
+}
+
+function buildFaceQualityResult(face) {
+  const confidence = Number(face.Confidence || 0);
+  const brightness = face.Quality?.Brightness === undefined ? null : Number(face.Quality.Brightness);
+  const sharpness = face.Quality?.Sharpness === undefined ? null : Number(face.Quality.Sharpness);
+  const yaw = face.Pose?.Yaw === undefined ? null : Number(face.Pose.Yaw);
+  const pitch = face.Pose?.Pitch === undefined ? null : Number(face.Pose.Pitch);
+  const roll = face.Pose?.Roll === undefined ? null : Number(face.Pose.Roll);
+  const metrics = getFaceMetrics(face);
+  const requiredLandmarks = ["eyeLeft", "eyeRight", "nose", "mouthLeft", "mouthRight"];
+  const hasAllLandmarks = requiredLandmarks.every((landmark) => hasLandmark(face, landmark));
+  const wellFramed =
+    metrics.box.left >= 0.04 &&
+    metrics.box.top >= 0.03 &&
+    metrics.right <= 0.96 &&
+    metrics.bottom <= 0.98 &&
+    metrics.box.width >= 0.18 &&
+    metrics.box.width <= 0.72 &&
+    metrics.box.height >= 0.22 &&
+    metrics.box.height <= 0.84 &&
+    metrics.centerX >= 0.32 &&
+    metrics.centerX <= 0.68;
+  const checks = [];
+
+  checks.push({
+    key: "face-confidence",
+    label: "Độ tin cậy khuôn mặt",
+    status: confidence >= env.awsRekognitionFaceMinConfidence ? "pass" : "fail",
+    value: Math.round(confidence)
+  });
+
+  if (brightness !== null) {
+    checks.push({
+      key: "brightness",
+      label: "Ánh sáng",
+      status: brightness >= 30 ? "pass" : "fail",
+      value: Math.round(brightness)
+    });
+  }
+
+  if (sharpness !== null) {
+    checks.push({
+      key: "sharpness",
+      label: "Độ nét",
+      status: sharpness >= 35 ? "pass" : "fail",
+      value: Math.round(sharpness)
+    });
+  }
+
+  if (yaw !== null) {
+    checks.push({
+      key: "pose-yaw",
+      label: "Góc mặt ngang",
+      status: Math.abs(yaw) <= 30 ? "pass" : "fail",
+      value: Math.round(yaw)
+    });
+  }
+
+  if (pitch !== null) {
+    checks.push({
+      key: "pose-pitch",
+      label: "Góc mặt dọc",
+      status: Math.abs(pitch) <= 25 ? "pass" : "fail",
+      value: Math.round(pitch)
+    });
+  }
+
+  checks.push({
+    key: "framing",
+    label: "Đủ khuôn mặt",
+    status: wellFramed ? "pass" : "fail",
+    value: Math.round(metrics.box.width * 100)
+  });
+
+  checks.push({
+    key: "landmarks",
+    label: "Đủ mắt mũi miệng",
+    status: hasAllLandmarks ? "pass" : "fail",
+    value: requiredLandmarks.filter((landmark) => hasLandmark(face, landmark)).length
+  });
+
+  if (face.EyesOpen?.Value === false && Number(face.EyesOpen.Confidence || 0) >= 85) {
+    checks.push({
+      key: "eyes-open",
+      label: "Mắt mở",
+      status: "fail",
+      value: 0
+    });
+  }
+
+  if (face.FaceOccluded?.Value === true && Number(face.FaceOccluded.Confidence || 0) >= 80) {
+    checks.push({
+      key: "face-occluded",
+      label: "Che khuôn mặt",
+      status: "fail",
+      value: Math.round(face.FaceOccluded.Confidence)
+    });
+  }
+
+  const failedChecks = checks.filter((check) => check.status === "fail");
+
+  return {
+    valid: failedChecks.length === 0,
+    ready: failedChecks.length === 0,
+    reason: failedChecks.length ? failedChecks.map((check) => check.label).join(", ") : "Khuôn mặt rõ, đủ điều kiện xác minh.",
+    confidence,
+    faceCount: 1,
+    provider: "aws-rekognition",
+    quality: {
+      brightness,
+      sharpness
+    },
+    pose: {
+      yaw,
+      pitch,
+      roll
+    },
+    boundingBox: metrics.box,
+    checks
   };
 }
 
@@ -112,34 +283,176 @@ async function validateSingleFace(imageBuffer) {
   const result = await sendRekognition(
     new DetectFacesCommand({
       Image: { Bytes: imageBuffer },
-      Attributes: ["DEFAULT"]
+      Attributes: ["ALL"]
     }),
     "detect faces"
   );
 
   if (result.rekognitionUnavailable) {
-    return validateBasicImage(imageBuffer);
+    return validateBasicImage();
   }
 
   const faces = result.FaceDetails || [];
   if (faces.length === 0 || result.noFace) {
-    return { valid: false, reason: "Không tìm thấy khuôn mặt rõ trong ảnh.", faceCount: 0 };
+    return { valid: false, ready: false, reason: "Không tìm thấy khuôn mặt rõ trong ảnh.", faceCount: 0, provider: "aws-rekognition" };
   }
   if (faces.length > 1) {
-    return { valid: false, reason: "Ảnh có nhiều hơn một khuôn mặt.", faceCount: faces.length };
+    return { valid: false, ready: false, reason: "Ảnh có nhiều hơn một khuôn mặt.", faceCount: faces.length, provider: "aws-rekognition" };
   }
 
-  const confidence = Number(faces[0].Confidence || 0);
-  if (confidence < env.awsRekognitionFaceMinConfidence) {
+  return buildFaceQualityResult(faces[0]);
+}
+
+async function detectFaceForLiveness(image, label, options = {}) {
+  const imageBuffer = decodeImagePayload(image);
+  const result = await sendRekognition(
+    new DetectFacesCommand({
+      Image: { Bytes: imageBuffer },
+      Attributes: ["ALL"]
+    }),
+    `detect liveness frame ${label}`
+  );
+
+  if (result.rekognitionUnavailable) {
     return {
-      valid: false,
-      reason: "Độ tin cậy khuôn mặt chưa đủ.",
-      confidence,
-      faceCount: 1
+      valid: Boolean(env.faceIdAllowDemoMode),
+      reason: result.unavailableReason || "AWS Rekognition chưa khả dụng.",
+      provider: env.faceIdAllowDemoMode ? "local-demo" : "aws-rekognition",
+      mode: env.faceIdAllowDemoMode ? "aws-not-configured" : "aws-required",
+      label
     };
   }
 
-  return { valid: true, confidence, faceCount: 1 };
+  const faces = result.FaceDetails || [];
+  if (result.noFace || faces.length === 0) {
+    return { valid: false, reason: `${label}: không tìm thấy khuôn mặt rõ.`, label };
+  }
+  if (faces.length > 1) {
+    return { valid: false, reason: `${label}: ảnh có nhiều hơn một khuôn mặt.`, label, faceCount: faces.length };
+  }
+
+  const quality = buildFaceQualityResult(faces[0]);
+  const blockingFailures = (quality.checks || []).filter((check) => check.status === "fail" && !(options.allowEyesClosed && check.key === "eyes-open"));
+  return {
+    ...quality,
+    valid: blockingFailures.length === 0,
+    reason: blockingFailures.length ? blockingFailures.map((check) => check.label).join(", ") : quality.reason,
+    label,
+    metrics: getFaceMetrics(faces[0])
+  };
+}
+
+function frameCheck(label, status, detail = "") {
+  return {
+    key: label,
+    label,
+    status: status ? "pass" : "fail",
+    detail
+  };
+}
+
+export async function verifyFaceLiveness(frames = {}) {
+  if (env.faceIdAllowDemoMode && !env.awsRekognitionEnabled) {
+    return {
+      live: true,
+      provider: "local-demo",
+      mode: "aws-not-configured",
+      warning: "FACE_ID_ALLOW_DEMO_MODE=true nên bỏ qua liveness thật."
+    };
+  }
+
+  const requiredFrames = {
+    center: "Nhìn thẳng",
+    turnLeft: "Quay trái",
+    turnRight: "Quay phải"
+  };
+
+  for (const [key, label] of Object.entries(requiredFrames)) {
+    if (!frames[key]) {
+      return {
+        live: false,
+        reason: `Thiếu frame liveness: ${label}.`,
+        checks: [frameCheck(label, false, "missing")]
+      };
+    }
+  }
+  const blinkFrames = Array.isArray(frames.blink) ? frames.blink.filter(Boolean) : [frames.blink].filter(Boolean);
+  if (!blinkFrames.length) {
+    return {
+      live: false,
+      reason: "Thiếu frame liveness: Chớp mắt.",
+      checks: [frameCheck("Chớp mắt", false, "missing")]
+    };
+  }
+
+  const analyzed = {};
+  for (const [key, label] of Object.entries(requiredFrames)) {
+    analyzed[key] = await detectFaceForLiveness(frames[key], label);
+    if (!analyzed[key].valid) {
+      return {
+        live: false,
+        reason: analyzed[key].reason || `${label}: frame chưa đạt.`,
+        checks: analyzed[key].checks || [frameCheck(label, false)]
+      };
+    }
+  }
+  analyzed.blink = null;
+  const blinkAttempts = [];
+  for (const image of blinkFrames.slice(0, 6)) {
+    const attempt = await detectFaceForLiveness(image, "Chớp mắt", { allowEyesClosed: true });
+    blinkAttempts.push(attempt);
+    if (attempt.valid && attempt.metrics?.eyesOpen === false && attempt.metrics?.eyesOpenConfidence >= 70) {
+      analyzed.blink = attempt;
+      break;
+    }
+  }
+  if (!analyzed.blink) {
+    const bestAttempt = blinkAttempts.find((attempt) => attempt.valid) || blinkAttempts[0];
+    return {
+      live: false,
+      reason: "Chưa thấy hành động chớp mắt rõ.",
+      checks: [...(bestAttempt?.checks || []), frameCheck("Có chớp mắt", false, "không có frame mắt đóng rõ")]
+    };
+  }
+
+  const center = analyzed.center.metrics;
+  const turnLeft = analyzed.turnLeft.metrics;
+  const turnRight = analyzed.turnRight.metrics;
+  const blink = analyzed.blink.metrics;
+  const checks = [
+    frameCheck("Nhìn thẳng", Math.abs(center.yaw || 0) <= 12 && Math.abs(center.pitch || 0) <= 18, `yaw ${Math.round(center.yaw || 0)}`),
+    frameCheck(
+      "Quay hai hướng",
+      Math.abs((turnLeft.yaw || 0) - (turnRight.yaw || 0)) >= 24 && Math.abs(turnLeft.yaw || 0) >= 10 && Math.abs(turnRight.yaw || 0) >= 10,
+      `yaw ${Math.round(turnLeft.yaw || 0)} / ${Math.round(turnRight.yaw || 0)}`
+    ),
+    frameCheck("Đổi hướng thật", (turnLeft.yaw || 0) * (turnRight.yaw || 0) < 0, "hai frame phải lệch hướng đối nhau"),
+    frameCheck("Mắt mở ở frame chính", center.eyesOpen !== false || center.eyesOpenConfidence < 80, `confidence ${Math.round(center.eyesOpenConfidence || 0)}`),
+    frameCheck("Có chớp mắt", blink.eyesOpen === false && blink.eyesOpenConfidence >= 70, `confidence ${Math.round(blink.eyesOpenConfidence || 0)}`)
+  ];
+
+  const failed = checks.filter((check) => check.status === "fail");
+  if (failed.length) {
+    return {
+      live: false,
+      reason: failed.map((check) => check.label).join(", "),
+      checks,
+      frames: analyzed
+    };
+  }
+
+  return {
+    live: true,
+    provider: "aws-rekognition",
+    checks,
+    frames: analyzed,
+    centerImage: frames.center
+  };
+}
+
+export async function analyzeFaceImage(image) {
+  const imageBuffer = decodeImagePayload(image);
+  return validateSingleFace(imageBuffer);
 }
 
 export async function validateFaceImage(image) {
@@ -158,6 +471,17 @@ export async function indexEmployeeFaceBuffer(employeeId, imageBuffer) {
   }
 
   const collection = await ensureCollection();
+  if (collection?.rekognitionUnavailable && !env.faceIdAllowDemoMode) {
+    return {
+      enrolled: false,
+      provider: "aws-rekognition",
+      mode: "aws-required",
+      reason: collection.unavailableReason || "AWS Rekognition chưa khả dụng.",
+      confidence: face.confidence,
+      faceCount: 1
+    };
+  }
+
   if (face.provider === "local-demo" || collection?.rekognitionUnavailable) {
     return {
       enrolled: true,
@@ -182,6 +506,17 @@ export async function indexEmployeeFaceBuffer(employeeId, imageBuffer) {
     }),
     "index face"
   );
+
+  if (result.rekognitionUnavailable && !env.faceIdAllowDemoMode) {
+    return {
+      enrolled: false,
+      provider: "aws-rekognition",
+      mode: "aws-required",
+      reason: result.unavailableReason || "AWS Rekognition chưa khả dụng.",
+      confidence: face.confidence,
+      faceCount: 1
+    };
+  }
 
   if (result.rekognitionUnavailable) {
     return {
@@ -256,6 +591,17 @@ export async function verifyEmployeeFace(employeeId, image) {
     }),
     "search faces"
   );
+
+  if (result.rekognitionUnavailable && !env.faceIdAllowDemoMode) {
+    return {
+      verified: false,
+      provider: "aws-rekognition",
+      mode: "aws-required",
+      reason: result.unavailableReason || "AWS Rekognition chưa khả dụng.",
+      confidence: face.confidence,
+      faceCount: 1
+    };
+  }
 
   if (result.rekognitionUnavailable) {
     return {

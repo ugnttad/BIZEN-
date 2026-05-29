@@ -48,6 +48,7 @@ const awsRekognitionEnabled =
     : awsRekognitionEnabledValue === "false" || awsRekognitionEnabledValue === "0"
       ? false
       : hasAwsStaticCredentials || hasAwsProviderCredentials;
+const faceIdDemoModeValue = (process.env.FACE_ID_ALLOW_DEMO_MODE || "").trim().toLowerCase();
 const smtpSecureValue = (process.env.SMTP_SECURE || "").trim().toLowerCase();
 
 export const env = {
@@ -62,6 +63,7 @@ export const env = {
   awsRekognitionCollectionId: process.env.AWS_REKOGNITION_COLLECTION_ID || "bizen-employees",
   awsRekognitionMinSimilarity: Number(process.env.AWS_REKOGNITION_MIN_SIMILARITY || 90),
   awsRekognitionFaceMinConfidence: Number(process.env.AWS_REKOGNITION_FACE_MIN_CONFIDENCE || 90),
+  faceIdAllowDemoMode: faceIdDemoModeValue === "true" || faceIdDemoModeValue === "1",
   openaiApiKey: process.env.OPENAI_API_KEY,
   openaiModel: process.env.OPENAI_MODEL || "gpt-5-mini",
   smtpHost: process.env.SMTP_HOST || "",

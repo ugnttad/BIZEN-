@@ -23,6 +23,7 @@ export const bizenApi = {
   checkinPolicy: (employeeId) => apiClient.get(`/attendance/checkin-policy${employeeId ? `?employeeId=${encodeURIComponent(employeeId)}` : ""}`),
   upsertAttendance: (payload) => apiClient.post("/attendance", payload),
   faceEnroll: (payload) => apiClient.post("/attendance/face-enroll", payload),
+  faceReadiness: (payload) => apiClient.post("/attendance/face-readiness", payload),
   faceCheckin: (payload) => apiClient.post("/attendance/face-checkin", payload),
   faceEnrollments: (status = "All") => apiClient.get(`/attendance/face-enrollments?status=${encodeURIComponent(status)}`),
   faceEnrollmentStatus: (employeeId) => apiClient.get(`/attendance/face-enrollments/employee/${employeeId}/latest`),
@@ -34,7 +35,7 @@ export const bizenApi = {
   scheduleAvailability: (employeeId) => apiClient.get(`/schedules/availability${employeeId ? `?employeeId=${encodeURIComponent(employeeId)}` : ""}`),
   createScheduleAvailability: (payload) => apiClient.post("/schedules/availability", payload),
   deleteScheduleAvailability: (id) => apiClient.delete(`/schedules/availability/${id}`),
-  aiSuggestSchedule: () => apiClient.post("/schedules/ai-suggest", {}),
+  aiSuggestSchedule: (payload = {}) => apiClient.post("/schedules/ai-suggest", payload),
   payroll: (month = "05/2026") => apiClient.get(`/payroll?month=${encodeURIComponent(month)}`),
   calculatePayroll: (month = "05/2026") => apiClient.post("/payroll/calculate", { month }),
   payrollDetail: (employeeId, month = "05/2026") => apiClient.get(`/payroll/${employeeId}?month=${encodeURIComponent(month)}`),
@@ -46,5 +47,6 @@ export const bizenApi = {
   updateSettings: (payload) => apiClient.put("/settings", payload),
   reports: () => apiClient.get("/reports"),
   aiAlerts: () => apiClient.get("/ai/alerts"),
-  aiChat: (message) => apiClient.post("/ai/chat", { message })
+  aiChat: (message) => apiClient.post("/ai/chat", { message }),
+  aiChatStream: (message, handlers) => apiClient.streamPost("/ai/chat/stream", { message }, handlers)
 };

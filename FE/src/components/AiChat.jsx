@@ -32,6 +32,7 @@ export default function AiChat({ compact = false }) {
   const messagesEndRef = useRef(null);
   const [messages, setMessages] = useState([
     {
+      id: "welcome",
       from: "ai",
       text: "Tôi là BIZEN AI. Tôi có thể đọc dữ liệu Neon về chấm công, lịch ca, nghỉ phép và lương để hỗ trợ người vận hành."
     }
@@ -50,15 +51,48 @@ export default function AiChat({ compact = false }) {
       setMessages((current) => [...current, { from: "ai", text: "Câu hỏi tối đa 500 ký tự để BIZEN AI trả lời gọn và ổn định." }]);
       return;
     }
-    setMessages((current) => [...current, { from: "user", text: clean }]);
+    const aiMessageId = `ai-${Date.now()}`;
+    setMessages((current) => [
+      ...current,
+      { id: `user-${Date.now()}`, from: "user", text: clean },
+      { id: aiMessageId, from: "ai", text: "", mode: "streaming", streaming: true }
+    ]);
     setInput("");
     setLoading(true);
 
+    let receivedStreamText = false;
     try {
-      const payload = await bizenApi.aiChat(clean);
-      setMessages((current) => [...current, { from: "ai", text: payload.reply, mode: payload.mode }]);
+      await bizenApi.aiChatStream(clean, {
+        onEvent: (event, payload) => {
+          if (event === "meta") {
+            setMessages((current) => current.map((message) => (message.id === aiMessageId ? { ...message, mode: payload?.mode || "openai" } : message)));
+          }
+
+          if (event === "delta" && payload?.delta) {
+            receivedStreamText = true;
+            setMessages((current) =>
+              current.map((message) => (message.id === aiMessageId ? { ...message, text: `${message.text || ""}${payload.delta}` } : message))
+            );
+          }
+
+          if (event === "done") {
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === aiMessageId ? { ...message, mode: payload?.model ? `${payload.mode} · ${payload.model}` : payload?.mode || message.mode, streaming: false } : message
+              )
+            );
+          }
+        }
+      });
+
+      if (!receivedStreamText) {
+        const payload = await bizenApi.aiChat(clean);
+        setMessages((current) => current.map((message) => (message.id === aiMessageId ? { ...message, text: payload.reply, mode: payload.mode, streaming: false } : message)));
+      }
     } catch {
-      setMessages((current) => [...current, { from: "ai", text: buildReply(clean), mode: "client-fallback" }]);
+      setMessages((current) =>
+        current.map((message) => (message.id === aiMessageId ? { ...message, text: buildReply(clean), mode: "client-fallback", streaming: false } : message))
+      );
     } finally {
       setLoading(false);
     }
@@ -76,17 +110,17 @@ export default function AiChat({ compact = false }) {
               <h2 className="text-sm font-bold text-slate-950">BIZEN AI</h2>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Ready
+                Realtime
               </span>
             </div>
-            <p className="mt-0.5 truncate text-xs text-slate-500">Neon data + OpenAI khi có API key</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">Neon data + OpenAI streaming</p>
           </div>
         </div>
       </header>
 
       <div className={compact ? "relative z-10 max-h-64 space-y-3 overflow-y-auto p-3 no-scrollbar" : "relative z-10 max-h-[520px] space-y-3 overflow-y-auto p-4 no-scrollbar"}>
         {messages.map((message, index) => (
-          <div key={`${message.from}-${index}`} className={`animate-float-in flex gap-2 ${message.from === "user" ? "justify-end" : "justify-start"}`}>
+          <div key={message.id || `${message.from}-${index}`} className={`animate-float-in flex gap-2 ${message.from === "user" ? "justify-end" : "justify-start"}`}>
             {message.from === "ai" ? (
               <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-100">
                 <Bot className="h-4 w-4" />
@@ -99,7 +133,7 @@ export default function AiChat({ compact = false }) {
                   : "rounded-bl-md border border-slate-200 bg-white text-slate-700"
               }`}
             >
-              <p>{message.text}</p>
+              <p>{message.text || (message.streaming ? "Đang tạo phản hồi realtime..." : "")}</p>
               {message.mode ? <p className="mt-1 text-[11px] font-bold text-slate-400">{message.mode}</p> : null}
             </div>
             {message.from === "user" ? (

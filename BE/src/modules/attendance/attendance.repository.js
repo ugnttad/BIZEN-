@@ -211,7 +211,7 @@ export async function getEmployeeAttendanceContext(employeeId) {
   return result.rows[0];
 }
 
-export async function getApprovedFaceEnrollment(employeeId) {
+export async function getApprovedFaceEnrollment(employeeId, companyId = null) {
   const result = await query(
     `SELECT
       id::text,
@@ -220,10 +220,10 @@ export async function getApprovedFaceEnrollment(employeeId) {
       rekognition_face_id AS "rekognitionFaceId",
       rekognition_collection_id AS "rekognitionCollectionId"
      FROM face_enrollments
-     WHERE employee_id = $1 AND status = 'Approved'
+     WHERE employee_id = $1 AND status = 'Approved' AND ($2::uuid IS NULL OR company_id = $2)
      ORDER BY reviewed_at DESC NULLS LAST, requested_at DESC
      LIMIT 1`,
-    [employeeId]
+    [employeeId, companyId]
   );
   return result.rows[0];
 }

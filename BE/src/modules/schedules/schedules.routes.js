@@ -7,6 +7,7 @@ import { httpError } from "../../shared/httpError.js";
 import { isIsoDate } from "../../shared/validation.js";
 import { requireRoles } from "../auth/auth.middleware.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
+import { suggestSchedulePlan } from "./scheduleAi.service.js";
 
 export const schedulesRouter = Router();
 
@@ -43,6 +44,11 @@ const availabilityQuerySchema = z.object({
 
 const weekQuerySchema = z.object({
   weekStart: z.string().refine(isIsoDate, "Tuần chưa hợp lệ").optional()
+});
+
+const aiSuggestScheduleSchema = z.object({
+  weekStart: z.string().refine(isIsoDate, "Tuần chưa hợp lệ").optional(),
+  days: updateScheduleSchema.shape.days.optional()
 });
 
 let availabilitySchemaReady = false;
@@ -84,6 +90,33 @@ function getWeekStartIso(isoDate = getBusinessDate()) {
   const date = new Date(`${isoDate}T00:00:00.000Z`);
   const mondayOffset = (date.getUTCDay() + 6) % 7;
   return addDaysIso(isoDate, -mondayOffset);
+}
+
+function formatShortDate(isoDate) {
+  const [, month, day] = isoDate.split("-");
+  return `${day}/${month}`;
+}
+
+function getDayLabel(isoDate, today = getBusinessDate()) {
+  if (isoDate === today) return "Hôm nay";
+  const labels = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+  return labels[new Date(`${isoDate}T00:00:00.000Z`).getUTCDay()];
+}
+
+function buildEmptyWeekSchedule(weekStart, shifts) {
+  const today = getBusinessDate();
+  return Array.from({ length: 7 }, (_, index) => {
+    const workDate = addDaysIso(weekStart, index);
+    return {
+      workDate,
+      day: getDayLabel(workDate, today),
+      date: formatShortDate(workDate),
+      shifts: shifts.map((shift) => ({
+        shiftId: shift.id,
+        employees: []
+      }))
+    };
+  });
 }
 
 async function listWeekSchedule(companyId, weekStart = getWeekStartIso()) {
@@ -147,6 +180,79 @@ function collectAssignments(days) {
       }))
     )
   );
+}
+
+async function buildSchedulePlannerContext(companyId, { weekStart, days }) {
+  await ensureAvailabilitySchema();
+
+  const normalizedWeekStart = getWeekStartIso(weekStart || getBusinessDate());
+  const weekEnd = addDaysIso(normalizedWeekStart, 6);
+  const workloadStart = addDaysIso(normalizedWeekStart, -14);
+  const [employeeRows, shiftRows, existingSchedule, busyRows, leaveRows, workloadRows] = await Promise.all([
+    query(
+      `SELECT
+        e.id,
+        e.name,
+        d.name AS department,
+        e.position,
+        e.status,
+        e.shift_id AS "shiftId"
+       FROM employees e
+       LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
+       WHERE e.company_id = $1
+       ORDER BY d.name NULLS LAST, e.name`,
+      [companyId]
+    ),
+    query(`SELECT id, name, time_range AS time, short_time AS "shortTime", required_count AS required, color FROM shifts WHERE company_id = $1 ORDER BY short_time`, [
+      companyId
+    ]),
+    listWeekSchedule(companyId, normalizedWeekStart),
+    listAvailability(companyId),
+    query(
+      `SELECT
+        lr.employee_id AS "employeeId",
+        e.name AS "employeeName",
+        lr.leave_type AS type,
+        to_char(lr.from_date, 'YYYY-MM-DD') AS "from",
+        to_char(lr.to_date, 'YYYY-MM-DD') AS "to",
+        lr.status,
+        lr.reason
+       FROM leave_requests lr
+       JOIN employees e ON e.id = lr.employee_id AND e.company_id = lr.company_id
+       WHERE lr.company_id = $1
+         AND lr.status IN ('Approved', 'Pending')
+         AND NOT (lr.to_date < $2::date OR lr.from_date > $3::date)
+       ORDER BY lr.from_date ASC`,
+      [companyId, normalizedWeekStart, weekEnd]
+    ),
+    query(
+      `SELECT
+        employee_id AS id,
+        COUNT(*) FILTER (WHERE check_in IS NOT NULL)::int AS "recentShifts",
+        COALESCE(SUM(total_hours), 0)::float AS "recentHours",
+        COUNT(*) FILTER (WHERE status = 'Late')::int AS "lateCount"
+       FROM attendance_records
+       WHERE company_id = $1
+         AND work_date >= $2::date
+         AND work_date < $3::date
+       GROUP BY employee_id`,
+      [companyId, workloadStart, normalizedWeekStart]
+    )
+  ]);
+
+  const shifts = shiftRows.rows;
+  const plannerDays = days?.length ? days : existingSchedule.length ? existingSchedule : buildEmptyWeekSchedule(normalizedWeekStart, shifts);
+
+  return {
+    today: getBusinessDate(),
+    weekStart: normalizedWeekStart,
+    employees: employeeRows.rows,
+    shifts,
+    days: plannerDays,
+    busyRows,
+    leaves: leaveRows.rows,
+    workload: new Map(workloadRows.rows.map((row) => [row.id, row]))
+  };
 }
 
 schedulesRouter.get(
@@ -325,23 +431,12 @@ schedulesRouter.put(
 
 schedulesRouter.post(
   "/ai-suggest",
+  requireRoles("Admin"),
   asyncHandler(async (req, res) => {
     const companyId = await getCompanyIdForUser(req.user);
-    const busyRows = await listAvailability(companyId);
-    const busyPreview = busyRows
-      .slice(0, 2)
-      .map((item) => `${item.employeeName} bận ${item.displayDate}`)
-      .join("; ");
-
-    res.json({
-      reasons: [
-        "Không xếp nhân viên đang nghỉ phép hoặc đã báo lịch bận.",
-        "Ưu tiên nhân viên đang active, tránh xếp một người vào nhiều ca trong cùng ngày.",
-        "Lấp các ca còn thiếu theo nhu cầu từng shift trước khi chủ sở hữu Apply Schedule.",
-        busyRows.length ? `Đã đọc ${busyRows.length} lịch bận của nhân viên${busyPreview ? `: ${busyPreview}.` : "."}` : "Chưa có lịch bận nào được nhân viên gửi lên."
-      ],
-      warnings: busyRows.length ? ["Một số nhân viên có ngày bận, calendar sẽ chặn kéo-thả và AI sẽ né khi tự lấp ca."] : []
-    });
+    const payload = aiSuggestScheduleSchema.parse(req.body || {});
+    const context = await buildSchedulePlannerContext(companyId, payload);
+    res.json(await suggestSchedulePlan(context));
   })
 );
 

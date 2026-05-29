@@ -1,14 +1,15 @@
 import { Router } from "express";
-import OpenAI from "openai";
 import { env } from "../../config/env.js";
 import { query } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { getBusinessDate } from "../../shared/businessDate.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
+import { createTextResponse, createTextStream, isOpenAiReady } from "./openai.service.js";
 
 export const aiRouter = Router();
 
-const openai = env.openaiApiKey ? new OpenAI({ apiKey: env.openaiApiKey }) : null;
+const AI_ASSISTANT_INSTRUCTIONS =
+  "Bạn là BIZEN AI, trợ lý vận hành nhân sự/payroll trong hệ thống SaaS BIZEN. Trả lời bằng tiếng Việt, ngắn gọn, thực dụng. Chỉ dùng dữ liệu hệ thống được cung cấp; nếu thiếu dữ liệu, nói rõ là chưa đủ dữ liệu. Ưu tiên hành động cụ thể cho chủ sở hữu SME/hospitality tại Đà Nẵng.";
 
 async function buildAiContext(companyId) {
   const today = getBusinessDate();
@@ -121,6 +122,28 @@ function fallbackReply(text, context) {
   return `Tôi đã đọc dữ liệu Neon ngày ${context.date}: ${context.summary?.employees || 0} nhân viên, ${context.summary?.checkedIn || 0} đã chấm công, ${context.summary?.late || 0} đi trễ, ${context.alerts?.length || 0} cảnh báo AI.`;
 }
 
+function buildChatInput(message, context) {
+  return `Câu hỏi của người dùng: ${message}\n\nDữ liệu Neon hiện có:\n${JSON.stringify(context, null, 2)}`;
+}
+
+function writeSse(res, event, payload) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+async function streamFallbackReply(res, reply, mode) {
+  writeSse(res, "meta", { mode });
+
+  const chunks = reply.match(/.{1,28}(\s|$)/g) || [reply];
+  for (const chunk of chunks) {
+    if (res.writableEnded) return;
+    writeSse(res, "delta", { delta: chunk });
+    await new Promise((resolve) => setTimeout(resolve, 16));
+  }
+
+  writeSse(res, "done", { mode });
+}
+
 aiRouter.get(
   "/alerts",
   asyncHandler(async (req, res) => {
@@ -147,21 +170,83 @@ aiRouter.post(
       return res.status(400).json({ error: "Câu hỏi tối đa 500 ký tự" });
     }
 
-    if (!openai) {
+    if (!isOpenAiReady()) {
       return res.json({ reply: fallbackReply(message, context), mode: "neon-fallback" });
     }
 
     try {
-      const response = await openai.responses.create({
-        model: env.openaiModel,
-        instructions:
-          "Bạn là BIZEN AI, trợ lý vận hành nhân sự/payroll trong hệ thống SaaS BIZEN. Trả lời bằng tiếng Việt, ngắn gọn, thực dụng. Chỉ dùng dữ liệu hệ thống được cung cấp; nếu thiếu dữ liệu, nói rõ là chưa đủ dữ liệu.",
-        input: `Câu hỏi của người dùng: ${message}\n\nDữ liệu Neon hiện có:\n${JSON.stringify(context, null, 2)}`
+      const response = await createTextResponse({
+        instructions: AI_ASSISTANT_INSTRUCTIONS,
+        input: buildChatInput(message, context)
       });
 
       res.json({ reply: response.output_text || fallbackReply(message, context), mode: "openai", model: env.openaiModel });
     } catch {
       res.json({ reply: fallbackReply(message, context), mode: "openai-fallback" });
+    }
+  })
+);
+
+aiRouter.post(
+  "/chat/stream",
+  asyncHandler(async (req, res) => {
+    const message = String(req.body.message || "").trim();
+    const companyId = await getCompanyIdForUser(req.user);
+    const context = await buildAiContext(companyId);
+
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+    if (message.length > 500) {
+      return res.status(400).json({ error: "Câu hỏi tối đa 500 ký tự" });
+    }
+
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    let closed = false;
+    let streamedText = "";
+    req.on("close", () => {
+      closed = true;
+    });
+
+    if (!isOpenAiReady()) {
+      await streamFallbackReply(res, fallbackReply(message, context), "neon-fallback");
+      if (!res.writableEnded) res.end();
+      return;
+    }
+
+    try {
+      writeSse(res, "meta", { mode: "openai", model: env.openaiModel });
+      const stream = await createTextStream({
+        instructions: AI_ASSISTANT_INSTRUCTIONS,
+        input: buildChatInput(message, context)
+      });
+
+      for await (const event of stream) {
+        if (closed || res.writableEnded) break;
+        if (event.type === "response.output_text.delta" && event.delta) {
+          streamedText += event.delta;
+          writeSse(res, "delta", { delta: event.delta });
+        }
+      }
+
+      if (!closed && !res.writableEnded) {
+        writeSse(res, "done", { mode: "openai", model: env.openaiModel });
+      }
+    } catch {
+      if (!closed && !res.writableEnded) {
+        if (!streamedText) {
+          await streamFallbackReply(res, fallbackReply(message, context), "openai-fallback");
+        } else {
+          writeSse(res, "done", { mode: "openai-partial", model: env.openaiModel });
+        }
+      }
+    } finally {
+      if (!res.writableEnded) res.end();
     }
   })
 );

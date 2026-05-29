@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { env } from "../../config/env.js";
 import { getBusinessDate, getBusinessTime } from "../../shared/businessDate.js";
 import { httpError } from "../../shared/httpError.js";
 import { isIsoDate, isTime } from "../../shared/validation.js";
@@ -11,7 +12,7 @@ import {
   listEmployeeAttendance,
   upsertAttendance
 } from "./attendance.repository.js";
-import { verifyEmployeeFace } from "./faceVerification.service.js";
+import { analyzeFaceImage, verifyEmployeeFace, verifyFaceLiveness } from "./faceVerification.service.js";
 
 const attendanceSchema = z.object({
   employeeId: z.string().min(1),
@@ -27,11 +28,24 @@ const attendanceSchema = z.object({
 const faceCheckinSchema = z.object({
   employeeId: z.string().min(1),
   image: z.string().min(200),
+  livenessFrames: z
+    .object({
+      center: z.string().min(200),
+      turnLeft: z.string().min(200),
+      turnRight: z.string().min(200),
+      blink: z.array(z.string().min(200)).min(1).max(6)
+    })
+    .optional(),
   workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   location: z.string().trim().max(120).optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   locationAccuracyMeters: z.coerce.number().min(0).max(10000).optional()
+});
+
+const faceReadinessSchema = z.object({
+  employeeId: z.string().min(1).optional(),
+  image: z.string().min(200)
 });
 
 function toMinutes(time) {
@@ -127,6 +141,22 @@ function resolveGeofence(payload, context) {
   };
 }
 
+function assertRealFaceEnrollment(enrollment) {
+  if (env.faceIdAllowDemoMode) return;
+
+  const isDemoEnrollment =
+    !enrollment.rekognitionFaceId ||
+    enrollment.rekognitionCollectionId === "local-demo" ||
+    String(enrollment.rekognitionFaceId || "").startsWith("local-");
+
+  if (isDemoEnrollment) {
+    throw httpError(
+      409,
+      "Face ID hiện là bản demo cũ hoặc chưa được index vào AWS Rekognition. Vui lòng đăng ký lại khuôn mặt và để chủ sở hữu duyệt lại trước khi chấm công."
+    );
+  }
+}
+
 export async function listAttendanceHandler(req, res) {
   const companyId = await getCompanyIdForUser(req.user);
   res.json(await listAttendance({ date: req.query.date, companyId }));
@@ -180,7 +210,30 @@ export async function checkinPolicyHandler(req, res) {
   res.json({
     storeAddress: context.storeAddress,
     geofenceEnabled: context.geofenceEnabled,
-    geofenceRadiusMeters: context.geofenceRadiusMeters
+    geofenceRadiusMeters: context.geofenceRadiusMeters,
+    faceIdDemoMode: env.faceIdAllowDemoMode,
+    faceProvider: env.awsRekognitionEnabled ? "aws-rekognition" : "not-configured"
+  });
+}
+
+export async function faceReadinessHandler(req, res) {
+  const payload = faceReadinessSchema.parse(req.body);
+  if (req.user.role === "Employee" && payload.employeeId && payload.employeeId !== req.user.employeeId) {
+    throw httpError(403, "Employees can only analyze their own Face ID image");
+  }
+
+  const face = await analyzeFaceImage(payload.image);
+  res.json({
+    ready: Boolean(face.ready ?? face.valid),
+    valid: Boolean(face.valid),
+    reason: face.reason,
+    provider: face.provider || "aws-rekognition",
+    mode: face.mode,
+    confidence: face.confidence,
+    faceCount: face.faceCount,
+    quality: face.quality,
+    pose: face.pose,
+    checks: face.checks || []
   });
 }
 
@@ -188,16 +241,6 @@ export async function faceCheckinHandler(req, res) {
   const payload = faceCheckinSchema.parse(req.body);
   if (req.user.role === "Employee" && payload.employeeId !== req.user.employeeId) {
     throw httpError(403, "Employees can only check in as themselves");
-  }
-
-  const approvedEnrollment = await getApprovedFaceEnrollment(payload.employeeId);
-  if (!approvedEnrollment) {
-    throw httpError(409, "Face enrollment is not approved by the owner yet");
-  }
-
-  const face = await verifyEmployeeFace(payload.employeeId, payload.image);
-  if (!face.verified) {
-    throw httpError(422, face.reason || "Face verification failed");
   }
 
   const context = await getEmployeeAttendanceContext(payload.employeeId);
@@ -208,6 +251,22 @@ export async function faceCheckinHandler(req, res) {
     throw httpError(403, "Employee belongs to another company");
   }
 
+  const approvedEnrollment = await getApprovedFaceEnrollment(payload.employeeId, context.companyId);
+  if (!approvedEnrollment) {
+    throw httpError(409, "Face enrollment is not approved by the owner yet");
+  }
+  assertRealFaceEnrollment(approvedEnrollment);
+
+  const liveness = await verifyFaceLiveness(payload.livenessFrames);
+  if (!liveness.live) {
+    throw httpError(422, liveness.reason || "Face liveness challenge failed");
+  }
+
+  const face = await verifyEmployeeFace(payload.employeeId, liveness.centerImage || payload.image);
+  if (!face.verified) {
+    throw httpError(422, face.reason || "Face verification failed");
+  }
+
   const geofence = resolveGeofence(payload, context);
   const workDate = payload.workDate || getBusinessDate();
   const checkTime = getBusinessTime();
@@ -215,7 +274,7 @@ export async function faceCheckinHandler(req, res) {
   const event = resolveAttendanceEvent(existing, context, checkTime);
   const faceNote =
     face.provider === "local-demo"
-      ? "Face ID demo mode: AWS Rekognition is not configured"
+      ? "Face ID demo mode: FACE_ID_ALLOW_DEMO_MODE=true"
       : `AWS Rekognition face match ${Math.round(face.similarity)}%`;
   const locationNote = geofence.enabled
     ? `GPS within ${geofence.distance}m/${geofence.radius}m${geofence.accuracy !== null ? `, accuracy ${geofence.accuracy}m` : ""}`
@@ -240,6 +299,11 @@ export async function faceCheckinHandler(req, res) {
     provider: face.provider || "aws-rekognition",
     mode: face.mode,
     warning: face.warning,
+    liveness: {
+      provider: liveness.provider || "aws-rekognition",
+      mode: liveness.mode,
+      checks: liveness.checks || []
+    },
     action: event.action,
     employeeId: payload.employeeId,
     employeeName: context.employeeName,

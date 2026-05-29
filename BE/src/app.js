@@ -62,7 +62,10 @@ export function createApp() {
       ok: true,
       service: "bizen-backend",
       databaseConfigured: isDatabaseConfigured(),
-      googleConfigured: Boolean(env.googleClientId)
+      googleConfigured: Boolean(env.googleClientId),
+      openaiConfigured: Boolean(env.openaiApiKey),
+      awsRekognitionEnabled: Boolean(env.awsRekognitionEnabled),
+      faceIdDemoMode: Boolean(env.faceIdAllowDemoMode)
     });
   });
 

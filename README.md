@@ -97,6 +97,16 @@ JWT_SECRET=replace-with-a-long-random-secret
 PASSWORD_LOGIN_SECRET=replace-this-login-password
 PLATFORM_ADMIN_EMAIL=platform@your-domain.com
 PLATFORM_ADMIN_PASSWORD=replace-with-a-strong-platform-password
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-5-mini
+AWS_REGION=ap-southeast-1
+AWS_REKOGNITION_ENABLED=true
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REKOGNITION_COLLECTION_ID=bizen-employees
+AWS_REKOGNITION_MIN_SIMILARITY=90
+AWS_REKOGNITION_FACE_MIN_CONFIDENCE=90
+FACE_ID_ALLOW_DEMO_MODE=false
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
@@ -121,3 +131,9 @@ After deploy, verify the backend with:
 ```text
 https://your-vercel-domain.vercel.app/api/health
 ```
+
+## AI integrations
+
+BIZEN uses OpenAI for realtime assistant responses and structured schedule planning. `POST /api/ai/chat/stream` streams chat tokens to the dashboard, while `POST /api/schedules/ai-suggest` returns a full week schedule proposal with reasons and warnings.
+
+Face ID uses AWS Rekognition for face quality checks, enrollment indexing, and check-in matching. Demo Face ID is disabled by default; set `FACE_ID_ALLOW_DEMO_MODE=true` only for local demos without AWS credentials.

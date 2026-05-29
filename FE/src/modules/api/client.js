@@ -97,6 +97,77 @@ async function requestBlob(path, options = {}) {
   return response.blob();
 }
 
+function parseSseEvent(rawEvent) {
+  let event = "message";
+  const dataLines = [];
+
+  for (const line of rawEvent.split(/\r?\n/)) {
+    if (line.startsWith("event:")) {
+      event = line.slice(6).trim();
+    }
+    if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trimStart());
+    }
+  }
+
+  const data = dataLines.join("\n");
+  return {
+    event,
+    payload: data ? JSON.parse(data) : null
+  };
+}
+
+async function streamRequest(path, body, handlers = {}) {
+  const token = localStorage.getItem("bizen_auth_token");
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(body)
+    });
+  } catch (error) {
+    throw new Error(`Cannot reach BIZEN API at ${API_URL}. Check backend deployment, API URL, and CORS. ${error.message}`);
+  }
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || `API request failed: ${response.status}`);
+  }
+
+  if (!response.body) return null;
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split(/\n\n|\r\n\r\n/);
+    buffer = events.pop() || "";
+
+    for (const rawEvent of events) {
+      if (!rawEvent.trim()) continue;
+      const { event, payload } = parseSseEvent(rawEvent);
+      handlers.onEvent?.(event, payload);
+    }
+  }
+
+  if (buffer.trim()) {
+    const { event, payload } = parseSseEvent(buffer);
+    handlers.onEvent?.(event, payload);
+  }
+
+  return null;
+}
+
 export const apiClient = {
   baseUrl: API_URL,
   get: (path) => request(path),
@@ -104,5 +175,6 @@ export const apiClient = {
   patch: (path, body) => request(path, { method: "PATCH", body: JSON.stringify(body) }),
   put: (path, body) => request(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: (path) => request(path, { method: "DELETE" }),
-  blob: (path) => requestBlob(path)
+  blob: (path) => requestBlob(path),
+  streamPost: (path, body, handlers) => streamRequest(path, body, handlers)
 };
