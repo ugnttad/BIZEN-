@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { query } from "../../config/db.js";
+import { query, withTransaction } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { httpError } from "../../shared/httpError.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
@@ -8,12 +8,26 @@ import { getCompanyIdForUser } from "../companies/company.repository.js";
 export const profileRouter = Router();
 
 let profileSchemaReady = false;
+let profileSchemaPromise = null;
 
 async function ensureProfileSchema() {
   if (profileSchemaReady) return;
-  await query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url TEXT");
-  await query("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS picture_url TEXT");
-  profileSchemaReady = true;
+  if (!profileSchemaPromise) {
+    profileSchemaPromise = withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('bizen'), hashtext('profile_schema_v1'))");
+      await client.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url TEXT");
+      await client.query("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS picture_url TEXT");
+    })
+      .then(() => {
+        profileSchemaReady = true;
+      })
+      .catch((error) => {
+        profileSchemaPromise = null;
+        throw error;
+      });
+  }
+
+  await profileSchemaPromise;
 }
 
 const avatarSchema = z

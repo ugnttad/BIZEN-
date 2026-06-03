@@ -1,28 +1,42 @@
 import { Router } from "express";
 import { z } from "zod";
-import { query } from "../../config/db.js";
+import { query, withTransaction } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
 
 export const communityRouter = Router();
 
 let communitySchemaReady = false;
+let communitySchemaPromise = null;
 
 async function ensureCommunitySchema() {
   if (communitySchemaReady) return;
-  await query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url TEXT");
-  await query(`
-    CREATE TABLE IF NOT EXISTS community_messages (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-      sender_user_id UUID REFERENCES app_users(id) ON DELETE SET NULL,
-      sender_employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
-      body TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `);
-  await query("CREATE INDEX IF NOT EXISTS idx_community_messages_company_created ON community_messages(company_id, created_at DESC)");
-  communitySchemaReady = true;
+  if (!communitySchemaPromise) {
+    communitySchemaPromise = withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('bizen'), hashtext('community_schema_v1'))");
+      await client.query("ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url TEXT");
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS community_messages (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+          sender_user_id UUID REFERENCES app_users(id) ON DELETE SET NULL,
+          sender_employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+          body TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await client.query("CREATE INDEX IF NOT EXISTS idx_community_messages_company_created ON community_messages(company_id, created_at DESC)");
+    })
+      .then(() => {
+        communitySchemaReady = true;
+      })
+      .catch((error) => {
+        communitySchemaPromise = null;
+        throw error;
+      });
+  }
+
+  await communitySchemaPromise;
 }
 
 const messageSchema = z.object({
