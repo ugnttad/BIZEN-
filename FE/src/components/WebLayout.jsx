@@ -30,7 +30,6 @@ import {
   X
 } from "lucide-react";
 import Avatar from "./Avatar";
-import AiChat from "./AiChat";
 import { bizenApi } from "../modules/api/bizenApi";
 import { clearAuthSession, getAuthUser, getDefaultPathForRole } from "../modules/auth/authStore";
 
@@ -88,7 +87,6 @@ export default function WebLayout() {
   const title = getTitle(location.pathname);
   const homePath = getDefaultPathForRole(user?.role);
   const canUseAi = !isEmployee;
-  const showAiPanel = canUseAi && !location.pathname.startsWith("/web/scheduling");
   const searchPlaceholder = isEmployee ? "Tìm lịch, chấm công, đơn nghỉ" : "Tìm nhân viên, ca làm, bảng lương";
   const searchItems = [{ label: "Trang chủ", path: homePath }, ...visibleNavItems];
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -210,11 +208,7 @@ export default function WebLayout() {
     <div className="app-background relative min-h-screen overflow-hidden">
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-72" />
 
-      <aside
-        className={`fixed inset-y-4 left-4 z-30 hidden min-h-0 flex-col rounded-2xl border border-white/70 bg-white/80 py-4 shadow-soft backdrop-blur-2xl transition-all duration-300 lg:flex ${
-          sidebarCollapsed ? "w-20 px-2" : "w-72 px-3"
-        }`}
-      >
+      <aside className="hidden">
         <button
           type="button"
           onClick={() => setSidebarCollapsed((value) => !value)}
@@ -331,12 +325,12 @@ export default function WebLayout() {
         </div>
       ) : null}
 
-      <div className={`relative transition-[padding] duration-300 ${sidebarCollapsed ? "lg:pl-[6.5rem]" : "lg:pl-[19rem]"}`}>
+      <div className="relative">
         <header className="sticky top-0 z-20 px-3 py-3 md:px-6">
-          <div className="glass-panel mx-auto flex items-center justify-between gap-3 rounded-2xl px-3 py-3 md:px-4">
+          <div className="glass-panel mx-auto flex max-w-7xl items-center justify-between gap-3 rounded-2xl px-3 py-3 md:px-4">
             <div className="flex min-w-0 items-center gap-3">
               <button
-                className="btn-motion grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm lg:hidden"
+                className="btn-motion hidden h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm"
                 aria-label="Mở menu"
                 onClick={() => setMenuOpen(true)}
               >
@@ -480,15 +474,10 @@ export default function WebLayout() {
           </div>
         </header>
 
-        <main className={`grid gap-5 px-3 pb-6 pt-2 md:px-6 ${showAiPanel ? "xl:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
+        <main className="mx-auto w-full max-w-7xl px-3 pb-6 pt-2 md:px-6">
           <div className="min-w-0 animate-page-enter">
             <Outlet />
           </div>
-          {showAiPanel ? (
-            <div className="hidden xl:block animate-page-enter">
-              <AiChat />
-            </div>
-          ) : null}
         </main>
       </div>
     </div>

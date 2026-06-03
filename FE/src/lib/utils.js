@@ -15,10 +15,7 @@ export function formatNumber(value) {
 }
 
 export function getCurrentPayrollMonth(date = new Date()) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    month: "2-digit",
-    year: "numeric"
-  }).format(date);
+  return `${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 }
 
 export function getRecentPayrollMonths(count = 3, date = new Date()) {

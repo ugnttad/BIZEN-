@@ -29,9 +29,9 @@ export default function MobileLayout() {
   }
 
   return (
-    <div className="app-background min-h-screen px-0 py-0 sm:px-6 sm:py-8">
+    <div className="app-background min-h-screen">
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-64" />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-slate-50 shadow-2xl shadow-slate-950/10 sm:min-h-[860px] sm:rounded-[30px] sm:border sm:border-white/70">
+      <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-slate-50">
         <header className="relative overflow-hidden border-b border-white/70 bg-white/90 px-5 py-4 backdrop-blur-xl">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-teal-400 to-amber-400" />
           <div className="relative flex items-center justify-between">
