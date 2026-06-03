@@ -8,7 +8,7 @@ import { clearMobileEmployeeSession, getFirstName, getMobileEmployeeSession } fr
 const mobileNav = [
   { label: "Home", path: "/mobile/home", icon: Home },
   { label: "Lịch", path: "/mobile/schedule", icon: CalendarDays },
-  { label: "KPI", path: "/mobile/kpis", icon: ClipboardCheck },
+  { label: "Việc", path: "/mobile/kpis", icon: ClipboardCheck },
   { label: "Scan", path: "/mobile/checkin", icon: ScanFace },
   { label: "Lương", path: "/mobile/payroll", icon: CreditCard },
   { label: "Hồ sơ", path: "/mobile/profile", icon: UserRound }

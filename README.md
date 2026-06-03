@@ -1,12 +1,12 @@
 # BIZEN
 
-BIZEN is a SaaS HR, attendance, scheduling, and payroll prototype for SMEs in Da Nang.
+BIZEN is a SaaS HR, attendance, scheduling, and payroll application for SMEs in Da Nang.
 
 ## Structure
 
 ```text
 BE/  Node.js + Express + PostgreSQL/Neon backend
-FE/  React + Tailwind SaaS web/mobile prototype
+FE/  React + Tailwind SaaS web/mobile app
 ```
 
 Backend code is split by domain under `BE/src/modules`:
@@ -136,7 +136,7 @@ npm run vercel:env:maps
 
 The backend proxies Google Places Autocomplete and Place Details requests, so the Maps key is not exposed in the React bundle. Without `GOOGLE_MAPS_API_KEY`, owners can still enter the address manually or use browser GPS.
 
-For the paid AI demo, keep `OPENAI_*` and `AWS_REKOGNITION_*` in `BE/.env`, then sync them to Vercel:
+For paid AI providers, keep `OPENAI_*` and `AWS_REKOGNITION_*` in `BE/.env`, then sync them to Vercel:
 
 ```bash
 npm run vercel:env:ai
@@ -144,7 +144,7 @@ npm run vercel:env:ai
 
 The AI sync script sends OpenAI and AWS Rekognition credentials to Vercel `production`, sets `AWS_REKOGNITION_ENABLED=true`, and keeps `FACE_ID_ALLOW_DEMO_MODE=false` unless overridden in `BE/.env`. Redeploy after syncing.
 
-To verify paid AI providers before a store demo:
+To verify paid AI providers before a store rollout:
 
 ```bash
 npm run ai:check
@@ -166,13 +166,13 @@ https://your-vercel-domain.vercel.app/api/health
 
 BIZEN uses OpenAI for realtime assistant responses and structured schedule planning. `POST /api/ai/chat/stream` streams chat tokens to the dashboard, while `POST /api/schedules/ai-suggest` returns a full week schedule proposal with reasons and warnings.
 
-When a company registers, the requested employee count is stored with the tenant request. After Platform Admin approval, BIZEN scales the default department targets and shift required counts from that number, so AI Schedule Suggest starts from the company's real team size instead of the 20-person demo template.
+When a company registers, the requested employee count is stored with the tenant request. After Platform Admin approval, BIZEN scales the default department targets and shift required counts from that number, so AI Schedule Suggest starts from the company's real team size instead of a fixed 20-person template.
 
-Face ID uses AWS Rekognition for face quality checks, enrollment indexing, and check-in matching. Demo Face ID is disabled by default; set `FACE_ID_ALLOW_DEMO_MODE=true` only for local demos without AWS credentials.
+Face ID uses AWS Rekognition for face quality checks, enrollment indexing, and check-in matching. Local Face ID fallback is disabled by default; set `FACE_ID_ALLOW_DEMO_MODE=true` only for local runs without AWS credentials.
 
-## Shift KPI
+## Shift checklist
 
-Admins can create KPI tasks for a specific employee, date, shift, and deadline. Employees see assigned KPI tasks in the mobile app, mark work in progress, upload photo proof, and submit notes. BIZEN records the submit time, computes on-time/late/missed status, and lets the owner approve or reject the proof.
+Admins can create shift checklist tasks for a specific employee, date, shift, and deadline. Employees see assigned tasks in the mobile app, mark work in progress, upload photo proof, and submit notes. BIZEN records the submit time, computes on-time/late/missed status, and lets the owner approve or reject the proof.
 
 The working requirement is kept in `docs/kpi-shift-tasks-requirements.md`.
 

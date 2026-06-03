@@ -3,8 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Building2, CheckCircle2, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import GoogleLoginButton from "../modules/auth/GoogleLoginButton";
 import { bizenApi } from "../modules/api/bizenApi";
-import WorkflowStepsCard from "../components/WorkflowStepsCard";
-import { mvpDemoFeatures } from "../constants/saasWorkflow";
 import { getDefaultPathForRole, saveAuthSession, setEmployeeExperiencePreference } from "../modules/auth/authStore";
 import { saveMobileEmployee } from "../modules/auth/mobileSession";
 
@@ -152,15 +150,6 @@ export default function LoginPage() {
             </div>
 
             <GoogleLoginButton onSuccess={handleGoogleSuccess} />
-
-            <details className="mt-6 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-slate-700">Luồng SaaS (3 tính năng demo)</summary>
-              <div className="mt-3 space-y-3">
-                {mvpDemoFeatures.map((feature) => (
-                  <WorkflowStepsCard key={feature.id} title={feature.title} steps={feature.steps} skippable={feature.skippable} />
-                ))}
-              </div>
-            </details>
           </form>
         </section>
       </div>

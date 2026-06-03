@@ -147,9 +147,9 @@ export default function EmployeeHome() {
               <ClipboardCheck className="h-5 w-5" />
             </span>
             <span className="min-w-0">
-              <span className="block font-semibold text-slate-950">KPI ca hôm nay</span>
+              <span className="block font-semibold text-slate-950">Checklist ca hôm nay</span>
               <span className="text-sm text-slate-500">
-                {kpiTasks.length ? `${openKpis} cần làm · ${submittedKpis} chờ duyệt` : "Chưa có KPI được giao"}
+                {kpiTasks.length ? `${openKpis} cần làm · ${submittedKpis} chờ duyệt` : "Chưa có việc được giao"}
               </span>
             </span>
           </span>

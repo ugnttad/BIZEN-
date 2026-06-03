@@ -6,11 +6,16 @@ import { getCompanyIdForUser } from "../companies/company.repository.js";
 
 export const reportsRouter = Router();
 
+function currentPayrollMonth(date = new Date()) {
+  return `${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+}
+
 reportsRouter.get(
   "/",
   asyncHandler(async (req, res) => {
     const companyId = await getCompanyIdForUser(req.user);
     const today = getBusinessDate();
+    const payrollMonth = currentPayrollMonth();
     const [attendanceSummary, payrollSummary, lateResult, overtimeResult, leaveResult, departmentResult, payrollTrend] = await Promise.all([
       query(
         `SELECT
@@ -30,8 +35,8 @@ reportsRouter.get(
           COUNT(pi.id)::int AS "payrollItems"
          FROM payroll_runs pr
          LEFT JOIN payroll_items pi ON pi.payroll_run_id = pr.id
-         WHERE pr.company_id = $1 AND pr.month = '05/2026'`,
-        [companyId]
+         WHERE pr.company_id = $1 AND pr.month = $2`,
+        [companyId, payrollMonth]
       ),
       query(
         `SELECT e.name, COUNT(a.id)::int AS late
@@ -47,7 +52,7 @@ reportsRouter.get(
         `SELECT d.name AS department, COALESCE(SUM(pi.overtime_hours), 0)::float AS hours
          FROM departments d
          LEFT JOIN employees e ON e.department_id = d.id AND e.company_id = d.company_id
-         LEFT JOIN payroll_runs pr ON pr.company_id = d.company_id AND pr.month = '05/2026'
+         LEFT JOIN payroll_runs pr ON pr.company_id = d.company_id AND pr.month = $2
          LEFT JOIN payroll_items pi ON pi.payroll_run_id = pr.id AND pi.employee_id = e.id
          WHERE d.company_id = $1
          GROUP BY d.id
@@ -60,7 +65,7 @@ reportsRouter.get(
             WHEN 'support' THEN 5
             ELSE 6
           END`,
-        [companyId]
+        [companyId, payrollMonth]
       ),
       query(
         `SELECT

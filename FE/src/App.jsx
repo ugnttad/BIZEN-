@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import CompanyRegisterPage from "./pages/CompanyRegisterPage";
 import EmployeeAccountRequestPage from "./pages/EmployeeAccountRequestPage";
 import PlatformCompanyRequests from "./pages/platform/PlatformCompanyRequests";
+import AdminHome from "./pages/web/AdminHome";
 import AdminDashboard from "./pages/web/AdminDashboard";
 import EmployeeManagement from "./pages/web/EmployeeManagement";
 import EmployeeDetail from "./pages/web/EmployeeDetail";
@@ -72,6 +73,14 @@ export default function App() {
         }
       >
         <Route index element={<WebIndexRedirect />} />
+        <Route
+          path="home"
+          element={
+            <ProtectedRoute roles={["Admin"]}>
+              <AdminHome />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="me"
           element={

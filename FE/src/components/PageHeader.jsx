@@ -2,12 +2,12 @@ import { Sparkles } from "lucide-react";
 
 export default function PageHeader({ eyebrow, title, description, actions }) {
   return (
-    <div className="relative mb-5 overflow-hidden rounded-2xl border border-white/70 bg-white/75 p-5 shadow-soft backdrop-blur-xl md:p-6">
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-teal-400 to-amber-400" />
+    <div className="relative mb-5 overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+      <div className="absolute inset-x-0 top-0 h-1 bg-slate-900" />
       <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           {eyebrow ? (
-            <p className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-normal text-blue-700">
+            <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold uppercase tracking-normal text-slate-700">
               <Sparkles className="h-3.5 w-3.5" />
               {eyebrow}
             </p>

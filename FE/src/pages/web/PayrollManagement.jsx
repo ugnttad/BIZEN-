@@ -16,7 +16,8 @@ import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import { formatCurrency } from "../../lib/utils";
+import { downloadCsv } from "../../lib/csv";
+import { formatCurrency, getCurrentPayrollMonth } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 const statusOptions = ["All", "Draft", "Reviewed", "Approved", "Paid"];
@@ -31,6 +32,7 @@ export default function PayrollManagement() {
   const [calculateOpen, setCalculateOpen] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [calculateMessage, setCalculateMessage] = useState("");
+  const payrollMonth = getCurrentPayrollMonth();
 
   useEffect(() => {
     Promise.all([bizenApi.payroll(), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([payrollData, departmentData, chartData]) => {
@@ -59,7 +61,7 @@ export default function PayrollManagement() {
     setCalculating(true);
     setCalculateMessage("");
     try {
-      const result = await bizenApi.calculatePayroll("05/2026");
+      const result = await bizenApi.calculatePayroll(payrollMonth);
       setPayrollRows(result.items || []);
       setCalculateMessage(`Đã tính lương cho ${result.updated} nhân viên (đã trừ BHXH 8%, BHYT 1,5%, BHTN 1%).`);
     } catch (err) {
@@ -69,11 +71,32 @@ export default function PayrollManagement() {
     }
   }
 
+  function exportPayrollCsv() {
+    downloadCsv(`bizen-bang-luong-${payrollMonth.replace("/", "-")}.csv`, [
+      ["Bảng lương BIZEN", payrollMonth],
+      [],
+      ["Nhân viên", "Mã NV", "Bộ phận", "Ngày công", "OT giờ", "OT tiền", "Thưởng", "Bảo hiểm NLĐ", "Khấu trừ", "Thực lĩnh", "Trạng thái"],
+      ...rows.map((row) => [
+        row.employeeName,
+        row.employeeId,
+        row.department,
+        row.workingDays,
+        row.overtimeHours,
+        row.overtimePay,
+        row.bonus,
+        row.insuranceDeduction || 0,
+        row.deduction,
+        row.finalSalary,
+        row.status
+      ])
+    ]);
+  }
+
   return (
     <div>
       <PageHeader
         eyebrow="Tính lương"
-        title="Bảng lương tháng 05/2026"
+        title={`Bảng lương tháng ${payrollMonth}`}
         description="Gộp ngày công, tăng ca, thưởng và khấu trừ BHXH/BHYT/BHTN theo quy định VN."
         actions={
           <>
@@ -81,7 +104,7 @@ export default function PayrollManagement() {
               <Calculator className="h-4 w-4" />
               Tính lương
             </button>
-            <button className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+            <button onClick={exportPayrollCsv} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
               <Download className="h-4 w-4" />
               Xuất file
             </button>
@@ -90,7 +113,7 @@ export default function PayrollManagement() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Tổng lương dự kiến" value={formatCurrency(total)} helper="20 nhân viên" tone="blue" />
+        <StatCard title="Tổng lương dự kiến" value={formatCurrency(total)} helper={`${payrollRows.length} nhân viên`} tone="blue" />
         <StatCard title="OT tháng này" value={formatCurrency(overtime)} helper="từ giờ tăng ca" tone="violet" />
         <StatCard title="Bảo hiểm NLĐ" value={formatCurrency(insurance)} helper="BHXH + BHYT + BHTN" tone="rose" />
         <StatCard title="Tổng khấu trừ" value={formatCurrency(deduction)} helper="BH + phạt trễ" tone="amber" />

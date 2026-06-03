@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, LockKeyhole, Mail, Send, UserRound } from "lucide-react";
-import WorkflowStepsCard from "../components/WorkflowStepsCard";
-import { mvpDemoFeatures } from "../constants/saasWorkflow";
 import { bizenApi } from "../modules/api/bizenApi";
-
-const hrOpsFeature = mvpDemoFeatures.find((f) => f.id === "hr-ops");
 
 export default function EmployeeAccountRequestPage() {
   const [email, setEmail] = useState("");
@@ -63,10 +59,6 @@ export default function EmployeeAccountRequestPage() {
               Luồng này chỉ dùng khi chủ sở hữu chưa cấp mật khẩu sẵn trong hồ sơ nhân viên. Nếu đã có email + mật khẩu, bạn có thể đăng nhập mobile ngay.
             </p>
           </div>
-
-          {hrOpsFeature ? (
-            <WorkflowStepsCard className="mt-8" title="Luồng bắt buộc" steps={hrOpsFeature.steps} skippable={hrOpsFeature.skippable} />
-          ) : null}
 
           <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             Nếu hệ thống báo chưa có hồ sơ — nhờ chủ sở hữu tạo employee profile trước, rồi gửi lại yêu cầu với đúng email.

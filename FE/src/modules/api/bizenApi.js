@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import { getCurrentPayrollMonth } from "../../lib/utils";
 
 export const bizenApi = {
   passwordLogin: (payload) => apiClient.post("/auth/login", payload),
@@ -36,9 +37,9 @@ export const bizenApi = {
   createScheduleAvailability: (payload) => apiClient.post("/schedules/availability", payload),
   deleteScheduleAvailability: (id) => apiClient.delete(`/schedules/availability/${id}`),
   aiSuggestSchedule: (payload = {}) => apiClient.post("/schedules/ai-suggest", payload),
-  payroll: (month = "05/2026") => apiClient.get(`/payroll?month=${encodeURIComponent(month)}`),
-  calculatePayroll: (month = "05/2026") => apiClient.post("/payroll/calculate", { month }),
-  payrollDetail: (employeeId, month = "05/2026") => apiClient.get(`/payroll/${employeeId}?month=${encodeURIComponent(month)}`),
+  payroll: (month = getCurrentPayrollMonth()) => apiClient.get(`/payroll?month=${encodeURIComponent(month)}`),
+  calculatePayroll: (month = getCurrentPayrollMonth()) => apiClient.post("/payroll/calculate", { month }),
+  payrollDetail: (employeeId, month = getCurrentPayrollMonth()) => apiClient.get(`/payroll/${employeeId}?month=${encodeURIComponent(month)}`),
   leaves: () => apiClient.get("/leaves"),
   createLeave: (payload) => apiClient.post("/leaves", payload),
   updateLeaveStatus: (id, status) => apiClient.patch(`/leaves/${id}/status`, { status }),

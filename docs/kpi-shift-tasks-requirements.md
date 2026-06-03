@@ -1,28 +1,28 @@
-# KPI theo ca làm cho nhân viên cửa hàng
+# Checklist ca làm cho nhân viên cửa hàng
 
 ## Mục tiêu
 
-Xây dựng tính năng KPI/nhiệm vụ theo ca để chủ quán giao việc cụ thể cho từng ca làm. Nhân viên nhìn thấy các việc cần hoàn thành trong khung giờ của ca, chụp ảnh minh chứng khi làm xong, hệ thống ghi nhận thời gian nộp và báo đúng hạn/trễ hạn để chủ quán kiểm tra.
+Xây dựng tính năng checklist/todo theo ca để chủ quán giao việc cụ thể cho từng ca làm. Nhân viên nhìn thấy các việc cần hoàn thành trong khung giờ của ca, chụp ảnh minh chứng khi làm xong, hệ thống ghi nhận thời gian nộp và báo đúng hạn/trễ hạn để chủ quán kiểm tra.
 
-Tính năng này giúp BIZEN chuyển từ "chấm công có mặt" sang "chấm công có kết quả công việc".
+Tính năng này không phải KPI đánh giá hiệu suất theo tháng. Đây là checklist vận hành hằng ca, giúp BIZEN chuyển từ "chấm công có mặt" sang "chấm công có bằng chứng công việc".
 
 ## Vai trò
 
-- **Chủ quán/Admin**: tạo mẫu KPI, gán KPI theo ca/bộ phận/nhân viên, xem ảnh minh chứng, duyệt hoặc yêu cầu làm lại.
-- **Nhân viên**: xem KPI của ca hiện tại, cập nhật tiến độ, chụp ảnh/upload minh chứng, gửi hoàn thành.
-- **AI Assistant**: hỏi mô hình vận hành của từng quán và gợi ý bộ KPI mẫu phù hợp.
+- **Chủ quán/Admin**: tạo mẫu checklist, gán việc theo ca/bộ phận/nhân viên, xem ảnh minh chứng, duyệt hoặc yêu cầu làm lại.
+- **Nhân viên**: xem checklist của ca hiện tại, cập nhật tiến độ, chụp ảnh/upload minh chứng, gửi hoàn thành.
+- **AI Assistant**: hỏi mô hình vận hành của từng quán và gợi ý bộ checklist mẫu phù hợp.
 
 ## Luồng nhân viên
 
 1. Nhân viên vào giao diện mobile/web employee.
-2. Hệ thống hiển thị ca hôm nay và mục **KPI cần hoàn thành**.
-3. Mỗi KPI có:
+2. Hệ thống hiển thị ca hôm nay và mục **Checklist cần hoàn thành**.
+3. Mỗi việc cần làm có:
    - Tên việc.
    - Mô tả ngắn.
    - Khung giờ cần hoàn thành.
    - Trạng thái: `Chưa làm`, `Đang làm`, `Đã nộp`, `Đã duyệt`, `Cần làm lại`, `Trễ`.
    - Nút chụp ảnh/upload ảnh.
-4. Nhân viên hoàn thành việc, chụp ảnh minh chứng và bấm **Nộp KPI**.
+4. Nhân viên hoàn thành việc, chụp ảnh minh chứng và bấm **Nộp ảnh**.
 5. Hệ thống lưu:
    - Thời gian bắt đầu nếu có.
    - Thời gian nộp.
@@ -47,9 +47,9 @@ Ví dụ ca ít khách:
 
 ## Luồng chủ quán
 
-1. Chủ quán vào mục **KPI ca làm**.
-2. Xem danh sách KPI theo ngày, ca, nhân viên hoặc bộ phận.
-3. Mỗi KPI hiển thị:
+1. Chủ quán vào mục **Checklist ca làm**.
+2. Xem danh sách việc theo ngày, ca, nhân viên hoặc bộ phận.
+3. Mỗi việc hiển thị:
    - Nhân viên phụ trách.
    - Ca làm.
    - Deadline.
@@ -58,20 +58,20 @@ Ví dụ ca ít khách:
    - Ảnh minh chứng.
 4. Chủ quán có thể:
    - Bấm xem ảnh.
-   - Duyệt KPI.
+   - Duyệt checklist.
    - Từ chối/yêu cầu làm lại và nhập lý do.
    - Ghi chú nội bộ.
 5. Dashboard có thống kê:
-   - Số KPI hoàn thành đúng hạn.
-   - Số KPI trễ.
-   - Số KPI đang chờ duyệt.
-   - Nhân viên/ca có nhiều KPI trễ.
+   - Số việc hoàn thành đúng hạn.
+   - Số việc trễ.
+   - Số việc đang chờ duyệt.
+   - Nhân viên/ca có nhiều việc trễ.
 
-## Cấu hình KPI theo từng quán
+## Cấu hình checklist theo từng quán
 
-Vì mỗi quán vận hành khác nhau, KPI cần có 2 lớp:
+Vì mỗi quán vận hành khác nhau, checklist cần có 2 lớp:
 
-### Mẫu KPI
+### Mẫu checklist
 
 Chủ quán tạo các mẫu nhiệm vụ thường dùng:
 
@@ -85,7 +85,7 @@ Chủ quán tạo các mẫu nhiệm vụ thường dùng:
 
 Mỗi mẫu có:
 
-- Tên KPI.
+- Tên việc.
 - Mô tả.
 - Bộ phận áp dụng: phục vụ, pha chế, thu ngân, quản lý.
 - Ca áp dụng: sáng, chiều, tối hoặc ca bất kỳ.
@@ -93,9 +93,9 @@ Mỗi mẫu có:
 - Có bắt buộc ảnh hay không.
 - Số ảnh tối thiểu.
 
-### KPI phát sinh theo ca
+### Checklist phát sinh theo ca
 
-Khi lịch ca được tạo, hệ thống sinh KPI từ mẫu theo:
+Khi lịch ca được tạo, hệ thống sinh việc từ mẫu theo:
 
 - Ca làm.
 - Vai trò/bộ phận của nhân viên.
@@ -113,13 +113,13 @@ Khi onboarding hoặc trong Settings, AI Assistant hỏi chủ quán:
 - Đầu ca cần làm gì?
 - Giữa ca ít khách thường giao việc gì?
 - Cuối ca cần checklist gì?
-- KPI nào bắt buộc chụp ảnh?
-- KPI nào cần chủ quán duyệt thủ công?
-- Một nhân viên mỗi ca nên nhận tối đa bao nhiêu KPI?
+- Việc nào bắt buộc chụp ảnh?
+- Việc nào cần chủ quán duyệt thủ công?
+- Một nhân viên mỗi ca nên nhận tối đa bao nhiêu việc?
 
-AI trả về bộ KPI gợi ý, chủ quán có thể chỉnh trước khi lưu.
+AI trả về bộ checklist gợi ý, chủ quán có thể chỉnh trước khi lưu.
 
-## Trạng thái KPI
+## Trạng thái checklist
 
 - `Pending`: Chưa làm.
 - `InProgress`: Đang làm.
@@ -129,20 +129,22 @@ AI trả về bộ KPI gợi ý, chủ quán có thể chỉnh trước khi lưu
 - `Late`: Nhân viên nộp sau deadline.
 - `Missed`: Quá ca nhưng chưa nộp.
 
-Ghi chú: `Late` có thể đi kèm `Submitted` hoặc `Approved`. Ví dụ một KPI nộp trễ nhưng vẫn được chủ quán duyệt.
+Ghi chú: `Late` có thể đi kèm `Submitted` hoặc `Approved`. Ví dụ một việc nộp trễ nhưng vẫn được chủ quán duyệt.
 
 ## Quy tắc đúng hạn/trễ hạn
 
-- Mỗi KPI có `dueAt`.
+- Mỗi việc có `dueAt`.
 - Khi nhân viên nộp, hệ thống lưu `submittedAt`.
 - Nếu `submittedAt <= dueAt`: đúng hạn.
 - Nếu `submittedAt > dueAt`: trễ.
 - Nếu hết ca mà chưa nộp: missed.
-- Chủ quán vẫn có thể duyệt KPI trễ nếu ảnh/minh chứng hợp lệ.
+- Chủ quán vẫn có thể duyệt việc trễ nếu ảnh/minh chứng hợp lệ.
 
 ## Dữ liệu cần lưu
 
 ### kpi_templates
+
+Tên bảng kỹ thuật vẫn giữ tiền tố `kpi` để tránh đổi schema lớn. Trên giao diện và requirement, tính năng được gọi là checklist ca làm.
 
 - id
 - company_id
@@ -188,7 +190,7 @@ Ghi chú: `Late` có thể đi kèm `Submitted` hoặc `Approved`. Ví dụ mộ
 
 ### Mobile/Employee
 
-- Card **KPI ca hôm nay**.
+- Card **Checklist ca hôm nay**.
 - Danh sách nhiệm vụ theo deadline gần nhất.
 - Badge đúng hạn/trễ/chờ duyệt.
 - Nút chụp ảnh/upload.
@@ -196,42 +198,42 @@ Ghi chú: `Late` có thể đi kèm `Submitted` hoặc `Approved`. Ví dụ mộ
 
 ### Admin
 
-- Trang **KPI ca làm**.
+- Trang **Checklist ca làm**.
 - Bộ lọc ngày, ca, nhân viên, trạng thái.
 - Bảng nhiệm vụ.
 - Preview ảnh.
 - Nút duyệt/từ chối.
-- Trang cấu hình mẫu KPI.
+- Trang cấu hình mẫu checklist.
 
 ## Acceptance criteria
 
-- Nhân viên chỉ thấy KPI của chính mình trong ca được phân.
-- Nhân viên có thể nộp KPI kèm ảnh.
+- Nhân viên chỉ thấy checklist của chính mình trong ca được phân.
+- Nhân viên có thể nộp việc kèm ảnh.
 - Hệ thống tự ghi nhận `submittedAt`.
 - Hệ thống tự đánh dấu đúng hạn/trễ dựa trên deadline.
 - Chủ quán xem được ảnh và thời gian nộp.
-- Chủ quán duyệt hoặc từ chối KPI.
-- KPI bị từ chối có lý do và nhân viên thấy được lý do.
-- KPI chưa nộp sau khi hết ca được tính là missed.
-- AI có thể gợi ý mẫu KPI theo loại quán và ca làm.
+- Chủ quán duyệt hoặc từ chối việc.
+- Việc bị từ chối có lý do và nhân viên thấy được lý do.
+- Việc chưa nộp sau khi hết ca được tính là missed.
+- AI có thể gợi ý mẫu checklist theo loại quán và ca làm.
 
-## MVP đề xuất
+## Lộ trình triển khai
 
 Phase 1:
 
-- Admin tạo mẫu KPI thủ công.
-- Khi tạo/lưu lịch ca, admin gán KPI cho nhân viên.
-- Nhân viên xem KPI, upload ảnh và nộp.
+- Admin tạo việc checklist thủ công.
+- Khi tạo/lưu lịch ca, admin gán việc cho nhân viên.
+- Nhân viên xem checklist, upload ảnh và nộp.
 - Admin duyệt/từ chối.
 
 Phase 2:
 
-- Tự sinh KPI từ mẫu theo ca/bộ phận.
-- Dashboard thống kê KPI.
+- Tự sinh checklist từ mẫu theo ca/bộ phận.
+- Dashboard thống kê checklist.
 - Thông báo nhắc deadline.
 
 Phase 3:
 
-- AI hỏi từng quán và tạo bộ KPI mẫu.
-- AI cảnh báo ca nào thường trễ KPI.
+- AI hỏi từng quán và tạo bộ checklist mẫu.
+- AI cảnh báo ca nào thường trễ checklist.
 - AI gợi ý tối ưu chia việc khi ca ít khách/nhiều khách.

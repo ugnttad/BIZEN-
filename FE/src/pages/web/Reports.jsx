@@ -20,10 +20,19 @@ import { useEffect, useState } from "react";
 import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
+import { downloadCsv } from "../../lib/csv";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
+import { Download } from "lucide-react";
 
 const chartColors = ["#2563eb", "#6d5dfc", "#0891b2", "#10b981", "#f59e0b"];
+
+function formatMonthPeriod(date = new Date()) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    month: "2-digit",
+    year: "numeric"
+  }).format(date);
+}
 
 export default function Reports() {
   const [summary, setSummary] = useState({ onTimeRate: 0, totalOt: 0, totalPayroll: 0, leaveRate: 0 });
@@ -33,6 +42,7 @@ export default function Reports() {
   const [payrollTrend, setPayrollTrend] = useState([]);
   const [departmentPerformance, setDepartmentPerformance] = useState([]);
   const [error, setError] = useState("");
+  const monthPeriod = formatMonthPeriod();
 
   useEffect(() => {
     bizenApi
@@ -48,19 +58,50 @@ export default function Reports() {
       .catch((requestError) => setError(requestError.message || "Không tải được báo cáo từ Neon."));
   }, []);
 
+  function exportReportCsv() {
+    downloadCsv("bizen-bao-cao-nhan-su.csv", [
+      ["Báo cáo nhân sự BIZEN"],
+      [],
+      ["Chỉ số", "Giá trị"],
+      ["Tỷ lệ đúng giờ", `${summary.onTimeRate || 0}%`],
+      ["Tổng giờ OT", summary.totalOt || 0],
+      ["Tiền OT", summary.totalOtPay || 0],
+      ["Chi phí lương", summary.totalPayroll || 0],
+      ["Tỷ lệ nghỉ phép", `${summary.leaveRate || 0}%`],
+      [],
+      ["Top đi trễ"],
+      ["Nhân viên", "Số lần đi trễ"],
+      ...lateData.map((item) => [item.name, item.late]),
+      [],
+      ["OT theo bộ phận"],
+      ["Bộ phận", "Giờ OT"],
+      ...overtimeData.map((item) => [item.department, item.hours]),
+      [],
+      ["Lương theo tháng"],
+      ["Tháng", "Lương", "OT"],
+      ...payrollTrend.map((item) => [item.month, item.payroll, item.overtime])
+    ]);
+  }
+
   return (
     <div>
       <PageHeader
         eyebrow="Reports & Analytics"
         title="Báo cáo nhân sự"
         description="Tỷ lệ đúng giờ, nhân viên đi trễ, OT, chi phí lương, nghỉ phép và hiệu suất bộ phận từ dữ liệu Neon."
+        actions={
+          <button onClick={exportReportCsv} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+            <Download className="h-4 w-4" />
+            Tải CSV
+          </button>
+        }
       />
 
       {error ? <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Đúng giờ" value={`${summary.onTimeRate || 0}%`} helper="trong ngày" tone="emerald" />
-        <StatCard title="Tổng giờ OT" value={`${summary.totalOt || 0}h`} helper="tháng 05/2026" tone="violet" />
+        <StatCard title="Tổng giờ OT" value={`${summary.totalOt || 0}h`} helper={`tháng ${monthPeriod}`} tone="violet" />
         <StatCard title="Chi phí lương" value={formatCurrency(summary.totalPayroll || 0)} helper="dự kiến" tone="blue" />
         <StatCard title="Tỷ lệ nghỉ phép" value={`${summary.leaveRate || 0}%`} helper="toàn công ty" tone="amber" />
       </div>

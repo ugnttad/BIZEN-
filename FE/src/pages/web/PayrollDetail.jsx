@@ -6,7 +6,7 @@ import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
 import EmptyState from "../../components/EmptyState";
 import Avatar from "../../components/Avatar";
-import { formatCurrency } from "../../lib/utils";
+import { formatCurrency, getCurrentPayrollMonth } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 function formatTodayDisplay() {
@@ -23,6 +23,7 @@ export default function PayrollDetail() {
   const [payroll, setPayroll] = useState(null);
   const [attendance, setAttendance] = useState(null);
   const [loading, setLoading] = useState(true);
+  const payrollMonth = payroll?.month || getCurrentPayrollMonth();
 
   useEffect(() => {
     let active = true;
@@ -59,7 +60,7 @@ export default function PayrollDetail() {
           <ArrowLeft className="h-4 w-4" />
           Bảng lương
         </Link>
-        <EmptyState title="Không tìm thấy bảng lương" description="Mã nhân viên không có payroll trong tháng 05/2026." />
+        <EmptyState title="Không tìm thấy bảng lương" description={`Mã nhân viên không có payroll trong tháng ${getCurrentPayrollMonth()}.`} />
       </div>
     );
   }
@@ -78,7 +79,7 @@ export default function PayrollDetail() {
             <div>
               <h1 className="text-2xl font-semibold tracking-normal text-slate-950">{employee.name}</h1>
               <p className="mt-1 text-sm text-slate-500">
-                {employee.id} · {employee.department} · Payroll 05/2026
+                {employee.id} · {employee.department} · Payroll {payrollMonth}
               </p>
             </div>
           </div>

@@ -44,8 +44,12 @@ function parseMonth(month) {
   return { start: `${yyyy}-${mm}-01`, endMonth: month };
 }
 
+function currentPayrollMonth(date = new Date()) {
+  return `${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+}
+
 function parsePayrollMonth(value) {
-  const month = value || "05/2026";
+  const month = value || currentPayrollMonth();
   if (!/^(0[1-9]|1[0-2])\/20\d{2}$/.test(month)) {
     throw httpError(400, "Tháng lương cần có định dạng MM/YYYY");
   }
@@ -60,6 +64,21 @@ payrollRouter.get(
     const employeeFilter = req.user.role === "Employee" ? " AND pi.employee_id = $3" : "";
     const params = req.user.role === "Employee" ? [companyId, month, req.user.employeeId] : [companyId, month];
     const result = await query(`${payrollSelect} WHERE pr.company_id = $1 AND pr.month = $2${employeeFilter} ORDER BY pi.employee_id`, params);
+    if (!result.rows.length) {
+      if (req.user.role === "Employee") {
+        const preview = await buildPayrollPreview(companyId, req.user.employeeId, month);
+        res.json([preview]);
+        return;
+      }
+
+      const employees = await query(
+        `SELECT id FROM employees WHERE company_id = $1 AND status = 'Active' ORDER BY id`,
+        [companyId]
+      );
+      const previews = await Promise.all(employees.rows.map((employee) => buildPayrollPreview(companyId, employee.id, month)));
+      res.json(previews);
+      return;
+    }
     res.json(result.rows);
   })
 );
@@ -72,7 +91,7 @@ payrollRouter.post(
     }
 
     const { month } = calculateSchema.parse(req.body ?? {});
-    const payrollMonth = month || "05/2026";
+    const payrollMonth = month || currentPayrollMonth();
     const companyId = await getCompanyIdForUser(req.user);
     const { start } = parseMonth(payrollMonth);
 

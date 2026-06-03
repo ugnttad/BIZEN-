@@ -1,98 +1,125 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import WorkflowStepsCard from "../components/WorkflowStepsCard";
-import { demoScriptOrder, mvpDemoFeatures } from "../constants/saasWorkflow";
 import {
   ArrowRight,
-  BadgeCheck,
   BarChart3,
-  BellRing,
   Building2,
+  CalendarCheck2,
   CheckCircle2,
-  ChevronDown,
+  ClipboardCheck,
   Clock3,
-  Headphones,
-  Home,
-  Layers3,
+  CreditCard,
+  FileText,
+  MapPin,
   Menu,
-  MessageSquareText,
-  PlayCircle,
+  ScanFace,
+  Settings,
   ShieldCheck,
-  Sparkles,
   UsersRound,
   X
 } from "lucide-react";
 
 const navItems = [
-  { label: "Trang chủ", href: "#home" },
-  { label: "Giải pháp", href: "#solutions" },
   { label: "Tính năng", href: "#features" },
-  { label: "Bảng giá", href: "#pricing" },
-  { label: "Khách hàng", href: "#customers" },
+  { label: "Ví dụ sử dụng", href: "#examples" },
+  { label: "Triển khai", href: "#rollout" },
   { label: "FAQ", href: "#faq" }
 ];
 
 const metrics = [
-  { value: "10-20", label: "nhân viên/quán" },
-  { value: "3-4", label: "ca làm chuẩn" },
-  { value: "98%", label: "chấm công rõ trạng thái" },
-  { value: "24/7", label: "cloud dashboard" }
+  { value: "1-20", label: "nhân sự mỗi cửa hàng" },
+  { value: "GPS", label: "địa điểm chấm công" },
+  { value: "Face ID", label: "xác minh nhân viên" },
+  { value: "CSV", label: "xuất báo cáo ngay" }
 ];
 
-const featureTabs = mvpDemoFeatures.map((feature, index) => ({
-  title: feature.title,
-  icon: [Building2, Clock3, UsersRound][index],
-  content: feature.pain,
-  steps: feature.steps,
-  skippable: feature.skippable
-}));
-
-const solutionCards = [
+const featureExamples = [
   {
-    title: "Cho chủ sở hữu",
-    icon: BarChart3,
-    text: "Một người nắm toàn quyền: hồ sơ nhân viên, lịch ca, chấm công, nghỉ phép, lương và báo cáo."
-  },
-  {
-    title: "Cho cửa hàng nhỏ/vừa",
+    title: "Trang chủ quản lí",
     icon: Building2,
-    text: "Dành cho quán cafe/trà sữa 10-20 nhân viên ở Đà Nẵng, chưa dùng phần mềm nhân sự chuyên nghiệp."
+    example: "Chủ quán đăng nhập vào màn hình hub, chọn nhanh Nhân viên, Xếp ca, Chấm công, Bảng lương hoặc Báo cáo.",
+    outcome: "Không bị đẩy thẳng vào dashboard, nhìn giống một hệ thống làm việc thật."
   },
   {
-    title: "Cho nhân viên",
-    icon: ShieldCheck,
-    text: "Cổng web/mobile đơn giản: hôm nay làm ca nào, đã check-in chưa, lương tạm tính và ngày phép còn lại."
+    title: "Nhân viên",
+    icon: UsersRound,
+    example: "Tạo hồ sơ pha chế, thu ngân, phục vụ, lương theo giờ, trạng thái đang làm hoặc nghỉ.",
+    outcome: "Chủ quán nắm được đội hiện tại trước khi xếp ca."
   },
   {
-    title: "Cho người bán SaaS",
-    icon: BellRing,
-    text: "Bạn duyệt doanh nghiệp đăng ký trước khi họ vào hệ thống và dùng tenant riêng."
+    title: "Xếp ca AI",
+    icon: CalendarCheck2,
+    example: "Quán đăng ký 8 nhân viên thì AI Suggest chỉ gợi ý quanh quy mô 8 người, không ép theo mẫu 20 người.",
+    outcome: "Lịch ca sát thực tế hơn cho cửa hàng nhỏ."
+  },
+  {
+    title: "Checklist ca làm",
+    icon: ClipboardCheck,
+    example: "Ca sáng cần setup bàn ghế trước 7:20, quét dọn trước 7:30. Làm xong nhân viên chụp ảnh và nộp.",
+    outcome: "Hệ thống ghi nhận đúng giờ hoặc trễ giờ để chủ quán kiểm tra."
+  },
+  {
+    title: "Chấm công GPS",
+    icon: MapPin,
+    example: "Chủ quán chọn địa chỉ cửa hàng, hệ thống lưu latitude, longitude và bán kính cho phép.",
+    outcome: "Nhân viên check-in gần quán mới được ghi nhận hợp lệ."
+  },
+  {
+    title: "Face ID",
+    icon: ScanFace,
+    example: "Nhân viên đăng ký khuôn mặt, chủ quán duyệt, sau đó dùng camera để chấm công.",
+    outcome: "Giảm tình trạng chấm công hộ."
+  },
+  {
+    title: "Nghỉ phép",
+    icon: Clock3,
+    example: "Nhân viên gửi yêu cầu nghỉ, chủ quán duyệt hoặc từ chối kèm lý do.",
+    outcome: "Lịch ca và công không bị lệch vì tin nhắn trôi trong Zalo."
+  },
+  {
+    title: "Bảng lương",
+    icon: CreditCard,
+    example: "BIZEN gom giờ làm, OT và các bản ghi quên check-out cần chủ quán chốt.",
+    outcome: "Chốt lương có dữ liệu đối soát trước khi trả tiền."
+  },
+  {
+    title: "Báo cáo",
+    icon: FileText,
+    example: "Xuất CSV chấm công, tổng quan vận hành hoặc báo cáo nhân sự theo bộ phận.",
+    outcome: "Có file thật để gửi kế toán hoặc lưu nội bộ."
+  },
+  {
+    title: "Cài đặt cửa hàng",
+    icon: Settings,
+    example: "Thiết lập giờ làm chuẩn, grace period, vị trí GPS, công thức lương và bộ phận.",
+    outcome: "Mỗi cửa hàng có cấu hình riêng thay vì dùng một mẫu cứng."
   }
 ];
 
-const postMvpFeatures = [
-  { title: "Xếp ca AI", text: "OpenAI gợi ý lịch theo ca, ngày bận, nghỉ phép và workload gần đây." },
-  { title: "Payroll tự động", text: "Gom công, OT, phạt và đối soát dữ liệu chấm công trước khi chốt lương." },
-  { title: "Báo cáo & AI Assistant", text: "Dashboard quản trị, cảnh báo AI và trợ lý vận hành phản hồi realtime." }
+const rolloutSteps = [
+  "Cửa hàng đăng ký doanh nghiệp và nhập quy mô nhân sự.",
+  "BIZEN duyệt tenant, tạo workspace và tài khoản chủ sở hữu.",
+  "Chủ quán thêm nhân viên, cấu hình vị trí GPS, ca làm và lương.",
+  "Nhân viên dùng cổng mobile để xem ca, chấm công, làm checklist và gửi nghỉ phép.",
+  "Chủ quán xem báo cáo, duyệt ảnh checklist, chốt công và xuất CSV."
 ];
 
 const faqs = [
   {
-    question: "BIZEN dùng được với dữ liệu thật không?",
-    answer: "Có. Hệ thống có backend Node.js, PostgreSQL Neon và API nghiệp vụ để vận hành trên dữ liệu tập trung."
+    question: "BIZEN phù hợp nhất với mô hình nào?",
+    answer: "Cửa hàng cafe, trà sữa hoặc dịch vụ nhỏ dưới 20 nhân sự, cần quản lí ca làm, chấm công, lương và việc đầu ca/cuối ca."
   },
   {
-    question: "Có cần cài phần mềm trên máy chấm công không?",
-    answer: "Không. Ứng dụng dùng camera mobile/web, chủ sở hữu duyệt ảnh đăng ký và AWS Rekognition xác minh khuôn mặt khi chấm công."
+    question: "Checklist ca làm có phải KPI không?",
+    answer: "Không. Đây là danh sách việc cần làm theo ca, giống todolist vận hành có deadline và ảnh minh chứng."
   },
   {
-    question: "Có cần tách nhân sự hoặc quản lý riêng không?",
-    answer: "Không bắt buộc. MVP gọn nhất là chủ sở hữu có toàn quyền, nhân viên dùng cổng tự phục vụ; quản lý ca chỉ là chức vụ công việc."
+    question: "Có dùng dữ liệu thật được không?",
+    answer: "Có. Dữ liệu nhân viên, ca làm, chấm công, nghỉ phép, payroll và checklist đều đi qua API/backend thay vì chỉ hiển thị giao diện tĩnh."
   }
 ];
 
 export default function LandingPage() {
-  const [activeTab, setActiveTab] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", company: "" });
   const [formError, setFormError] = useState("");
@@ -102,16 +129,11 @@ export default function LandingPage() {
     setMobileMenuOpen(false);
   }
 
-  function goHome() {
-    closeMenu();
-    window.setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0);
-  }
-
   function submitConsultation(event) {
     event.preventDefault();
     if (!form.name.trim() || !form.company.trim() || form.phone.replace(/\D/g, "").length < 9) {
       setSubmitted(false);
-      setFormError("Vui lòng nhập tên, công ty và số điện thoại hợp lệ.");
+      setFormError("Vui lòng nhập tên, tên cửa hàng và số điện thoại hợp lệ.");
       return;
     }
     setFormError("");
@@ -119,42 +141,39 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-slate-950 animate-soft-appear">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/50 bg-white/90 backdrop-blur-xl transition-all duration-300">
+    <main className="min-h-screen bg-white text-slate-950">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" onClick={goHome} className="group flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 text-lg font-bold text-white transition duration-300 group-hover:scale-105 group-hover:bg-blue-700">B</span>
+          <Link to="/" onClick={closeMenu} className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-lg bg-slate-950 text-lg font-bold text-white">B</span>
             <span>
-              <span className="block text-xl font-bold tracking-normal text-blue-700 transition-colors group-hover:text-blue-800">BIZEN</span>
+              <span className="block text-xl font-bold tracking-normal text-slate-950">BIZEN</span>
               <span className="block text-xs font-medium text-slate-500">Cloud HR & Payroll</span>
             </span>
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-600 lg:flex">
             {navItems.map((item) => (
-              <a key={item.href} href={item.href} className="relative py-2 transition-colors duration-200 hover:text-blue-700 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-left after:scale-x-0 after:rounded-full after:bg-blue-600 after:transition-transform after:duration-300 hover:after:scale-x-100">
+              <a key={item.href} href={item.href} className="py-2 hover:text-slate-950">
                 {item.label}
               </a>
             ))}
           </nav>
 
           <div className="hidden items-center gap-3 lg:flex">
-            <Link to="/login" className="btn-motion rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+            <Link to="/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
               Đăng nhập
             </Link>
-            <Link to="/register-company" className="btn-motion rounded-lg px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">
-              Đăng ký DN
-            </Link>
-            <a href="#consult" className="btn-motion inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 hover:shadow-blue-600/20">
-              Liên hệ
+            <Link to="/register-company" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+              Đăng ký doanh nghiệp
               <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
           </div>
 
           <button
             type="button"
             onClick={() => setMobileMenuOpen((value) => !value)}
-            className="btn-motion grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-700 lg:hidden"
+            className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-700 lg:hidden"
             aria-label="Mở menu"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -162,57 +181,53 @@ export default function LandingPage() {
         </div>
 
         {mobileMenuOpen ? (
-          <div className="animate-panel-in border-t border-slate-100 bg-white/95 px-4 py-4 shadow-lg backdrop-blur lg:hidden">
+          <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-sm lg:hidden">
             <nav className="mx-auto grid max-w-7xl gap-2 text-sm font-semibold text-slate-700">
               {navItems.map((item) => (
-                <a key={item.href} href={item.href} onClick={closeMenu} className="flex items-center gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-blue-50 hover:text-blue-700">
-                  {item.href === "#home" ? <Home className="h-4 w-4" /> : null}
+                <a key={item.href} href={item.href} onClick={closeMenu} className="rounded-lg px-3 py-2 hover:bg-slate-100">
                   {item.label}
                 </a>
               ))}
-              <Link to="/login" onClick={closeMenu} className="rounded-lg px-3 py-2 transition-colors hover:bg-slate-100">
+              <Link to="/login" onClick={closeMenu} className="rounded-lg px-3 py-2 hover:bg-slate-100">
                 Đăng nhập
+              </Link>
+              <Link to="/register-company" onClick={closeMenu} className="rounded-lg bg-slate-950 px-3 py-2 text-white">
+                Đăng ký doanh nghiệp
               </Link>
             </nav>
           </div>
         ) : null}
       </header>
 
-      <section id="home" className="relative min-h-[92vh] overflow-hidden pt-16">
-        <div className="hero-bg-motion absolute inset-0 bg-[url('/assets/bizen-hero-dashboard.png')] bg-cover bg-center lg:bg-right" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.99)_0%,rgba(255,255,255,0.94)_36%,rgba(255,255,255,0.60)_63%,rgba(255,255,255,0.12)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white to-transparent" />
-
-        <div className="relative mx-auto flex min-h-[calc(92vh-4rem)] max-w-7xl items-center px-4 pb-20 pt-12 sm:px-6 lg:px-8">
+      <section className="relative min-h-[88vh] overflow-hidden pt-16">
+        <div className="absolute inset-0 bg-[url('/assets/bizen-hero-dashboard.png')] bg-cover bg-center lg:bg-right" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.99)_0%,rgba(255,255,255,0.94)_42%,rgba(255,255,255,0.72)_68%,rgba(255,255,255,0.22)_100%)]" />
+        <div className="relative mx-auto flex min-h-[calc(88vh-4rem)] max-w-7xl items-center px-4 py-16 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
-            <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-3 py-1.5 text-sm font-semibold text-blue-700 shadow-sm">
-              <Sparkles className="h-4 w-4" />
-              Nền tảng nhân sự & Payroll cho quán cafe/trà sữa Đà Nẵng
-            </div>
-            <h1 className="animate-fade-up anim-delay-100 mt-6 text-4xl font-bold leading-tight tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
-              Quản lý nhân sự, chấm công và tính lương trên một nền tảng.
-            </h1>
-            <p className="animate-fade-up anim-delay-200 mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-              BIZEN giúp quán cafe và trà sữa nhỏ, khoảng 10-20 nhân viên, thay Excel/Zalo bằng chấm công Face ID, xếp ca, nghỉ phép và tính lương gọn.
+            <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm">
+              <ShieldCheck className="h-4 w-4 text-blue-600" />
+              Quản lí nhân sự thực tế cho cửa hàng nhỏ
             </p>
-            <div className="animate-fade-up anim-delay-300 mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/register-company" className="btn-motion inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30">
+            <h1 className="mt-6 text-4xl font-bold leading-tight tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
+              BIZEN quản lí ca làm, chấm công và lương cho cửa hàng dưới 20 người.
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+              Một nơi để chủ quán xếp ca, kiểm tra chấm công GPS/Face ID, giao checklist theo ca, duyệt nghỉ phép và xuất báo cáo vận hành.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/register-company" className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
                 Đăng ký doanh nghiệp
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link to="/login" className="btn-motion inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white/80 px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-white">
-                <PlayCircle className="h-4 w-4" />
-                Đăng nhập
+              <Link to="/login" className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white/85 px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-white">
+                Vào hệ thống
               </Link>
             </div>
-            <p className="animate-fade-up anim-delay-300 mt-3 text-sm text-slate-500">
-              Khách hàng đăng ký trước → chủ nền tảng BIZEN duyệt → chủ sở hữu cửa hàng vận hành nội bộ.
-            </p>
 
-            <div className="animate-fade-up anim-delay-400 mt-10 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mt-10 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
               {metrics.map((metric) => (
-                <div key={metric.label} className="motion-card rounded-lg border border-white/70 bg-white/80 p-4 shadow-sm backdrop-blur hover:shadow-soft">
-                  <p className="text-2xl font-bold text-blue-700">{metric.value}</p>
+                <div key={metric.label} className="rounded-lg border border-slate-200 bg-white/85 p-4 shadow-sm">
+                  <p className="text-2xl font-bold text-slate-950">{metric.value}</p>
                   <p className="mt-1 text-xs font-medium text-slate-500">{metric.label}</p>
                 </div>
               ))}
@@ -221,169 +236,111 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="border-y border-slate-100 bg-slate-50 py-5">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold text-slate-500 sm:px-6 lg:px-8">
-          <span className="transition-colors hover:text-blue-700">Pha chế</span>
-          <span className="transition-colors hover:text-blue-700">Thu ngân</span>
-          <span className="transition-colors hover:text-blue-700">Order</span>
-          <span className="transition-colors hover:text-blue-700">Chủ sở hữu</span>
-          <span className="transition-colors hover:text-blue-700">Kho / Tạp vụ</span>
-          <span className="transition-colors hover:text-blue-700">Tính lương</span>
-        </div>
-      </section>
-
-      <section id="solutions" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-        <div className="animate-fade-up max-w-3xl">
-          <p className="text-sm font-bold uppercase tracking-normal text-blue-600">Giải pháp tất cả trong một</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Một hệ thống gọn cho chủ quán cafe/trà sữa và nhân viên.</h2>
-          <p className="mt-4 text-base leading-7 text-slate-600">
-            Chủ sở hữu xử lý vận hành trên dashboard; nhân viên mở web/mobile để check-in, xem lịch, lương và gửi nghỉ phép.
-          </p>
-        </div>
-
-        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {solutionCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <article key={card.title} className="motion-card group rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:border-blue-200 hover:shadow-soft">
-                <div className="grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-700 transition duration-300 group-hover:scale-105">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h3 className="mt-5 text-lg font-bold text-slate-950">{card.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{card.text}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section id="features" className="bg-slate-950 py-20 text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-          <div className="animate-fade-up">
-            <p className="text-sm font-bold uppercase tracking-normal text-cyan-300">MVP demo (3 tính năng)</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-normal sm:text-4xl">Pitch & Figma tập trung 3 luồng có trong sản phẩm.</h2>
-            <p className="mt-4 text-base leading-7 text-slate-300">
-              Mỗi tính năng gắn một pain point SME và luồng bấm cụ thể — phù hợp demo live 10–15 phút.
-            </p>
-            <div className="mt-8 space-y-3">
-              {featureTabs.map((tab, index) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === index;
-                return (
-                  <button
-                    key={tab.title}
-                    type="button"
-                    onClick={() => setActiveTab(index)}
-                    className={`btn-motion flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left ${
-                      isActive ? "border-blue-400 bg-blue-500/15 text-white" : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
-                    }`}
-                  >
-                    <span className="flex items-center gap-3 text-sm font-semibold">
-                      <Icon className="h-5 w-5" />
-                      {tab.title}
-                    </span>
-                    <ChevronDown className={`h-4 w-4 transition ${isActive ? "rotate-180" : ""}`} />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="animate-fade-up anim-delay-100 rounded-lg border border-white/10 bg-white/[0.04] p-4 shadow-2xl">
-            <div key={featureTabs[activeTab].title} className="animate-panel-in rounded-lg bg-white p-4 text-slate-950">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-normal text-blue-600">Live workflow</p>
-                  <h3 className="mt-1 text-xl font-bold">{featureTabs[activeTab].title}</h3>
-                </div>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Active</span>
-              </div>
-              <p className="mt-4 text-sm leading-6 text-slate-600">{featureTabs[activeTab].content}</p>
-              <WorkflowStepsCard
-                className="mt-6 !border-slate-200 !bg-slate-50"
-                title="Luồng người dùng"
-                steps={featureTabs[activeTab].steps}
-                skippable={featureTabs[activeTab].skippable}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-          <div className="animate-fade-up">
-            <p className="text-sm font-bold uppercase tracking-normal text-blue-600">Kịch bản demo live</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Thứ tự trình diễn gợi ý (10–15 phút).</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">
-              Dùng hai trình duyệt: một tab Platform Admin (bạn), một tab chủ sở hữu + cổng nhân viên.
-            </p>
-            <WorkflowStepsCard className="mt-6" title="Thứ tự demo" steps={demoScriptOrder} />
-          </div>
-
-          <div className="grid gap-4">
-            {postMvpFeatures.map((item) => (
-              <div key={item.title} className="motion-card rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:border-blue-200">
-                <Layers3 className="h-8 w-8 text-slate-400" />
-                <h3 className="mt-3 text-lg font-bold text-slate-950">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
-                <span className="mt-3 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">Sau MVP</span>
-              </div>
-            ))}
-            <div className="motion-card rounded-lg border border-blue-200 bg-blue-600 p-6 text-white shadow-soft">
-              <BadgeCheck className="h-9 w-9 text-cyan-200" />
-              <h3 className="mt-5 text-xl font-bold">Bắt đầu dùng BIZEN</h3>
-              <p className="mt-2 text-sm leading-6 text-blue-50">Doanh nghiệp đăng ký — bạn duyệt tenant — triển khai cho khách trong vài phút.</p>
-              <Link to="/register-company" className="btn-motion mt-6 inline-flex w-full items-center justify-center rounded-lg bg-white px-4 py-3 text-sm font-bold text-blue-700 hover:bg-blue-50">
-                Đăng ký doanh nghiệp
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="customers" className="bg-blue-50/60 py-20">
+      <section id="features" className="border-y border-slate-200 bg-slate-50 py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-            <div className="animate-fade-up">
-              <p className="text-sm font-bold uppercase tracking-normal text-blue-600">Khách hàng SME</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Thiết kế cho đội ngũ vận hành gọn.</h2>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {[
-                "Dashboard dễ đọc, không nhồi quá nhiều menu.",
-                "Nhân viên chỉ cần một nút hành động chính mỗi ngày.",
-                "Chủ sở hữu có bảng, bộ lọc và trạng thái rõ ràng.",
-                "Cửa hàng nhận cảnh báo thiếu người và tăng ca."
-              ].map((quote) => (
-                <figure key={quote} className="motion-card rounded-lg border border-blue-100 bg-white p-5 shadow-sm hover:border-blue-200 hover:shadow-soft">
-                  <MessageSquareText className="h-6 w-6 text-blue-600" />
-                  <blockquote className="mt-4 text-sm font-semibold leading-6 text-slate-700">“{quote}”</blockquote>
-                </figure>
-              ))}
-            </div>
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase tracking-normal text-blue-700">Tính năng chính</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Từ đăng ký cửa hàng tới vận hành mỗi ngày.</h2>
+            <p className="mt-4 text-base leading-7 text-slate-600">
+              BIZEN gom các việc chủ quán thường xử lí rời rạc trên Excel, Zalo và giấy tờ thành các màn hình có hành động thật.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {featureExamples.slice(0, 6).map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <article key={feature.title} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="grid h-11 w-11 place-items-center rounded-lg bg-slate-100 text-slate-800">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-5 text-lg font-bold text-slate-950">{feature.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{feature.example}</p>
+                  <p className="mt-4 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">{feature.outcome}</p>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section id="consult" className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-        <div className="animate-fade-up">
-          <p className="text-sm font-bold uppercase tracking-normal text-blue-600">Đăng ký tư vấn</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Muốn triển khai BIZEN cho doanh nghiệp?</h2>
+      <section id="examples" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-normal text-blue-700">Ví dụ sử dụng</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Các tình huống chủ quán có thể test ngay.</h2>
+            <p className="mt-4 text-base leading-7 text-slate-600">
+              Mỗi ví dụ bên phải tương ứng một module trong hệ thống. Khi khách bấm vào, họ thấy dữ liệu, bộ lọc, trạng thái và thao tác rõ ràng.
+            </p>
+            <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
+                <p>
+                  Tính năng checklist ca làm được định nghĩa là todolist vận hành. Nó không chấm điểm KPI dài hạn, mà kiểm tra việc trong ca có làm đúng hạn và có ảnh minh chứng không.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3">
+            {featureExamples.slice(6).map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <article key={feature.title} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex gap-4">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-800">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-950">{feature.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">{feature.example}</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">{feature.outcome}</p>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section id="rollout" className="bg-slate-950 py-16 text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-normal text-blue-200">Quy trình triển khai</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-normal sm:text-4xl">Đủ gọn để đem ra cửa hàng test trong một buổi.</h2>
+            <p className="mt-4 text-base leading-7 text-slate-300">
+              Chủ quán không cần hiểu kỹ thuật. Họ chỉ cần đăng ký, được duyệt workspace, thêm nhân viên và bắt đầu vận hành.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+            <ol className="space-y-3">
+              {rolloutSteps.map((step, index) => (
+                <li key={step} className="flex gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-slate-950">{index + 1}</span>
+                  <span className="text-sm leading-6 text-slate-200">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section id="consult" className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-normal text-blue-700">Bắt đầu dùng</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Đăng ký doanh nghiệp hoặc gửi thông tin tư vấn.</h2>
           <p className="mt-4 text-base leading-7 text-slate-600">
-            Muốn dùng ngay? Chuyển sang form đăng ký doanh nghiệp — hệ thống tạo yêu cầu chờ bạn (chủ nền tảng) duyệt.
+            Nếu đã có cửa hàng test, dùng thẳng form đăng ký doanh nghiệp. Nếu cần khảo sát nghiệp vụ trước, để lại thông tin ở form bên cạnh.
           </p>
-          <Link to="/register-company" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-blue-700 hover:text-blue-800">
-            Đi tới đăng ký doanh nghiệp
+          <Link to="/register-company" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+            Đăng ký doanh nghiệp
             <ArrowRight className="h-4 w-4" />
           </Link>
-          <div className="mt-8 flex items-center gap-3 text-sm font-semibold text-slate-700">
-            <Headphones className="h-5 w-5 text-blue-600" />
-            Demo, phân tích nghiệp vụ và roadmap kỹ thuật
-          </div>
         </div>
 
-        <form onSubmit={submitConsultation} className="animate-fade-up anim-delay-100 rounded-lg border border-slate-200 bg-white p-6 shadow-soft">
+        <form onSubmit={submitConsultation} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-semibold text-slate-700">
               Họ tên
@@ -405,35 +362,35 @@ export default function LandingPage() {
             </label>
           </div>
           <label className="mt-4 block text-sm font-semibold text-slate-700">
-            Tên công ty
+            Tên cửa hàng
             <input
               value={form.company}
               onChange={(event) => setForm({ ...form, company: event.target.value })}
               className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              placeholder="Công ty SME tại Đà Nẵng"
+              placeholder="BIZEN Coffee Đà Nẵng"
             />
           </label>
           {formError ? <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{formError}</p> : null}
           {submitted ? <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">Đã ghi nhận thông tin tư vấn.</p> : null}
-          <button type="submit" className="btn-motion mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700">
-            Gửi yêu cầu
+          <button type="submit" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700">
+            Gửi thông tin
             <ArrowRight className="h-4 w-4" />
           </button>
         </form>
       </section>
 
-      <section id="faq" className="border-t border-slate-100 bg-slate-50 py-20">
+      <section id="faq" className="border-t border-slate-200 bg-slate-50 py-16">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-sm font-bold uppercase tracking-normal text-blue-600">FAQ</p>
+            <p className="text-sm font-bold uppercase tracking-normal text-blue-700">FAQ</p>
             <h2 className="mt-3 text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">Câu hỏi thường gặp</h2>
           </div>
           <div className="mt-10 space-y-3">
             {faqs.map((faq) => (
-              <details key={faq.question} className="motion-card group rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:border-blue-200 hover:shadow-soft">
+              <details key={faq.question} className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-bold text-slate-950">
                   {faq.question}
-                  <ChevronDown className="h-5 w-5 shrink-0 text-slate-400 transition group-open:rotate-180" />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-90" />
                 </summary>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{faq.answer}</p>
               </details>
@@ -442,21 +399,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="bg-slate-950 py-10 text-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+      <footer className="bg-white py-10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 border-t border-slate-200 px-4 pt-8 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
           <div>
-            <p className="text-2xl font-bold text-white">BIZEN</p>
-            <p className="mt-1 text-sm text-slate-400">Cloud HR & Payroll for SME Đà Nẵng</p>
+            <p className="text-2xl font-bold text-slate-950">BIZEN</p>
+            <p className="mt-1 text-sm text-slate-500">Cloud HR & Payroll for SME Đà Nẵng</p>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm font-semibold text-slate-300">
-            <Link to="/login" className="hover:text-white">
+          <div className="flex flex-wrap gap-3 text-sm font-semibold text-slate-600">
+            <Link to="/login" className="hover:text-slate-950">
               Đăng nhập
             </Link>
-            <Link to="/register-company" className="hover:text-white">
+            <Link to="/register-company" className="hover:text-slate-950">
               Đăng ký doanh nghiệp
             </Link>
-            <Link to="/register-employee" className="hover:text-white">
-              Yêu cầu tài khoản NV
+            <Link to="/register-employee" className="hover:text-slate-950">
+              Yêu cầu tài khoản nhân viên
             </Link>
           </div>
         </div>

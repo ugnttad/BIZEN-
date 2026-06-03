@@ -4,13 +4,10 @@ import { Building2, CheckCircle2, LogOut, RefreshCw, Search, ShieldCheck, XCircl
 import EmptyState from "../../components/EmptyState";
 import RejectionReasonModal from "../../components/RejectionReasonModal";
 import StatusBadge from "../../components/StatusBadge";
-import WorkflowStepsCard from "../../components/WorkflowStepsCard";
-import { mvpDemoFeatures } from "../../constants/saasWorkflow";
 import { bizenApi } from "../../modules/api/bizenApi";
 import { clearAuthSession, getAuthUser } from "../../modules/auth/authStore";
 
 const statusTabs = ["Pending", "All", "Approved", "Rejected"];
-const onboardingFeature = mvpDemoFeatures.find((f) => f.id === "onboarding");
 const defaultRejectionReason = "Chưa đủ thông tin doanh nghiệp";
 
 function formatDateTime(value) {
@@ -128,10 +125,6 @@ export default function PlatformCompanyRequests() {
             Làm mới
           </button>
         </div>
-
-        {onboardingFeature ? (
-          <WorkflowStepsCard className="mb-5" title="Vai trò của bạn trong demo" steps={onboardingFeature.steps} skippable={onboardingFeature.skippable} />
-        ) : null}
 
         <section className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <div className="grid gap-3 lg:grid-cols-[1fr_auto]">

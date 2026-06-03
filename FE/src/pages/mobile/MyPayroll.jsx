@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CreditCard, Download } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
-import { formatCurrency } from "../../lib/utils";
+import { formatCurrency, getCurrentPayrollMonth } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 import { getMobileEmployeeId } from "../../modules/auth/mobileSession";
 
@@ -45,7 +45,7 @@ export default function MyPayroll() {
           <CreditCard className="h-6 w-6" />
           <StatusBadge status={payroll.status} />
         </div>
-        <p className="mt-5 text-sm text-blue-100">Lương tháng {payroll.month || "05/2026"}</p>
+        <p className="mt-5 text-sm text-blue-100">Lương tháng {payroll.month || getCurrentPayrollMonth()}</p>
         <p className="mt-1 text-3xl font-semibold tracking-normal">{formatCurrency(payroll.finalSalary)}</p>
         {payroll.isEstimate ? <p className="mt-2 text-xs text-blue-100">Tạm tính từ ngày công — chủ sở hữu chưa chốt bảng lương chính thức</p> : null}
       </section>

@@ -129,7 +129,7 @@ export default function KpiManagement() {
         if (active) setTasks(rows);
       })
       .catch((requestError) => {
-        if (active) setError(requestError.message || "Không tải được KPI ca làm.");
+        if (active) setError(requestError.message || "Không tải được checklist ca làm.");
       });
     return () => {
       active = false;
@@ -169,7 +169,7 @@ export default function KpiManagement() {
   async function createTask(event) {
     event.preventDefault();
     if (!form.employeeId || !form.title.trim()) {
-      setError("Chọn nhân viên và nhập tên KPI.");
+      setError("Chọn nhân viên và nhập tên việc cần làm.");
       return;
     }
 
@@ -185,20 +185,20 @@ export default function KpiManagement() {
       setFilters((current) => ({ ...current, date: form.workDate }));
       setFormOpen(false);
     } catch (requestError) {
-      setError(requestError.message || "Không tạo được KPI.");
+      setError(requestError.message || "Không tạo được việc cần làm.");
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteTask(task) {
-    if (!window.confirm(`Xóa KPI "${task.title}"?`)) return;
+    if (!window.confirm(`Xóa việc "${task.title}"?`)) return;
     setError("");
     try {
       await bizenApi.deleteKpiTask(task.id);
       setTasks((current) => current.filter((item) => item.id !== task.id));
     } catch (requestError) {
-      setError(requestError.message || "Không xóa được KPI.");
+      setError(requestError.message || "Không xóa được việc cần làm.");
     }
   }
 
@@ -208,7 +208,7 @@ export default function KpiManagement() {
       const updated = await bizenApi.reviewKpiTask(task.id, { status: "Approved" });
       setTasks((current) => current.map((item) => (item.id === updated.id ? updated : item)));
     } catch (requestError) {
-      setError(requestError.message || "Không duyệt được KPI.");
+      setError(requestError.message || "Không duyệt được checklist.");
     }
   }
 
@@ -227,7 +227,7 @@ export default function KpiManagement() {
       setReviewTask(null);
       setReviewReason("");
     } catch (requestError) {
-      setError(requestError.message || "Không từ chối được KPI.");
+      setError(requestError.message || "Không yêu cầu làm lại được.");
     } finally {
       setSaving(false);
     }
@@ -246,7 +246,7 @@ export default function KpiManagement() {
       const blob = await bizenApi.kpiTaskPhoto(task.firstPhotoId);
       setPhotoUrl(URL.createObjectURL(blob));
     } catch (requestError) {
-      setError(requestError.message || "Không tải được ảnh KPI.");
+      setError(requestError.message || "Không tải được ảnh minh chứng.");
       setPhotoTask(null);
     } finally {
       setLoadingPhoto(false);
@@ -256,16 +256,16 @@ export default function KpiManagement() {
   return (
     <div>
       <PageHeader
-        eyebrow="Shift KPI"
-        title="KPI ca làm"
-        description="Giao nhiệm vụ theo ca, nhận ảnh minh chứng từ nhân viên và kiểm tra đúng hạn/trễ hạn trước khi duyệt."
+        eyebrow="Shift Checklist"
+        title="Checklist ca làm"
+        description="Giao việc cần làm theo ca, nhận ảnh minh chứng từ nhân viên và kiểm tra đúng hạn/trễ hạn trước khi duyệt."
         actions={
           <button
             onClick={() => setFormOpen(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
-            Tạo KPI
+            Tạo việc
           </button>
         }
       />
@@ -282,7 +282,7 @@ export default function KpiManagement() {
       <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_320px]">
         <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-slate-950">Danh sách KPI</h2>
+            <h2 className="text-base font-semibold text-slate-950">Danh sách việc cần làm</h2>
             <div className="flex flex-wrap gap-2">
               <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
                 <Filter className="h-4 w-4 text-slate-400" />
@@ -304,7 +304,7 @@ export default function KpiManagement() {
           </div>
 
           {tasks.length === 0 ? (
-            <EmptyState title="Chưa có KPI" description="Tạo KPI đầu ca hoặc dùng mẫu gợi ý bên phải để giao việc cho nhân viên." />
+            <EmptyState title="Chưa có việc cần làm" description="Tạo checklist đầu ca hoặc dùng mẫu gợi ý bên phải để giao việc cho nhân viên." />
           ) : (
             <div className="space-y-3">
               {tasks.map((task) => (
@@ -373,7 +373,7 @@ export default function KpiManagement() {
           <section className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">
             <div className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              <h2 className="font-semibold">Mẫu KPI theo quán</h2>
+              <h2 className="font-semibold">Mẫu checklist theo quán</h2>
             </div>
             <p className="mt-2 text-sm text-blue-800">Dùng nhanh các mẫu phổ biến cho cafe/trà sữa, sau đó chỉnh theo vận hành riêng của quán.</p>
             <div className="mt-4 space-y-2">
@@ -413,7 +413,7 @@ export default function KpiManagement() {
 
       <Modal
         open={formOpen}
-        title="Tạo KPI cho ca làm"
+        title="Tạo việc cần làm cho ca"
         onClose={() => setFormOpen(false)}
         footer={
           <>
@@ -422,7 +422,7 @@ export default function KpiManagement() {
             </button>
             <button onClick={createTask} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Tạo KPI
+              Tạo việc
             </button>
           </>
         }
@@ -488,7 +488,7 @@ export default function KpiManagement() {
             />
           </label>
           <label className="text-sm font-medium text-slate-700 sm:col-span-2">
-            Tên KPI
+            Tên việc
             <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none" />
           </label>
           <label className="text-sm font-medium text-slate-700 sm:col-span-2">
@@ -522,7 +522,7 @@ export default function KpiManagement() {
           </>
         }
       >
-        <p className="text-sm text-slate-600">Nhân viên sẽ thấy lý do này và có thể nộp lại ảnh KPI.</p>
+        <p className="text-sm text-slate-600">Nhân viên sẽ thấy lý do này và có thể nộp lại ảnh minh chứng.</p>
         <textarea
           value={reviewReason}
           onChange={(event) => setReviewReason(event.target.value)}
@@ -534,7 +534,7 @@ export default function KpiManagement() {
 
       <Modal
         open={Boolean(photoTask)}
-        title={photoTask?.title || "Ảnh KPI"}
+        title={photoTask?.title || "Ảnh minh chứng"}
         onClose={() => setPhotoTask(null)}
         footer={
           <button onClick={() => setPhotoTask(null)} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
@@ -548,7 +548,7 @@ export default function KpiManagement() {
           </div>
         ) : photoUrl ? (
           <div>
-            <img src={photoUrl} alt={photoTask?.title || "Ảnh KPI"} className="max-h-[70vh] w-full rounded-lg object-contain ring-1 ring-slate-200" />
+            <img src={photoUrl} alt={photoTask?.title || "Ảnh minh chứng"} className="max-h-[70vh] w-full rounded-lg object-contain ring-1 ring-slate-200" />
             <p className="mt-3 text-sm text-slate-500">
               {photoTask?.employeeName} · Nộp {formatDateTime(photoTask?.submittedAt)} · {timelinessLabels[photoTask?.timeliness] || photoTask?.timeliness}
             </p>

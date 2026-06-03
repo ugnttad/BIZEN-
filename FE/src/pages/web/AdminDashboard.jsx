@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock3,
   CreditCard,
+  Download,
   Sparkles,
   TrendingUp,
   UserCheck,
@@ -26,6 +27,7 @@ import {
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
+import { downloadCsv } from "../../lib/csv";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
@@ -39,6 +41,13 @@ const tooltipStyle = {
 function formatDisplayDate(date = new Date()) {
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(date);
+}
+
+function formatMonthPeriod(date = new Date()) {
+  return new Intl.DateTimeFormat("vi-VN", {
     month: "2-digit",
     year: "numeric"
   }).format(date);
@@ -59,6 +68,7 @@ export default function AdminDashboard() {
   }, []);
 
   const payrollShort = `${Math.round((summary.payrollTotal || 0) / 1000000)} triệu`;
+  const payrollPeriod = formatMonthPeriod();
   const attendanceRate = summary.employees ? Math.round((summary.checkedIn / summary.employees) * 100) : 0;
   const alertCount = summary.aiAlerts.length;
   const departmentHeadcount = summary.departments.map((item, index) => ({
@@ -67,6 +77,28 @@ export default function AdminDashboard() {
     leaveRate: [5, 3, 4, 6, 5][index] || 4
   }));
 
+  function exportDashboardCsv() {
+    downloadCsv(`bizen-tong-quan-${new Date().toISOString().slice(0, 10)}.csv`, [
+      ["Tổng quan vận hành", formatDisplayDate()],
+      [],
+      ["Chỉ số", "Giá trị"],
+      ["Tổng nhân viên", summary.employees],
+      ["Đã chấm công", summary.checkedIn],
+      ["Tỷ lệ chấm công", `${attendanceRate}%`],
+      ["Đi trễ", summary.late],
+      ["Nghỉ phép", summary.leave],
+      ["Lương dự kiến", summary.payrollTotal || 0],
+      [],
+      ["Cảnh báo"],
+      ["Tiêu đề", "Chi tiết"],
+      ...summary.aiAlerts.map((alert) => [alert.title, alert.detail]),
+      [],
+      ["Nhân sự theo bộ phận"],
+      ["Bộ phận", "Số nhân viên"],
+      ...departmentHeadcount.map((item) => [item.department, item.employees])
+    ]);
+  }
+
   return (
     <div>
       <PageHeader
@@ -74,7 +106,8 @@ export default function AdminDashboard() {
         title="Tổng quan vận hành hôm nay"
         description={`Dữ liệu vận hành ngày ${formatDisplayDate()} cho doanh nghiệp SME tại Đà Nẵng.`}
         actions={
-          <button className="btn-motion rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 hover:bg-blue-600">
+          <button onClick={exportDashboardCsv} className="btn-motion inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-950/10 hover:bg-slate-800">
+            <Download className="h-4 w-4" />
             Xuất báo cáo nhanh
           </button>
         }
@@ -112,7 +145,7 @@ export default function AdminDashboard() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-normal text-slate-500">Payroll pulse</p>
-              <p className="mt-1 text-sm font-semibold text-slate-950">Dự kiến {payrollShort} cho kỳ tháng 05/2026</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">Dự kiến {payrollShort} cho kỳ tháng {payrollPeriod}</p>
             </div>
           </div>
         </div>
@@ -123,7 +156,7 @@ export default function AdminDashboard() {
         <StatCard title="Đã chấm công" value={summary.checkedIn} helper="người hôm nay" icon={UserCheck} tone="emerald" trend="+4%" />
         <StatCard title="Đi trễ" value={summary.late} helper="cần chủ sở hữu nhắc" icon={Clock3} tone="amber" trend="+1" />
         <StatCard title="Nghỉ phép" value={summary.leave} helper="đã duyệt" icon={CalendarDays} tone="violet" />
-        <StatCard title="Lương dự kiến" value={payrollShort} helper="tháng 05/2026" icon={CreditCard} tone="rose" trend="+3.9%" />
+        <StatCard title="Lương dự kiến" value={payrollShort} helper={`tháng ${payrollPeriod}`} icon={CreditCard} tone="rose" trend="+3.9%" />
       </div>
 
       <div className="mt-5 grid gap-5 2xl:grid-cols-[1.2fr_0.8fr]">

@@ -11,8 +11,13 @@ export const aiRouter = Router();
 const AI_ASSISTANT_INSTRUCTIONS =
   "Bạn là BIZEN AI, trợ lý vận hành nhân sự/payroll trong hệ thống SaaS BIZEN. Trả lời bằng tiếng Việt, ngắn gọn, thực dụng. Chỉ dùng dữ liệu hệ thống được cung cấp; nếu thiếu dữ liệu, nói rõ là chưa đủ dữ liệu. Ưu tiên hành động cụ thể cho chủ sở hữu SME/hospitality tại Đà Nẵng.";
 
+function currentPayrollMonth(date = new Date()) {
+  return `${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+}
+
 async function buildAiContext(companyId) {
   const today = getBusinessDate();
+  const payrollMonth = currentPayrollMonth();
   const [summary, departments, lateEmployees, payrollDeductions, leaves, alerts] = await Promise.all([
     query(
       `SELECT
@@ -56,10 +61,10 @@ async function buildAiContext(companyId) {
        JOIN payroll_runs pr ON pr.id = pi.payroll_run_id
        JOIN employees e ON e.id = pi.employee_id
        LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
-       WHERE pr.company_id = $1 AND pr.month = '05/2026'
+       WHERE pr.company_id = $1 AND pr.month = $2
        ORDER BY pi.deduction DESC
        LIMIT 6`,
-      [companyId]
+      [companyId, payrollMonth]
     ),
     query(
       `SELECT lr.id, e.name AS employee, d.name AS department, lr.status, lr.days::float AS days, lr.reason
@@ -76,6 +81,7 @@ async function buildAiContext(companyId) {
 
   return {
     date: today,
+    payrollMonth,
     company: "Current company",
     summary: summary.rows[0],
     departments: departments.rows,

@@ -43,7 +43,7 @@ const webNavItems = [
   { label: "Tài khoản", path: "/web/accounts", icon: UserCheck, roles: ["Admin"] },
   { label: "Face ID", path: "/web/face-id", icon: ScanFace, roles: ["Admin"] },
   { label: "Xếp ca", path: "/web/scheduling", icon: CalendarCheck2, roles: ["Admin"] },
-  { label: "KPI ca làm", path: "/web/kpis", icon: ClipboardCheck, roles: ["Admin"] },
+  { label: "Checklist ca", path: "/web/kpis", icon: ClipboardCheck, roles: ["Admin"] },
   { label: "Bảng lương", path: "/web/payroll", icon: CreditCard, roles: ["Admin"] },
   { label: "Nghỉ phép", path: "/web/leaves", icon: FileText, roles: ["Admin"] },
   { label: "Báo cáo", path: "/web/reports", icon: BarChart3, roles: ["Admin"] },
@@ -66,6 +66,7 @@ function getInitialSidebarCollapsed() {
 }
 
 function getTitle(pathname) {
+  if (pathname === "/web/home") return "Trang chủ";
   const match = [...webNavItems].sort((a, b) => b.path.length - a.path.length).find((item) => pathname.startsWith(item.path));
   if (pathname.includes("/web/employees/")) return "Chi tiết nhân viên";
   if (pathname.includes("/web/payroll/")) return "Chi tiết lương";
@@ -78,6 +79,7 @@ export default function WebLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(getInitialSidebarCollapsed);
   const [alerts, setAlerts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
   const user = getAuthUser();
@@ -88,11 +90,17 @@ export default function WebLayout() {
   const canUseAi = !isEmployee;
   const showAiPanel = canUseAi && !location.pathname.startsWith("/web/scheduling");
   const searchPlaceholder = isEmployee ? "Tìm lịch, chấm công, đơn nghỉ" : "Tìm nhân viên, ca làm, bảng lương";
+  const searchItems = [{ label: "Trang chủ", path: homePath }, ...visibleNavItems];
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const searchMatches = normalizedSearch
+    ? searchItems.filter((item) => [item.label, item.path].join(" ").toLowerCase().includes(normalizedSearch)).slice(0, 5)
+    : [];
 
   useEffect(() => {
     setMenuOpen(false);
     setNotificationsOpen(false);
     setProfileOpen(false);
+    setSearchTerm("");
   }, [location.pathname]);
 
   useEffect(() => {
@@ -128,6 +136,13 @@ export default function WebLayout() {
   function logout() {
     clearAuthSession();
     navigate("/login", { replace: true });
+  }
+
+  function submitSearch(event) {
+    event.preventDefault();
+    const target = searchMatches[0];
+    if (!target) return;
+    navigate(target.path);
   }
 
   function renderNavItems(collapsed = false) {
@@ -333,13 +348,28 @@ export default function WebLayout() {
               </div>
             </div>
 
-            <label className="soft-focus hidden min-w-[280px] max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 md:flex">
+            <form onSubmit={submitSearch} className="soft-focus relative hidden min-w-[280px] max-w-xl flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 md:flex">
               <Search className="h-4 w-4 text-slate-400" />
-              <input className="w-full bg-transparent text-sm outline-none" placeholder={searchPlaceholder} />
+              <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder={searchPlaceholder} />
               <span className="hidden items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] font-bold text-slate-400 xl:inline-flex">
                 <Command className="h-3 w-3" /> K
               </span>
-            </label>
+              {searchMatches.length ? (
+                <div className="animate-panel-in absolute left-0 right-0 top-12 z-40 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-950/10">
+                  {searchMatches.map((item) => (
+                    <button
+                      key={item.path}
+                      type="button"
+                      onClick={() => navigate(item.path)}
+                      className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    >
+                      {item.label}
+                      <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </form>
 
             <div className="flex items-center gap-2">
               {canUseAi ? (

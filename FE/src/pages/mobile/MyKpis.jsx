@@ -68,7 +68,7 @@ export default function MyKpis() {
         if (active) setTasks(rows);
       })
       .catch((requestError) => {
-        if (active) setError(requestError.message || "Không tải được KPI ca làm.");
+        if (active) setError(requestError.message || "Không tải được checklist ca làm.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -95,9 +95,9 @@ export default function MyKpis() {
     try {
       const updated = await bizenApi.updateKpiProgress(task.id, status);
       setTasks((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setMessage(status === "InProgress" ? "Đã đánh dấu đang làm KPI." : "Đã đưa KPI về trạng thái chưa làm.");
+      setMessage(status === "InProgress" ? "Đã đánh dấu đang làm việc này." : "Đã đưa việc này về trạng thái chưa làm.");
     } catch (requestError) {
-      setError(requestError.message || "Không cập nhật được tiến độ KPI.");
+      setError(requestError.message || "Không cập nhật được tiến độ.");
     } finally {
       setUpdatingId("");
     }
@@ -124,7 +124,7 @@ export default function MyKpis() {
   async function submitTask() {
     if (!selectedTask) return;
     if (selectedTask.requiresPhoto && images.length < selectedTask.minPhotoCount) {
-      setError(`KPI này cần tối thiểu ${selectedTask.minPhotoCount} ảnh minh chứng.`);
+      setError(`Việc này cần tối thiểu ${selectedTask.minPhotoCount} ảnh minh chứng.`);
       return;
     }
 
@@ -137,9 +137,9 @@ export default function MyKpis() {
       setSelectedTask(null);
       setNote("");
       setImages([]);
-      setMessage(updated.timeliness === "Late" ? "Đã nộp KPI. Hệ thống ghi nhận là nộp trễ." : "Đã nộp KPI đúng quy trình, chờ chủ quán duyệt.");
+      setMessage(updated.timeliness === "Late" ? "Đã nộp việc này. Hệ thống ghi nhận là nộp trễ." : "Đã nộp checklist, chờ chủ quán duyệt.");
     } catch (requestError) {
-      setError(requestError.message || "Không nộp được KPI.");
+      setError(requestError.message || "Không nộp được việc này.");
     } finally {
       setSubmitting(false);
     }
@@ -157,7 +157,7 @@ export default function MyKpis() {
     <div className="space-y-4">
       <section className="relative overflow-hidden rounded-2xl bg-slate-950 p-5 text-white shadow-2xl shadow-slate-950/20">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-teal-300 to-amber-300" />
-        <p className="text-sm text-blue-100">KPI ca làm</p>
+        <p className="text-sm text-blue-100">Checklist ca làm</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-normal">Nhiệm vụ hôm nay</h2>
         <p className="mt-1 text-sm text-slate-300">Làm xong thì chụp ảnh nộp minh chứng để chủ quán duyệt.</p>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
@@ -178,7 +178,7 @@ export default function MyKpis() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4">
         <label className="text-sm font-semibold text-slate-700">
-          Ngày KPI
+          Ngày làm việc
           <input
             type="date"
             value={date}
@@ -198,7 +198,7 @@ export default function MyKpis() {
       ) : tasks.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-slate-200 bg-white p-5 text-center">
           <ClipboardIcon />
-          <h3 className="mt-3 font-semibold text-slate-950">Chưa có KPI cho ngày này</h3>
+          <h3 className="mt-3 font-semibold text-slate-950">Chưa có việc cho ngày này</h3>
           <p className="mt-1 text-sm text-slate-500">Khi chủ quán giao nhiệm vụ theo ca, danh sách sẽ hiện ở đây.</p>
         </section>
       ) : (
@@ -245,7 +245,7 @@ export default function MyKpis() {
                     className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white shadow-lg shadow-blue-600/20 active:scale-[0.98]"
                   >
                     <Camera className="h-4 w-4" />
-                    Nộp KPI
+                    Nộp ảnh
                   </button>
                 ) : null}
               </div>
@@ -256,7 +256,7 @@ export default function MyKpis() {
 
       <Modal
         open={Boolean(selectedTask)}
-        title={selectedTask?.title || "Nộp KPI"}
+        title={selectedTask?.title || "Nộp checklist"}
         onClose={() => setSelectedTask(null)}
         footer={
           <>
@@ -282,12 +282,12 @@ export default function MyKpis() {
           {images.length ? (
             <div className="grid grid-cols-3 gap-2">
               {images.map((image, index) => (
-                <img key={`${selectedTask?.id || "kpi"}-${index}`} src={image} alt={`Ảnh KPI ${index + 1}`} className="aspect-square rounded-xl object-cover ring-1 ring-slate-200" />
+                <img key={`${selectedTask?.id || "kpi"}-${index}`} src={image} alt={`Ảnh minh chứng ${index + 1}`} className="aspect-square rounded-xl object-cover ring-1 ring-slate-200" />
               ))}
             </div>
           ) : (
             <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-500">
-              {selectedTask?.requiresPhoto ? `KPI này cần tối thiểu ${selectedTask?.minPhotoCount} ảnh.` : "Ảnh không bắt buộc nhưng nên có để chủ quán kiểm tra nhanh."}
+              {selectedTask?.requiresPhoto ? `Việc này cần tối thiểu ${selectedTask?.minPhotoCount} ảnh.` : "Ảnh không bắt buộc nhưng nên có để chủ quán kiểm tra nhanh."}
             </p>
           )}
           <label className="block text-sm font-semibold text-slate-700">

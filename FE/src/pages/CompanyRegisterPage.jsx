@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Building2, CheckCircle2, LockKeyhole, Mail, Phone, Send, UserRound } from "lucide-react";
-import WorkflowStepsCard from "../components/WorkflowStepsCard";
-import { mvpDemoFeatures } from "../constants/saasWorkflow";
 import { bizenApi } from "../modules/api/bizenApi";
-
-const onboardingFeature = mvpDemoFeatures.find((f) => f.id === "onboarding");
 
 const emptyForm = {
   companyName: "",
@@ -42,7 +38,7 @@ export default function CompanyRegisterPage() {
       return;
     }
     if (!["đà nẵng", "da nang"].includes(city)) {
-      setError("BIZEN MVP hiện chỉ nhận đăng ký cửa hàng tại Đà Nẵng.");
+      setError("BIZEN hiện chỉ nhận đăng ký cửa hàng tại Đà Nẵng trong giai đoạn triển khai đầu.");
       return;
     }
     if (phoneDigits && !/^0?\d{9,10}$/.test(phoneDigits)) {
@@ -50,7 +46,7 @@ export default function CompanyRegisterPage() {
       return;
     }
     if (!Number.isInteger(employeeCount) || employeeCount < 1 || employeeCount > 20) {
-      setError("Quy mô nhân sự cần từ 1 đến 20 người để AI xếp ca đúng phạm vi MVP.");
+      setError("Quy mô nhân sự cần từ 1 đến 20 người để AI xếp ca đúng phạm vi cửa hàng nhỏ.");
       return;
     }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(form.password)) {
@@ -99,10 +95,6 @@ export default function CompanyRegisterPage() {
               Doanh nghiệp gửi thông tin trước. Chủ nền tảng BIZEN duyệt tenant, sau đó email đại diện mới trở thành chủ sở hữu đầu tiên — có quyền tạo nhân sự và duyệt tài khoản nhân viên.
             </p>
           </div>
-
-          {onboardingFeature ? (
-            <WorkflowStepsCard className="mt-8" title="Bạn sẽ bấm gì?" steps={onboardingFeature.steps} skippable={onboardingFeature.skippable} />
-          ) : null}
 
           <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
             Sau khi được duyệt, đăng nhập bằng email admin bạn nhập bên dưới — không cần đăng ký lại.

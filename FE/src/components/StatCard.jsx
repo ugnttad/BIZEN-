@@ -11,12 +11,12 @@ const toneStyles = {
 };
 
 const toneBars = {
-  blue: "from-blue-600 via-sky-400 to-teal-300",
-  violet: "from-violet-600 via-fuchsia-400 to-blue-400",
-  emerald: "from-emerald-500 via-teal-400 to-sky-400",
-  amber: "from-amber-500 via-orange-400 to-rose-400",
-  rose: "from-rose-500 via-pink-400 to-amber-300",
-  slate: "from-slate-700 via-slate-400 to-slate-200"
+  blue: "from-blue-600 via-blue-600 to-blue-600",
+  violet: "from-violet-600 via-violet-600 to-violet-600",
+  emerald: "from-emerald-600 via-emerald-600 to-emerald-600",
+  amber: "from-amber-500 via-amber-500 to-amber-500",
+  rose: "from-rose-600 via-rose-600 to-rose-600",
+  slate: "from-slate-700 via-slate-700 to-slate-700"
 };
 
 export default function StatCard({ title, value, helper, icon: Icon, tone = "blue", trend }) {

@@ -209,7 +209,7 @@ export default function EmployeeManagement() {
         : ownerCount - (editingEmployee?.role === "Admin" ? 1 : 0);
 
     if (nextOperationalCount > cafeShopConstraints.maxActiveEmployees) {
-      setFormError(`BIZEN MVP đang ràng buộc tối đa ${cafeShopConstraints.maxActiveEmployees} nhân sự đang làm cho một quán cafe/trà sữa.`);
+      setFormError(`BIZEN đang ràng buộc tối đa ${cafeShopConstraints.maxActiveEmployees} nhân sự đang làm cho một quán cafe/trà sữa trong giai đoạn triển khai hiện tại.`);
       return;
     }
 

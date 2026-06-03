@@ -18,6 +18,7 @@ import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
+import { downloadCsv } from "../../lib/csv";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 const statusOptions = ["All", "Present", "Late", "Absent", "Leave", "Overtime", "Missing checkout"];
@@ -62,7 +63,6 @@ export default function AttendanceDashboard() {
   const [status, setStatus] = useState("All");
   const [query, setQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState(formatDateInput());
-  const [exportOpen, setExportOpen] = useState(false);
   const [checkoutRecord, setCheckoutRecord] = useState(null);
   const [checkoutTime, setCheckoutTime] = useState("");
   const [closingCheckout, setClosingCheckout] = useState(false);
@@ -96,6 +96,28 @@ export default function AttendanceDashboard() {
       value: attendance.filter((record) => (item === "Missing checkout" ? record.needsCheckoutReview : record.status === item)).length
     }));
   const missingCheckout = attendance.filter((record) => record.needsCheckoutReview);
+
+  function exportAttendanceCsv() {
+    downloadCsv(`bizen-cham-cong-${selectedDate}.csv`, [
+      ["Báo cáo chấm công", formatDisplayDate(selectedDate)],
+      ["Bộ lọc bộ phận", department],
+      ["Bộ lọc trạng thái", status],
+      ["Từ khóa", query],
+      [],
+      ["Nhân viên", "Mã NV", "Bộ phận", "Vào", "Ra", "Tổng giờ", "GPS", "Trạng thái", "Ghi chú"],
+      ...rows.map((record) => [
+        record.employeeName,
+        record.employeeId,
+        record.department,
+        record.checkIn,
+        record.checkOut,
+        record.totalHours,
+        record.location,
+        record.displayStatus || record.status,
+        record.note
+      ])
+    ]);
+  }
 
   async function reloadAttendance() {
     try {
@@ -163,7 +185,7 @@ export default function AttendanceDashboard() {
               onChange={(event) => setSelectedDate(event.target.value)}
               className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none"
             />
-            <button onClick={() => setExportOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+            <button onClick={exportAttendanceCsv} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
               <Download className="h-4 w-4" />
               Xuất báo cáo
             </button>
@@ -358,14 +380,6 @@ export default function AttendanceDashboard() {
         </div>
       </Modal>
 
-      <Modal
-        open={exportOpen}
-        title="Xuất báo cáo chấm công"
-        onClose={() => setExportOpen(false)}
-        footer={<button onClick={() => setExportOpen(false)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Đã hiểu</button>}
-      >
-        <p className="text-sm text-slate-600">Báo cáo ngày {formatDisplayDate(selectedDate)} đã sẵn sàng. Dữ liệu gồm {rows.length} bản ghi theo bộ lọc hiện tại.</p>
-      </Modal>
     </div>
   );
 }

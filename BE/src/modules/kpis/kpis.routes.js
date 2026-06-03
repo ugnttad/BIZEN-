@@ -17,7 +17,7 @@ const reviewStatusValues = ["Approved", "Rejected"];
 const progressStatusValues = ["Pending", "InProgress"];
 
 const taskFiltersSchema = z.object({
-  date: z.string().refine(isIsoDate, "Ngày KPI chưa hợp lệ").optional(),
+  date: z.string().refine(isIsoDate, "Ngày checklist chưa hợp lệ").optional(),
   status: z.enum(statusValues).optional().default("All"),
   employeeId: z.string().trim().min(1).optional()
 });
@@ -120,7 +120,7 @@ async function ensureKpiSchema(executor = query) {
 function businessDueDate(workDate, dueTime) {
   const date = new Date(`${workDate}T${dueTime}:00+07:00`);
   if (Number.isNaN(date.getTime())) {
-    throw httpError(400, "Deadline KPI chưa hợp lệ.");
+    throw httpError(400, "Deadline checklist chưa hợp lệ.");
   }
   return date;
 }
@@ -128,17 +128,17 @@ function businessDueDate(workDate, dueTime) {
 function decodeKpiImage(image) {
   const match = imageDataUrlPattern.exec(image || "");
   if (!match) {
-    throw httpError(400, "Ảnh KPI cần là JPEG, PNG hoặc WebP dạng data URL.");
+    throw httpError(400, "Ảnh minh chứng cần là JPEG, PNG hoặc WebP dạng data URL.");
   }
 
   const mimeType = match[1].toLowerCase();
   const buffer = Buffer.from(match[2].replace(/\s/g, ""), "base64");
 
   if (buffer.length < 512) {
-    throw httpError(400, "Ảnh KPI quá nhỏ.");
+    throw httpError(400, "Ảnh minh chứng quá nhỏ.");
   }
   if (buffer.length > 5 * 1024 * 1024) {
-    throw httpError(413, "Ảnh KPI tối đa 5MB.");
+    throw httpError(413, "Ảnh minh chứng tối đa 5MB.");
   }
 
   return { buffer, mimeType, size: buffer.length };
@@ -333,9 +333,9 @@ kpisRouter.patch(
     const companyId = await getCompanyIdForUser(req.user);
     const data = progressTaskSchema.parse(req.body);
     const current = await getTask(companyId, req.params.id, req.user);
-    if (!current) throw httpError(404, "Không tìm thấy KPI.");
+    if (!current) throw httpError(404, "Không tìm thấy việc cần làm.");
     if (["Submitted", "Approved"].includes(current.status)) {
-      throw httpError(409, "KPI đã nộp hoặc đã duyệt, không thể đổi tiến độ.");
+      throw httpError(409, "Việc này đã nộp hoặc đã duyệt, không thể đổi tiến độ.");
     }
 
     await query(
@@ -356,12 +356,12 @@ kpisRouter.post(
     const companyId = await getCompanyIdForUser(req.user);
     const data = submitTaskSchema.parse(req.body);
     const current = await getTask(companyId, req.params.id, req.user);
-    if (!current) throw httpError(404, "Không tìm thấy KPI của bạn.");
+    if (!current) throw httpError(404, "Không tìm thấy việc cần làm của bạn.");
     if (current.status === "Approved") {
-      throw httpError(409, "KPI đã được chủ quán duyệt.");
+      throw httpError(409, "Việc này đã được chủ quán duyệt.");
     }
     if (current.requiresPhoto && data.images.length < current.minPhotoCount) {
-      throw httpError(400, `KPI này cần tối thiểu ${current.minPhotoCount} ảnh minh chứng.`);
+      throw httpError(400, `Việc này cần tối thiểu ${current.minPhotoCount} ảnh minh chứng.`);
     }
 
     const images = data.images.map(decodeKpiImage);
@@ -403,9 +403,9 @@ kpisRouter.patch(
     const companyId = await getCompanyIdForUser(req.user);
     const data = reviewTaskSchema.parse(req.body);
     const current = await getTask(companyId, req.params.id, req.user);
-    if (!current) throw httpError(404, "Không tìm thấy KPI.");
+    if (!current) throw httpError(404, "Không tìm thấy việc cần làm.");
     if (current.status !== "Submitted") {
-      throw httpError(409, "Chỉ KPI đã nộp mới có thể duyệt.");
+      throw httpError(409, "Chỉ việc đã nộp mới có thể duyệt.");
     }
     if (data.status === "Rejected" && !data.rejectionReason) {
       throw httpError(400, "Nhập lý do nếu yêu cầu nhân viên làm lại.");
@@ -433,7 +433,7 @@ kpisRouter.delete(
     await ensureKpiSchema();
     const companyId = await getCompanyIdForUser(req.user);
     const result = await query("DELETE FROM shift_kpi_tasks WHERE id = $1 AND company_id = $2 RETURNING id", [req.params.id, companyId]);
-    if (!result.rows[0]) throw httpError(404, "Không tìm thấy KPI.");
+    if (!result.rows[0]) throw httpError(404, "Không tìm thấy việc cần làm.");
     res.status(204).end();
   })
 );
@@ -456,7 +456,7 @@ kpisRouter.get(
     );
 
     const image = result.rows[0];
-    if (!image) throw httpError(404, "Không tìm thấy ảnh KPI.");
+    if (!image) throw httpError(404, "Không tìm thấy ảnh minh chứng.");
 
     res.setHeader("Content-Type", image.mime_type);
     res.setHeader("Cache-Control", "private, max-age=300");

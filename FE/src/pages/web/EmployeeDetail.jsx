@@ -6,7 +6,7 @@ import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
-import { formatCurrency } from "../../lib/utils";
+import { formatCurrency, getRecentPayrollMonths } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 function formatTodayDisplay() {
@@ -67,6 +67,11 @@ export default function EmployeeDetail() {
   const attendance = attendanceHistory.find((record) => record.date === today) || attendanceHistory[0];
   const shift = shifts.find((item) => item.id === employee.shiftId);
   const employeeHistory = attendanceHistory;
+  const payrollHistory = getRecentPayrollMonths(3).map((month, index, months) => ({
+    month,
+    value: index === months.length - 1 ? payroll?.finalSalary || employee.baseSalary : employee.baseSalary + (index === 0 ? 450000 : 650000),
+    status: index === months.length - 1 ? payroll?.status || "Draft" : "Paid"
+  }));
 
   return (
     <div>
@@ -167,11 +172,7 @@ export default function EmployeeDetail() {
       <section className="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <PageHeader title="Lịch sử lương" description="Payroll gần nhất theo tháng." />
         <div className="grid gap-3 md:grid-cols-3">
-          {[
-            { month: "03/2026", value: employee.baseSalary + 450000, status: "Paid" },
-            { month: "04/2026", value: employee.baseSalary + 650000, status: "Paid" },
-            { month: "05/2026", value: payroll?.finalSalary || employee.baseSalary, status: payroll?.status || "Draft" }
-          ].map((item) => (
+          {payrollHistory.map((item) => (
             <div key={item.month} className="rounded-lg border border-slate-200 p-4">
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-slate-950">{item.month}</p>

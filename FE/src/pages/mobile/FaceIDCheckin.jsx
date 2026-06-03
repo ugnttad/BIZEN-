@@ -26,7 +26,7 @@ function getCameraContextError() {
   const isLocalhost = host === "localhost" || host === "127.0.0.1" || host === "::1";
   if (isLocalhost) return "";
 
-  return "Chrome chặn camera trên HTTP LAN IP. Dùng localhost/HTTPS để mở camera, hoặc chọn ảnh bên dưới để test workflow AWS.";
+  return "Chrome chặn camera trên HTTP LAN IP. Dùng localhost/HTTPS để mở camera, hoặc chọn ảnh bên dưới để kiểm tra workflow AWS.";
 }
 
 function getCameraErrorMessage(cameraError) {
@@ -47,7 +47,7 @@ function readFileAsDataUrl(file) {
 
 function getFriendlyFaceError(message) {
   if (/AWS Rekognition/i.test(message || "") && /credential|credentials|provider/i.test(message || "")) {
-    return "AWS Rekognition chưa được cấu hình. Cần thêm AWS credentials hoặc bật FACE_ID_ALLOW_DEMO_MODE=true nếu chỉ muốn chạy demo.";
+    return "AWS Rekognition chưa được cấu hình. Cần thêm AWS credentials hoặc bật FACE_ID_ALLOW_DEMO_MODE=true cho local fallback.";
   }
   return message;
 }
@@ -462,7 +462,7 @@ export default function FaceIDCheckin() {
   const canCheckIn = enrollment?.status === "Approved" && !enrollmentNeedsRealIndex;
   const confidence = result?.face?.similarity ? Math.round(result.face.similarity) : result?.face?.confidence ? Math.round(result.face.confidence) : null;
   const isDemoVerification = result?.provider === "local-demo" || result?.face?.provider === "local-demo";
-  const providerLabel = isDemoVerification ? "Chế độ demo Face ID" : "AWS Rekognition";
+  const providerLabel = isDemoVerification ? "Face ID local fallback" : "AWS Rekognition";
   const hasCheckedIn = Boolean(todayAttendance?.checkIn && todayAttendance.checkIn !== "-");
   const hasCheckedOut = Boolean(todayAttendance?.checkOut && todayAttendance.checkOut !== "-");
   const canUseLiveCamera = cameraStatus === "ready" && imageSource === "camera";
@@ -581,7 +581,7 @@ export default function FaceIDCheckin() {
             <p className="mt-1 text-xs text-slate-500">
                 {enrollment?.status === "Approved" &&
                   (enrollmentNeedsRealIndex
-                    ? "Face ID này là dữ liệu demo cũ hoặc chưa được AWS Rekognition index. Vui lòng đăng ký lại để xác thực thật."
+                    ? "Face ID này là dữ liệu local cũ hoặc chưa được AWS Rekognition index. Vui lòng đăng ký lại để xác thực thật."
                     : "Chủ sở hữu đã duyệt và AWS Rekognition đã index khuôn mặt. Bạn có thể chấm công bằng Face ID thật.")}
                 {enrollment?.status === "Pending" && "Yêu cầu đang chờ chủ sở hữu duyệt trên web dashboard."}
                 {enrollment?.status === "Rejected" && (enrollment.rejectionReason || "Yêu cầu đã bị từ chối. Vui lòng đăng ký lại.")}
@@ -602,7 +602,7 @@ export default function FaceIDCheckin() {
 
         <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
           <Upload className="h-4 w-4" />
-          {uploadedFileName || "Chọn ảnh khuôn mặt để test khi camera bị chặn"}
+          {uploadedFileName || "Chọn ảnh khuôn mặt khi camera bị chặn"}
           <input type="file" accept="image/*" capture="user" onChange={handleUpload} className="hidden" />
         </label>
 
@@ -612,7 +612,7 @@ export default function FaceIDCheckin() {
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
             <div className="flex items-center gap-2 font-semibold">
               <CheckCircle2 className="h-5 w-5" />
-              {result?.pending ? "Đã gửi yêu cầu đăng ký" : isDemoVerification ? "Chấm công bằng chế độ demo" : "Chấm công thành công"}
+              {result?.pending ? "Đã gửi yêu cầu đăng ký" : isDemoVerification ? "Chấm công bằng local fallback" : "Chấm công thành công"}
             </div>
             {result?.pending ? (
               <p className="mt-1 text-sm">Chủ sở hữu cần duyệt ảnh đăng ký trước khi bạn được dùng Face ID để chấm công.</p>
@@ -627,7 +627,7 @@ export default function FaceIDCheckin() {
               </p>
             ) : null}
             {isDemoVerification ? (
-              <p className="mt-1 text-xs text-emerald-700">Đang chạy FACE_ID_ALLOW_DEMO_MODE=true, nên hệ thống dùng trạng thái chủ sở hữu duyệt Face ID để ghi nhận demo.</p>
+              <p className="mt-1 text-xs text-emerald-700">Đang chạy FACE_ID_ALLOW_DEMO_MODE=true, nên hệ thống dùng local fallback theo trạng thái chủ sở hữu duyệt Face ID.</p>
             ) : null}
             {confidence && !isDemoVerification ? <p className="mt-1 text-xs text-emerald-700">{providerLabel} similarity {confidence}%</p> : null}
           </div>
