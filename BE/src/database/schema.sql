@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS employees (
   shift_id TEXT,
   leave_remaining NUMERIC(5, 1) NOT NULL DEFAULT 0,
   address TEXT,
+  avatar_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -277,6 +278,17 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_app_users_employee ON app_users(employee_id);
 CREATE INDEX IF NOT EXISTS idx_app_users_company_status ON app_users(company_id, status);
 
+CREATE TABLE IF NOT EXISTS community_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  sender_user_id UUID REFERENCES app_users(id) ON DELETE SET NULL,
+  sender_employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  body TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_community_messages_company_created ON community_messages(company_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS face_enrollment_images (
   storage_key TEXT PRIMARY KEY,
   image_data BYTEA NOT NULL,
@@ -315,6 +327,8 @@ ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 7);
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 7);
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS location_accuracy_meters INTEGER;
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS distance_from_store_meters INTEGER;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
 
 ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS store_address TEXT NOT NULL DEFAULT 'Hải Châu, Đà Nẵng';
 ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS store_latitude NUMERIC(10, 7) DEFAULT 16.0678000;

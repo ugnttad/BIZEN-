@@ -75,7 +75,7 @@ export default function PayrollDetail() {
       <section className="mb-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <Avatar name={employee.name} size="lg" />
+            <Avatar name={employee.name} src={employee.avatarUrl} size="lg" />
             <div>
               <h1 className="text-2xl font-semibold tracking-normal text-slate-950">{employee.name}</h1>
               <p className="mt-1 text-sm text-slate-500">

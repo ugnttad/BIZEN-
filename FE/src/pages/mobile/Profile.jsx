@@ -33,7 +33,7 @@ export default function Profile() {
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-slate-200 bg-white p-5 text-center">
-        <Avatar name={employee.name} size="xl" className="mx-auto" />
+        <Avatar name={employee.name} src={employee.avatarUrl} size="xl" className="mx-auto" />
         <h2 className="mt-4 text-xl font-semibold text-slate-950">{employee.name}</h2>
         <p className="mt-1 text-sm text-slate-500">
           {employee.id} · {employee.department}

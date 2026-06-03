@@ -83,7 +83,7 @@ export default function EmployeeDetail() {
       <section className="mb-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <Avatar name={employee.name} size="xl" />
+            <Avatar name={employee.name} src={employee.avatarUrl} size="xl" />
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-semibold tracking-normal text-slate-950">{employee.name}</h1>

@@ -18,6 +18,7 @@ import {
   Home,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   Menu,
   ScanFace,
   Search,
@@ -46,6 +47,7 @@ const webNavItems = [
   { label: "Bảng lương", path: "/web/payroll", icon: CreditCard, roles: ["Admin"] },
   { label: "Nghỉ phép", path: "/web/leaves", icon: FileText, roles: ["Admin"] },
   { label: "Báo cáo", path: "/web/reports", icon: BarChart3, roles: ["Admin"] },
+  { label: "Cộng đồng", path: "/web/community", icon: MessageCircle, roles: ["Admin", "Employee"] },
   { label: "Trợ lý AI", path: "/web/assistant", icon: Sparkles, roles: ["Admin"] },
   { label: "Cài đặt", path: "/web/settings", icon: Settings, roles: ["Admin"] }
 ];
@@ -434,7 +436,7 @@ export default function WebLayout() {
                   aria-label="Mở menu hồ sơ"
                   aria-expanded={profileOpen}
                 >
-                  <Avatar name={user?.name || "BIZEN"} size="sm" />
+                  <Avatar name={user?.name || "BIZEN"} src={user?.pictureUrl} size="sm" />
                   <ChevronDown className={`hidden h-4 w-4 text-slate-400 transition sm:block ${profileOpen ? "rotate-180" : ""}`} />
                 </button>
                 {profileOpen ? (
@@ -454,9 +456,13 @@ export default function WebLayout() {
                           Cài đặt tài khoản
                         </Link>
                       ) : null}
-                      <Link to={isEmployee ? "/web/me" : "/web/assistant"} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                      <Link to="/web/profile" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
                         <UserRound className="h-4 w-4" />
-                        {isEmployee ? "Hồ sơ của tôi" : "Trợ lý / hồ sơ"}
+                        Hồ sơ của tôi
+                      </Link>
+                      <Link to="/web/community" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                        <MessageCircle className="h-4 w-4" />
+                        Cộng đồng
                       </Link>
                     </div>
                     <button

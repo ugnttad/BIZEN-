@@ -395,7 +395,7 @@ export default function EmployeeWebPortal() {
         <aside className="space-y-5">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-4">
-              <Avatar name={employee.name} size="lg" />
+              <Avatar name={employee.name} src={employee.avatarUrl} size="lg" />
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-bold text-slate-950">{employee.name}</h2>
                 <p className="mt-1 text-sm text-slate-500">

@@ -157,7 +157,7 @@ export default function LeaveRequests() {
               {employees.slice(0, 6).map((employee) => (
                 <div key={employee.id} className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <Avatar name={employee.name} size="sm" />
+                    <Avatar name={employee.name} src={employee.avatarUrl} size="sm" />
                     <div>
                       <p className="text-sm font-semibold text-slate-950">{employee.name}</p>
                       <p className="text-xs text-slate-500">{employee.department}</p>

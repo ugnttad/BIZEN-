@@ -8,6 +8,7 @@ import {
   Clock3,
   CreditCard,
   FileText,
+  MessageCircle,
   ScanFace,
   Settings,
   Sparkles,
@@ -56,6 +57,13 @@ const featureCards = [
     href: "/web/kpis",
     icon: CheckSquare,
     example: "VD: setup bàn ghế trước 07:20, nộp ảnh để chủ quán duyệt."
+  },
+  {
+    title: "Cộng đồng",
+    description: "Nhắn tin nội bộ trong cùng doanh nghiệp để báo ca, nhắc việc và trao đổi nhanh.",
+    href: "/web/community",
+    icon: MessageCircle,
+    example: "VD: nhân viên báo đã chuẩn bị nguyên liệu, quản lý phản hồi ngay trong workspace."
   },
   {
     title: "Chấm công",

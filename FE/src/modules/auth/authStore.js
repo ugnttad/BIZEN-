@@ -17,6 +17,14 @@ export function getAuthUser() {
   }
 }
 
+export function updateAuthUser(patch) {
+  const current = getAuthUser();
+  if (!current) return null;
+  const next = { ...current, ...patch };
+  localStorage.setItem(USER_KEY, JSON.stringify(next));
+  return next;
+}
+
 export function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY);
 }

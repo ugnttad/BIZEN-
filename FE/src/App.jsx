@@ -34,7 +34,8 @@ import MyAttendance from "./pages/mobile/MyAttendance";
 import MyPayroll from "./pages/mobile/MyPayroll";
 import MobileLeaveRequest from "./pages/mobile/MobileLeaveRequest";
 import Notifications from "./pages/mobile/Notifications";
-import Profile from "./pages/mobile/Profile";
+import ProfileEditorPage from "./pages/ProfileEditorPage";
+import CommunityPage from "./pages/CommunityPage";
 
 function WebIndexRedirect() {
   const user = getAuthUser();
@@ -209,6 +210,22 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="profile"
+          element={
+            <ProtectedRoute roles={["Admin", "Employee"]}>
+              <ProfileEditorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="community"
+          element={
+            <ProtectedRoute roles={["Admin", "Employee"]}>
+              <CommunityPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
       <Route path="/mobile/login" element={<MobileLogin />} />
       <Route
@@ -228,7 +245,8 @@ export default function App() {
         <Route path="payroll" element={<MyPayroll />} />
         <Route path="leave" element={<MobileLeaveRequest />} />
         <Route path="notifications" element={<Notifications />} />
-        <Route path="profile" element={<Profile />} />
+        <Route path="community" element={<CommunityPage />} />
+        <Route path="profile" element={<ProfileEditorPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

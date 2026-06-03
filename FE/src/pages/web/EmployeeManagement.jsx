@@ -379,7 +379,7 @@ export default function EmployeeManagement() {
                   <tr key={employee.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <Link to={`/web/employees/${employee.id}`} className="flex items-center gap-3">
-                        <Avatar name={employee.name} />
+                        <Avatar name={employee.name} src={employee.avatarUrl} />
                         <span>
                           <span className="block font-semibold text-slate-950">{employee.name}</span>
                           <span className="block text-xs text-slate-500">

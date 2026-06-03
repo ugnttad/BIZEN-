@@ -18,7 +18,8 @@ const employeeSelect = `
     e.manager_name AS manager,
     e.shift_id AS "shiftId",
     e.leave_remaining::float AS "leaveRemaining",
-    e.address
+    e.address,
+    e.avatar_url AS "avatarUrl"
   FROM employees e
   LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
 `;
@@ -95,9 +96,11 @@ export async function updateEmployee(id, companyId, data) {
       status = COALESCE($8, status),
       email = COALESCE($9, email),
       phone = COALESCE($10, phone),
+      address = COALESCE($11, address),
+      avatar_url = COALESCE($12, avatar_url),
       updated_at = now()
-     WHERE id = $1 AND company_id = $11`,
-    [id, data.name, data.departmentId, data.position, data.role, data.contractType, data.baseSalary, data.status, data.email, data.phone, companyId]
+     WHERE id = $1 AND company_id = $13`,
+    [id, data.name, data.departmentId, data.position, data.role, data.contractType, data.baseSalary, data.status, data.email, data.phone, data.address, data.avatarUrl, companyId]
   );
   return getEmployeeById(id, companyId);
 }

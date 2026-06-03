@@ -10,7 +10,8 @@ export function saveMobileEmployee(employee) {
       name: employee.name,
       email: employee.email,
       role: employee.role,
-      department: employee.department
+      department: employee.department,
+      avatarUrl: employee.avatarUrl
     })
   );
 }
@@ -22,7 +23,8 @@ export function getMobileEmployeeSession() {
       id: authUser.employeeId,
       name: authUser.name,
       email: authUser.email,
-      role: authUser.role
+      role: authUser.role,
+      avatarUrl: authUser.pictureUrl
     };
   }
 
