@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { query } from "../../config/db.js";
+import { env } from "../../config/env.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { httpError } from "../../shared/httpError.js";
 import { isTime } from "../../shared/validation.js";
@@ -10,6 +11,8 @@ export const settingsRouter = Router();
 
 const nullableLatitude = z.preprocess((value) => (value === "" || value === null || value === undefined ? null : Number(value)), z.number().min(-90).max(90).nullable());
 const nullableLongitude = z.preprocess((value) => (value === "" || value === null || value === undefined ? null : Number(value)), z.number().min(-180).max(180).nullable());
+const optionalLatitude = z.preprocess((value) => (value === "" || value === null || value === undefined ? undefined : Number(value)), z.number().min(-90).max(90).optional());
+const optionalLongitude = z.preprocess((value) => (value === "" || value === null || value === undefined ? undefined : Number(value)), z.number().min(-180).max(180).optional());
 
 const settingsSchema = z.object({
   workStart: z.string().refine(isTime, "Giờ bắt đầu chưa hợp lệ"),
@@ -24,6 +27,104 @@ const settingsSchema = z.object({
   geofenceRadiusMeters: z.coerce.number().int().min(30).max(2000).default(200),
   geofenceEnabled: z.coerce.boolean().default(true)
 });
+
+const placeSuggestionsSchema = z.object({
+  input: z.string().trim().min(2).max(120),
+  latitude: optionalLatitude,
+  longitude: optionalLongitude
+});
+
+const placeDetailsSchema = z.object({
+  placeId: z.string().trim().min(4).max(256)
+});
+
+const defaultPlaceBias = {
+  latitude: 16.0678,
+  longitude: 108.2208
+};
+
+const placeAutocompleteFieldMask = [
+  "suggestions.placePrediction.placeId",
+  "suggestions.placePrediction.text.text",
+  "suggestions.placePrediction.structuredFormat.mainText.text",
+  "suggestions.placePrediction.structuredFormat.secondaryText.text"
+].join(",");
+
+const placeDetailsFieldMask = ["id", "formattedAddress", "location"].join(",");
+
+function googlePlacesHeaders(fieldMask) {
+  return {
+    "Content-Type": "application/json",
+    "X-Goog-Api-Key": env.googleMapsApiKey,
+    "X-Goog-FieldMask": fieldMask
+  };
+}
+
+function googlePlacesErrorMessage(payload, fallback) {
+  if (payload?.error?.message) return payload.error.message;
+  if (typeof payload === "string" && payload.trim()) return payload.trim();
+  return fallback;
+}
+
+async function readGooglePlacesError(response, fallback) {
+  const payload = await response.json().catch(() => null);
+  return googlePlacesErrorMessage(payload, fallback);
+}
+
+function describeGooglePlacesIssue(status, message) {
+  const normalizedMessage = (message || "").toLowerCase();
+
+  if (status === 403 || normalizedMessage.includes("permission")) {
+    return {
+      code: "GOOGLE_PLACES_PERMISSION_DENIED",
+      message:
+        "Google Places key chưa có quyền. Hãy bật Places API/Places API (New), bật billing, đặt API restrictions cho phép Places API và để Application restrictions là None khi gọi qua backend."
+    };
+  }
+
+  if (status === 400 || normalizedMessage.includes("api key not valid") || normalizedMessage.includes("invalid")) {
+    return {
+      code: "GOOGLE_PLACES_INVALID_KEY",
+      message: "GOOGLE_MAPS_API_KEY chưa hợp lệ hoặc đang copy sai key trong BE/.env."
+    };
+  }
+
+  if (status === 429 || normalizedMessage.includes("quota")) {
+    return {
+      code: "GOOGLE_PLACES_QUOTA_EXCEEDED",
+      message: "Google Places key đã hết quota hoặc đang bị giới hạn billing."
+    };
+  }
+
+  return {
+    code: "GOOGLE_PLACES_UNAVAILABLE",
+    message: message || "Google Places tạm thời chưa khả dụng."
+  };
+}
+
+function buildLocationBias(latitude, longitude) {
+  return {
+    circle: {
+      center: {
+        latitude: latitude ?? defaultPlaceBias.latitude,
+        longitude: longitude ?? defaultPlaceBias.longitude
+      },
+      radius: 30000
+    }
+  };
+}
+
+function mapPlaceSuggestion(suggestion) {
+  const prediction = suggestion.placePrediction;
+  if (!prediction?.placeId) return null;
+
+  return {
+    placeId: prediction.placeId,
+    text: prediction.text?.text || "",
+    mainText: prediction.structuredFormat?.mainText?.text || prediction.text?.text || "",
+    secondaryText: prediction.structuredFormat?.secondaryText?.text || ""
+  };
+}
 
 let settingsGeoSchemaReady = false;
 
@@ -54,6 +155,80 @@ const settingsSelect = `
   geofence_radius_meters AS "geofenceRadiusMeters",
   geofence_enabled AS "geofenceEnabled"
 `;
+
+settingsRouter.get(
+  "/place-suggestions",
+  asyncHandler(async (req, res) => {
+    const { input, latitude, longitude } = placeSuggestionsSchema.parse(req.query);
+
+    if (!env.googleMapsApiKey) {
+      res.json({ configured: false, suggestions: [] });
+      return;
+    }
+
+    const response = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+      method: "POST",
+      headers: googlePlacesHeaders(placeAutocompleteFieldMask),
+      body: JSON.stringify({
+        input,
+        languageCode: "vi",
+        regionCode: "vn",
+        includedRegionCodes: ["vn"],
+        locationBias: buildLocationBias(latitude, longitude)
+      })
+    });
+
+    if (!response.ok) {
+      const message = await readGooglePlacesError(response, "Google Places không trả được gợi ý địa chỉ.");
+      const issue = describeGooglePlacesIssue(response.status, message);
+      res.json({ configured: false, suggestions: [], issue });
+      return;
+    }
+
+    const payload = await response.json();
+    const suggestions = (payload.suggestions || [])
+      .map(mapPlaceSuggestion)
+      .filter(Boolean)
+      .slice(0, 5);
+
+    res.json({ configured: true, suggestions });
+  })
+);
+
+settingsRouter.get(
+  "/place-details",
+  asyncHandler(async (req, res) => {
+    const { placeId } = placeDetailsSchema.parse(req.query);
+
+    if (!env.googleMapsApiKey) {
+      res.json({ configured: false, place: null });
+      return;
+    }
+
+    const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+      headers: googlePlacesHeaders(placeDetailsFieldMask)
+    });
+
+    if (!response.ok) {
+      const message = await readGooglePlacesError(response, "Google Places không trả được chi tiết địa điểm.");
+      const issue = describeGooglePlacesIssue(response.status, message);
+      res.json({ configured: false, place: null, issue });
+      return;
+    }
+
+    const payload = await response.json();
+    const name = payload.formattedAddress || "";
+    const place = {
+      placeId: payload.id || placeId,
+      name,
+      address: payload.formattedAddress || name,
+      latitude: payload.location?.latitude ?? null,
+      longitude: payload.location?.longitude ?? null
+    };
+
+    res.json({ configured: true, place });
+  })
+);
 
 settingsRouter.get(
   "/",

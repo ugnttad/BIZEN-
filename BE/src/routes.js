@@ -14,6 +14,7 @@ import { settingsRouter } from "./modules/settings/settings.routes.js";
 import { reportsRouter } from "./modules/reports/reports.routes.js";
 import { aiRouter } from "./modules/ai/ai.routes.js";
 import { tenantsRouter } from "./modules/tenants/tenants.routes.js";
+import { kpisRouter } from "./modules/kpis/kpis.routes.js";
 
 export const apiRouter = Router();
 
@@ -31,3 +32,4 @@ apiRouter.use("/notifications", authenticate, notificationsRouter);
 apiRouter.use("/settings", authenticate, requireRoles("Admin"), settingsRouter);
 apiRouter.use("/reports", authenticate, requireRoles("Admin"), reportsRouter);
 apiRouter.use("/ai", authenticate, requireRoles("Admin"), aiRouter);
+apiRouter.use("/kpis", authenticate, requireRoles("Admin", "Employee"), kpisRouter);

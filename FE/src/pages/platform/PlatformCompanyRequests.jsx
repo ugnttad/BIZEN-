@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Building2, CheckCircle2, LogOut, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
+import RejectionReasonModal from "../../components/RejectionReasonModal";
 import StatusBadge from "../../components/StatusBadge";
 import WorkflowStepsCard from "../../components/WorkflowStepsCard";
 import { mvpDemoFeatures } from "../../constants/saasWorkflow";
@@ -10,6 +11,7 @@ import { clearAuthSession, getAuthUser } from "../../modules/auth/authStore";
 
 const statusTabs = ["Pending", "All", "Approved", "Rejected"];
 const onboardingFeature = mvpDemoFeatures.find((f) => f.id === "onboarding");
+const defaultRejectionReason = "Chưa đủ thông tin doanh nghiệp";
 
 function formatDateTime(value) {
   if (!value) return "-";
@@ -31,6 +33,8 @@ export default function PlatformCompanyRequests() {
   const [loading, setLoading] = useState(true);
   const [reviewingId, setReviewingId] = useState("");
   const [error, setError] = useState("");
+  const [rejectionTarget, setRejectionTarget] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState(defaultRejectionReason);
 
   function loadRequests(nextStatus = status) {
     setLoading(true);
@@ -54,20 +58,35 @@ export default function PlatformCompanyRequests() {
     );
   }, [requests, query]);
 
-  async function review(id, nextStatus) {
-    const rejectionReason = nextStatus === "Rejected" ? window.prompt("Lý do từ chối", "Chưa đủ thông tin doanh nghiệp") : "";
-    if (nextStatus === "Rejected" && rejectionReason === null) return;
-
+  async function review(id, nextStatus, reason = "") {
     setReviewingId(id);
     setError("");
     try {
-      await bizenApi.reviewCompanyRequest(id, { status: nextStatus, rejectionReason });
+      await bizenApi.reviewCompanyRequest(id, { status: nextStatus, rejectionReason: reason });
       loadRequests(status);
+      return true;
     } catch (err) {
       setError(err.message || "Không cập nhật được yêu cầu doanh nghiệp.");
+      return false;
     } finally {
       setReviewingId("");
     }
+  }
+
+  function openRejectionModal(item) {
+    setRejectionTarget(item);
+    setRejectionReason(defaultRejectionReason);
+  }
+
+  function closeRejectionModal() {
+    setRejectionTarget(null);
+    setRejectionReason(defaultRejectionReason);
+  }
+
+  async function rejectRequest() {
+    if (!rejectionTarget) return;
+    const updated = await review(rejectionTarget.id, "Rejected", rejectionReason.trim());
+    if (updated) closeRejectionModal();
   }
 
   function logout() {
@@ -172,6 +191,10 @@ export default function PlatformCompanyRequests() {
                       <p className="mt-1 font-semibold text-slate-900">{item.phone || "-"}</p>
                     </div>
                     <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <p className="text-slate-500">Quy mô AI</p>
+                      <p className="mt-1 font-semibold text-slate-900">{item.employeeCount || 20} nhân sự</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
                       <p className="text-slate-500">Gửi lúc</p>
                       <p className="mt-1 font-semibold text-slate-900">{formatDateTime(item.requestedAt)}</p>
                     </div>
@@ -190,7 +213,7 @@ export default function PlatformCompanyRequests() {
                         Duyệt
                       </button>
                       <button
-                        onClick={() => review(item.id, "Rejected")}
+                        onClick={() => openRejectionModal(item)}
                         disabled={reviewingId === item.id}
                         className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:text-slate-400"
                       >
@@ -205,6 +228,16 @@ export default function PlatformCompanyRequests() {
           )}
         </section>
       </div>
+      <RejectionReasonModal
+        open={Boolean(rejectionTarget)}
+        value={rejectionReason}
+        onChange={setRejectionReason}
+        onClose={closeRejectionModal}
+        onSubmit={rejectRequest}
+        submitting={reviewingId === rejectionTarget?.id}
+        description={rejectionTarget ? `Từ chối yêu cầu của ${rejectionTarget.companyName}.` : ""}
+        submitLabel="Từ chối"
+      />
     </main>
   );
 }

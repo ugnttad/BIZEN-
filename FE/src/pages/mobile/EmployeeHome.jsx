@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, ChevronRight, Clock3, CreditCard, ScanFace, Umbrella } from "lucide-react";
+import { CalendarDays, ChevronRight, ClipboardCheck, Clock3, CreditCard, ScanFace, Umbrella } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
@@ -24,6 +24,7 @@ export default function EmployeeHome() {
   const [attendance, setAttendance] = useState(null);
   const [payroll, setPayroll] = useState(null);
   const [shift, setShift] = useState(null);
+  const [kpiTasks, setKpiTasks] = useState([]);
   const [error, setError] = useState("");
   const today = formatLocalDate();
   const todayDisplay = formatDisplayDate(today);
@@ -37,10 +38,11 @@ export default function EmployeeHome() {
 
     async function load() {
       try {
-        const [employeeData, attendanceRows, shiftRows] = await Promise.all([
+        const [employeeData, attendanceRows, shiftRows, kpiRows] = await Promise.all([
           bizenApi.employee(employeeId),
           bizenApi.employeeAttendance(employeeId),
-          bizenApi.shifts()
+          bizenApi.shifts(),
+          bizenApi.kpiTasks({ date: today })
         ]);
 
         if (!active) return;
@@ -58,6 +60,7 @@ export default function EmployeeHome() {
           }
         );
         setShift(shiftRows.find((item) => item.id === employeeData.shiftId) || shiftRows[0] || null);
+        setKpiTasks(kpiRows);
 
         try {
           const payrollData = await bizenApi.payrollDetail(employeeId);
@@ -75,7 +78,7 @@ export default function EmployeeHome() {
     return () => {
       active = false;
     };
-  }, [employeeId, todayDisplay]);
+  }, [employeeId, today, todayDisplay]);
 
   if (error) {
     return <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">{error}</section>;
@@ -87,6 +90,8 @@ export default function EmployeeHome() {
 
   const salaryLabel = payroll?.isEstimate ? "Lương tạm tính" : "Lương tháng này";
   const salaryValue = payroll ? formatCurrency(payroll.finalSalary) : "—";
+  const openKpis = kpiTasks.filter((task) => ["Pending", "InProgress", "Rejected"].includes(task.status)).length;
+  const submittedKpis = kpiTasks.filter((task) => task.status === "Submitted").length;
 
   return (
     <div className="space-y-4">
@@ -134,6 +139,23 @@ export default function EmployeeHome() {
           </div>
         </section>
       ) : null}
+
+      <section className="premium-card rounded-2xl p-4">
+        <Link to="/mobile/kpis" className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+              <ClipboardCheck className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block font-semibold text-slate-950">KPI ca hôm nay</span>
+              <span className="text-sm text-slate-500">
+                {kpiTasks.length ? `${openKpis} cần làm · ${submittedKpis} chờ duyệt` : "Chưa có KPI được giao"}
+              </span>
+            </span>
+          </span>
+          <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" />
+        </Link>
+      </section>
 
       <section className="premium-card rounded-2xl p-4">
         <Link to="/mobile/attendance" className="flex items-center justify-between">

@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS company_access_requests (
   contact_name TEXT NOT NULL,
   contact_email TEXT NOT NULL,
   phone TEXT,
+  employee_count INTEGER NOT NULL DEFAULT 20,
   admin_password_hash TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
   company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
@@ -186,9 +187,60 @@ CREATE TABLE IF NOT EXISTS app_settings (
   geofence_enabled BOOLEAN NOT NULL DEFAULT true
 );
 
+CREATE TABLE IF NOT EXISTS kpi_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  department_id TEXT REFERENCES departments(id) ON DELETE SET NULL,
+  shift_id TEXT REFERENCES shifts(id) ON DELETE SET NULL,
+  default_due_offset_minutes INTEGER NOT NULL DEFAULT 60,
+  requires_photo BOOLEAN NOT NULL DEFAULT true,
+  min_photo_count INTEGER NOT NULL DEFAULT 1,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS shift_kpi_tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE,
+  work_date DATE NOT NULL,
+  shift_id TEXT REFERENCES shifts(id) ON DELETE SET NULL,
+  template_id UUID REFERENCES kpi_templates(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  due_at TIMESTAMPTZ NOT NULL,
+  requires_photo BOOLEAN NOT NULL DEFAULT true,
+  min_photo_count INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'InProgress', 'Submitted', 'Approved', 'Rejected')),
+  employee_note TEXT,
+  rejection_reason TEXT,
+  submitted_at TIMESTAMPTZ,
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by TEXT,
+  created_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS shift_kpi_task_photos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id UUID REFERENCES shift_kpi_tasks(id) ON DELETE CASCADE,
+  image_data BYTEA NOT NULL,
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS idx_employees_department ON employees(department_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_work_date ON attendance_records(work_date);
 CREATE INDEX IF NOT EXISTS idx_payroll_items_employee ON payroll_items(employee_id);
+CREATE INDEX IF NOT EXISTS idx_shift_kpi_tasks_company_date ON shift_kpi_tasks(company_id, work_date DESC);
+CREATE INDEX IF NOT EXISTS idx_shift_kpi_tasks_employee_date ON shift_kpi_tasks(employee_id, work_date DESC);
+CREATE INDEX IF NOT EXISTS idx_shift_kpi_tasks_status ON shift_kpi_tasks(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_shift_kpi_task_photos_task ON shift_kpi_task_photos(task_id);
 
 CREATE TABLE IF NOT EXISTS app_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

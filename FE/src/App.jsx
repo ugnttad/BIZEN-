@@ -13,6 +13,7 @@ import AttendanceDashboard from "./pages/web/AttendanceDashboard";
 import FaceEnrollmentReview from "./pages/web/FaceEnrollmentReview";
 import AccountApprovals from "./pages/web/AccountApprovals";
 import ShiftScheduling from "./pages/web/ShiftScheduling";
+import KpiManagement from "./pages/web/KpiManagement";
 import PayrollManagement from "./pages/web/PayrollManagement";
 import PayrollDetail from "./pages/web/PayrollDetail";
 import LeaveRequests from "./pages/web/LeaveRequests";
@@ -27,6 +28,7 @@ import { getAuthUser, getDefaultPathForRole } from "./modules/auth/authStore";
 import EmployeeHome from "./pages/mobile/EmployeeHome";
 import FaceIDCheckin from "./pages/mobile/FaceIDCheckin";
 import MySchedule from "./pages/mobile/MySchedule";
+import MyKpis from "./pages/mobile/MyKpis";
 import MyAttendance from "./pages/mobile/MyAttendance";
 import MyPayroll from "./pages/mobile/MyPayroll";
 import MobileLeaveRequest from "./pages/mobile/MobileLeaveRequest";
@@ -143,6 +145,14 @@ export default function App() {
           }
         />
         <Route
+          path="kpis"
+          element={
+            <ProtectedRoute roles={["Admin"]}>
+              <KpiManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="payroll"
           element={
             <ProtectedRoute roles={["Admin"]}>
@@ -204,6 +214,7 @@ export default function App() {
         <Route path="home" element={<EmployeeHome />} />
         <Route path="checkin" element={<FaceIDCheckin />} />
         <Route path="schedule" element={<MySchedule />} />
+        <Route path="kpis" element={<MyKpis />} />
         <Route path="attendance" element={<MyAttendance />} />
         <Route path="payroll" element={<MyPayroll />} />
         <Route path="leave" element={<MobileLeaveRequest />} />

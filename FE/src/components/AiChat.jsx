@@ -65,7 +65,9 @@ export default function AiChat({ compact = false }) {
       await bizenApi.aiChatStream(clean, {
         onEvent: (event, payload) => {
           if (event === "meta") {
-            setMessages((current) => current.map((message) => (message.id === aiMessageId ? { ...message, mode: payload?.mode || "openai" } : message)));
+            setMessages((current) =>
+              current.map((message) => (message.id === aiMessageId ? { ...message, mode: payload?.mode || "openai", issue: payload?.issue || null } : message))
+            );
           }
 
           if (event === "delta" && payload?.delta) {
@@ -78,7 +80,14 @@ export default function AiChat({ compact = false }) {
           if (event === "done") {
             setMessages((current) =>
               current.map((message) =>
-                message.id === aiMessageId ? { ...message, mode: payload?.model ? `${payload.mode} · ${payload.model}` : payload?.mode || message.mode, streaming: false } : message
+                message.id === aiMessageId
+                  ? {
+                      ...message,
+                      mode: payload?.model ? `${payload.mode} · ${payload.model}` : payload?.mode || message.mode,
+                      issue: payload?.issue || message.issue || null,
+                      streaming: false
+                    }
+                  : message
               )
             );
           }
@@ -87,7 +96,11 @@ export default function AiChat({ compact = false }) {
 
       if (!receivedStreamText) {
         const payload = await bizenApi.aiChat(clean);
-        setMessages((current) => current.map((message) => (message.id === aiMessageId ? { ...message, text: payload.reply, mode: payload.mode, streaming: false } : message)));
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === aiMessageId ? { ...message, text: payload.reply, mode: payload.mode, issue: payload.issue || null, streaming: false } : message
+          )
+        );
       }
     } catch {
       setMessages((current) =>
@@ -134,6 +147,11 @@ export default function AiChat({ compact = false }) {
               }`}
             >
               <p>{message.text || (message.streaming ? "Đang tạo phản hồi realtime..." : "")}</p>
+              {message.issue ? (
+                <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] font-semibold leading-4 text-amber-800">
+                  {message.issue.message} {message.issue.action}
+                </p>
+              ) : null}
               {message.mode ? <p className="mt-1 text-[11px] font-bold text-slate-400">{message.mode}</p> : null}
             </div>
             {message.from === "user" ? (

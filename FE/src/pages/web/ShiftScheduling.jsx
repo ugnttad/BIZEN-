@@ -180,6 +180,7 @@ export default function ShiftScheduling() {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [availabilityRows, setAvailabilityRows] = useState([]);
   const [aiScheduleReasons, setAiScheduleReasons] = useState([]);
+  const [aiScheduleWarnings, setAiScheduleWarnings] = useState([]);
   const [dragItem, setDragItem] = useState(null);
   const [suggesting, setSuggesting] = useState(false);
   const [suggested, setSuggested] = useState(false);
@@ -210,6 +211,7 @@ export default function ShiftScheduling() {
       setLeaveRequests(leaveRows);
       setAvailabilityRows(availability);
       setAiScheduleReasons(["Không xếp nhân viên đang nghỉ phép hoặc đã báo bận.", "Cân bằng workload theo từng bộ phận/nhóm."]);
+      setAiScheduleWarnings([]);
     });
 
     return () => {
@@ -410,11 +412,14 @@ export default function ShiftScheduling() {
         const normalized = payload.days?.length ? normalizeScheduleRows(payload.days, shifts, weekDays) : scheduleWeek;
         setSuggested(true);
         setAiScheduleReasons(payload.reasons || []);
+        setAiScheduleWarnings(payload.warnings || []);
         setScheduleWeek(normalized);
         setDirty(true);
         setScheduleMessage(
           payload.mode === "openai"
             ? `OpenAI đã tối ưu lịch tuần này bằng dữ liệu nhân viên, nghỉ phép, lịch bận và workload realtime${payload.model ? ` (${payload.model})` : ""}.`
+            : payload.providerIssue
+              ? `${payload.providerIssue.message} ${payload.providerIssue.action} BIZEN đã dùng bộ tối ưu nội bộ để lịch vẫn chạy được.`
             : "AI nội bộ đã tối ưu lịch bằng dữ liệu hiện có. Bạn vẫn có thể kéo-thả để tinh chỉnh trước khi Apply."
         );
       })
@@ -707,6 +712,12 @@ export default function ShiftScheduling() {
                 <div key={reason} className="flex gap-2 text-sm text-slate-600">
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                   <p>{reason}</p>
+                </div>
+              ))}
+              {aiScheduleWarnings.map((warning) => (
+                <div key={warning} className="flex gap-2 rounded-lg bg-amber-50 p-2 text-sm text-amber-800">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>{warning}</p>
                 </div>
               ))}
             </div>

@@ -22,6 +22,7 @@ settings/
 shifts/
 notifications/
 ai/
+kpis/
 ```
 
 Frontend API wiring is under `FE/src/modules/api`.
@@ -93,6 +94,7 @@ Set these Vercel environment variables:
 DATABASE_URL=postgresql://...
 GOOGLE_CLIENT_ID=518331039125-i79o5esjg5v5eiim93rdapvtfp0elk4n.apps.googleusercontent.com
 VITE_GOOGLE_CLIENT_ID=518331039125-i79o5esjg5v5eiim93rdapvtfp0elk4n.apps.googleusercontent.com
+GOOGLE_MAPS_API_KEY=...
 JWT_SECRET=replace-with-a-long-random-secret
 PASSWORD_LOGIN_SECRET=replace-this-login-password
 PLATFORM_ADMIN_EMAIL=platform@your-domain.com
@@ -126,6 +128,34 @@ npm run vercel:env:smtp
 
 The sync script sends `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `MAIL_FROM` to Vercel `production` without printing secret values. Redeploy after syncing.
 
+For real store address autocomplete in Settings, create a Google Maps Platform key with Places API enabled, keep `GOOGLE_MAPS_API_KEY` in `BE/.env`, then sync it to Vercel:
+
+```bash
+npm run vercel:env:maps
+```
+
+The backend proxies Google Places Autocomplete and Place Details requests, so the Maps key is not exposed in the React bundle. Without `GOOGLE_MAPS_API_KEY`, owners can still enter the address manually or use browser GPS.
+
+For the paid AI demo, keep `OPENAI_*` and `AWS_REKOGNITION_*` in `BE/.env`, then sync them to Vercel:
+
+```bash
+npm run vercel:env:ai
+```
+
+The AI sync script sends OpenAI and AWS Rekognition credentials to Vercel `production`, sets `AWS_REKOGNITION_ENABLED=true`, and keeps `FACE_ID_ALLOW_DEMO_MODE=false` unless overridden in `BE/.env`. Redeploy after syncing.
+
+To verify paid AI providers before a store demo:
+
+```bash
+npm run ai:check
+```
+
+If the AWS collection has not been created yet, run:
+
+```bash
+npm run ai:check -- --create-aws-collection
+```
+
 After deploy, verify the backend with:
 
 ```text
@@ -136,4 +166,16 @@ https://your-vercel-domain.vercel.app/api/health
 
 BIZEN uses OpenAI for realtime assistant responses and structured schedule planning. `POST /api/ai/chat/stream` streams chat tokens to the dashboard, while `POST /api/schedules/ai-suggest` returns a full week schedule proposal with reasons and warnings.
 
+When a company registers, the requested employee count is stored with the tenant request. After Platform Admin approval, BIZEN scales the default department targets and shift required counts from that number, so AI Schedule Suggest starts from the company's real team size instead of the 20-person demo template.
+
 Face ID uses AWS Rekognition for face quality checks, enrollment indexing, and check-in matching. Demo Face ID is disabled by default; set `FACE_ID_ALLOW_DEMO_MODE=true` only for local demos without AWS credentials.
+
+## Shift KPI
+
+Admins can create KPI tasks for a specific employee, date, shift, and deadline. Employees see assigned KPI tasks in the mobile app, mark work in progress, upload photo proof, and submit notes. BIZEN records the submit time, computes on-time/late/missed status, and lets the owner approve or reject the proof.
+
+The working requirement is kept in `docs/kpi-shift-tasks-requirements.md`.
+
+## Location integrations
+
+Store attendance location uses latitude/longitude saved in Settings and enforces the configured geofence radius during check-in. Settings can call Google Places Autocomplete and Place Details through the backend to suggest real map places and fill coordinates automatically.

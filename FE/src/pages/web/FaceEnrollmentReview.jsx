@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, RefreshCw, Search, ShieldCheck, UserRound, XCircle } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
+import RejectionReasonModal from "../../components/RejectionReasonModal";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 const statusTabs = ["All", "Pending", "Approved", "Rejected", "Revoked"];
+const defaultRejectionReason = "Ảnh chưa rõ khuôn mặt";
 
 function FaceEnrollmentImage({ id }) {
   const [src, setSrc] = useState("");
@@ -56,6 +58,8 @@ export default function FaceEnrollmentReview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reviewingId, setReviewingId] = useState("");
+  const [rejectionTarget, setRejectionTarget] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState(defaultRejectionReason);
 
   function loadEnrollments(nextStatus = status) {
     setLoading(true);
@@ -77,24 +81,39 @@ export default function FaceEnrollmentReview() {
     return enrollments.filter((item) => [item.employeeId, item.employeeName, item.department].join(" ").toLowerCase().includes(normalized));
   }, [enrollments, query]);
 
-  async function reviewEnrollment(id, nextStatus) {
-    const rejectionReason = nextStatus === "Rejected" ? window.prompt("Lý do từ chối", "Ảnh chưa rõ khuôn mặt") : "";
-    if (nextStatus === "Rejected" && rejectionReason === null) return;
-
+  async function reviewEnrollment(id, nextStatus, reason = "") {
     setReviewingId(id);
     setError("");
     try {
       await bizenApi.reviewFaceEnrollment(id, {
         status: nextStatus,
         reviewedBy: "Chủ sở hữu",
-        rejectionReason
+        rejectionReason: reason
       });
       loadEnrollments(status);
+      return true;
     } catch (err) {
       setError(err.message || "Không cập nhật được trạng thái Face ID.");
+      return false;
     } finally {
       setReviewingId("");
     }
+  }
+
+  function openRejectionModal(item) {
+    setRejectionTarget(item);
+    setRejectionReason(defaultRejectionReason);
+  }
+
+  function closeRejectionModal() {
+    setRejectionTarget(null);
+    setRejectionReason(defaultRejectionReason);
+  }
+
+  async function rejectEnrollment() {
+    if (!rejectionTarget) return;
+    const updated = await reviewEnrollment(rejectionTarget.id, "Rejected", rejectionReason.trim());
+    if (updated) closeRejectionModal();
   }
 
   return (
@@ -189,7 +208,7 @@ export default function FaceEnrollmentReview() {
                           Approve
                         </button>
                         <button
-                          onClick={() => reviewEnrollment(item.id, "Rejected")}
+                          onClick={() => openRejectionModal(item)}
                           disabled={reviewingId === item.id}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:text-slate-400"
                         >
@@ -208,8 +227,18 @@ export default function FaceEnrollmentReview() {
               </article>
             ))}
           </div>
-        )}
-      </section>
+          )}
+        </section>
+      <RejectionReasonModal
+        open={Boolean(rejectionTarget)}
+        value={rejectionReason}
+        onChange={setRejectionReason}
+        onClose={closeRejectionModal}
+        onSubmit={rejectEnrollment}
+        submitting={reviewingId === rejectionTarget?.id}
+        description={rejectionTarget ? `Từ chối đăng ký Face ID của ${rejectionTarget.employeeName}.` : ""}
+        submitLabel="Từ chối"
+      />
     </div>
   );
 }

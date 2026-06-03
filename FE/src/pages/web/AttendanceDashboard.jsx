@@ -67,13 +67,17 @@ export default function AttendanceDashboard() {
   const [checkoutTime, setCheckoutTime] = useState("");
   const [closingCheckout, setClosingCheckout] = useState(false);
   const [checkoutMessage, setCheckoutMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([bizenApi.attendance(selectedDate), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([attendanceRows, departmentRows, chartRows]) => {
-      setAttendance(attendanceRows);
-      setDepartments(departmentRows);
-      setWeeklyAttendance(chartRows.weeklyAttendance || []);
-    });
+    setError("");
+    Promise.all([bizenApi.attendance(selectedDate), bizenApi.departments(), bizenApi.dashboardCharts()])
+      .then(([attendanceRows, departmentRows, chartRows]) => {
+        setAttendance(attendanceRows);
+        setDepartments(departmentRows);
+        setWeeklyAttendance(chartRows.weeklyAttendance || []);
+      })
+      .catch((requestError) => setError(requestError.message || "Không tải được dữ liệu chấm công."));
   }, [selectedDate]);
 
   const rows = useMemo(() => {
@@ -94,8 +98,12 @@ export default function AttendanceDashboard() {
   const missingCheckout = attendance.filter((record) => record.needsCheckoutReview);
 
   async function reloadAttendance() {
-    const attendanceRows = await bizenApi.attendance(selectedDate);
-    setAttendance(attendanceRows);
+    try {
+      const attendanceRows = await bizenApi.attendance(selectedDate);
+      setAttendance(attendanceRows);
+    } catch (requestError) {
+      setError(requestError.message || "Không tải lại được dữ liệu chấm công.");
+    }
   }
 
   function openCheckoutModal(record) {
@@ -162,6 +170,8 @@ export default function AttendanceDashboard() {
           </div>
         }
       />
+
+      {error ? <p className="mb-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <StatCard title="Present" value={attendance.filter((item) => item.status === "Present").length} helper="đúng giờ" tone="emerald" />

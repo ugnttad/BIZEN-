@@ -45,6 +45,27 @@ export const bizenApi = {
   notifications: (employeeId) => apiClient.get(`/notifications${employeeId ? `?employeeId=${encodeURIComponent(employeeId)}` : ""}`),
   settings: () => apiClient.get("/settings"),
   updateSettings: (payload) => apiClient.put("/settings", payload),
+  placeSuggestions: ({ input, latitude, longitude }) => {
+    const params = new URLSearchParams({ input });
+    if (latitude !== "" && latitude !== null && latitude !== undefined) params.set("latitude", latitude);
+    if (longitude !== "" && longitude !== null && longitude !== undefined) params.set("longitude", longitude);
+    return apiClient.get(`/settings/place-suggestions?${params.toString()}`);
+  },
+  placeDetails: (placeId) => apiClient.get(`/settings/place-details?placeId=${encodeURIComponent(placeId)}`),
+  kpiTasks: ({ date, status = "All", employeeId } = {}) => {
+    const params = new URLSearchParams();
+    if (date) params.set("date", date);
+    if (status) params.set("status", status);
+    if (employeeId) params.set("employeeId", employeeId);
+    const query = params.toString();
+    return apiClient.get(`/kpis/tasks${query ? `?${query}` : ""}`);
+  },
+  createKpiTask: (payload) => apiClient.post("/kpis/tasks", payload),
+  updateKpiProgress: (id, status) => apiClient.patch(`/kpis/tasks/${id}/progress`, { status }),
+  submitKpiTask: (id, payload) => apiClient.post(`/kpis/tasks/${id}/submit`, payload),
+  reviewKpiTask: (id, payload) => apiClient.patch(`/kpis/tasks/${id}/review`, payload),
+  deleteKpiTask: (id) => apiClient.delete(`/kpis/tasks/${id}`),
+  kpiTaskPhoto: (id) => apiClient.blob(`/kpis/task-photos/${id}/image`),
   reports: () => apiClient.get("/reports"),
   aiAlerts: () => apiClient.get("/ai/alerts"),
   aiChat: (message) => apiClient.post("/ai/chat", { message }),

@@ -11,7 +11,10 @@
     "start": "npm --prefix BE run start",
     "db:migrate": "npm --prefix BE run db:migrate",
     "db:seed": "npm --prefix BE run db:seed",
-    "vercel:env:smtp": "node scripts/sync-vercel-smtp-env.mjs"
+    "vercel:env:smtp": "node scripts/sync-vercel-smtp-env.mjs",
+    "vercel:env:ai": "node scripts/sync-vercel-ai-env.mjs",
+    "vercel:env:maps": "node scripts/sync-vercel-maps-env.mjs",
+    "ai:check": "node scripts/check-ai-providers.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-rekognition": "^3.1052.0",

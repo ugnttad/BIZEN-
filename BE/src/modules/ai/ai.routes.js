@@ -4,7 +4,7 @@ import { query } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { getBusinessDate } from "../../shared/businessDate.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
-import { createTextResponse, createTextStream, isOpenAiReady } from "./openai.service.js";
+import { createTextResponse, createTextStream, describeOpenAiIssue, isOpenAiReady } from "./openai.service.js";
 
 export const aiRouter = Router();
 
@@ -131,8 +131,8 @@ function writeSse(res, event, payload) {
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-async function streamFallbackReply(res, reply, mode) {
-  writeSse(res, "meta", { mode });
+async function streamFallbackReply(res, reply, mode, issue = null) {
+  writeSse(res, "meta", { mode, issue });
 
   const chunks = reply.match(/.{1,28}(\s|$)/g) || [reply];
   for (const chunk of chunks) {
@@ -141,7 +141,7 @@ async function streamFallbackReply(res, reply, mode) {
     await new Promise((resolve) => setTimeout(resolve, 16));
   }
 
-  writeSse(res, "done", { mode });
+  writeSse(res, "done", { mode, issue });
 }
 
 aiRouter.get(
@@ -181,8 +181,8 @@ aiRouter.post(
       });
 
       res.json({ reply: response.output_text || fallbackReply(message, context), mode: "openai", model: env.openaiModel });
-    } catch {
-      res.json({ reply: fallbackReply(message, context), mode: "openai-fallback" });
+    } catch (error) {
+      res.json({ reply: fallbackReply(message, context), mode: "openai-fallback", issue: describeOpenAiIssue(error) });
     }
   })
 );
@@ -237,12 +237,13 @@ aiRouter.post(
       if (!closed && !res.writableEnded) {
         writeSse(res, "done", { mode: "openai", model: env.openaiModel });
       }
-    } catch {
+    } catch (error) {
+      const issue = describeOpenAiIssue(error);
       if (!closed && !res.writableEnded) {
         if (!streamedText) {
-          await streamFallbackReply(res, fallbackReply(message, context), "openai-fallback");
+          await streamFallbackReply(res, fallbackReply(message, context), "openai-fallback", issue);
         } else {
-          writeSse(res, "done", { mode: "openai-partial", model: env.openaiModel });
+          writeSse(res, "done", { mode: "openai-partial", model: env.openaiModel, issue });
         }
       }
     } finally {

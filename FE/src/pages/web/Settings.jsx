@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, CheckCircle2, Clock3, CreditCard, MapPin, Navigation, ShieldCheck, UsersRound } from "lucide-react";
+import { Building2, CheckCircle2, Clock3, CreditCard, Loader2, MapPin, Navigation, Search, ShieldCheck, UsersRound } from "lucide-react";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import { formatCurrency } from "../../lib/utils";
@@ -22,16 +22,75 @@ export default function Settings() {
   const [departments, setDepartments] = useState([]);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [placeQuery, setPlaceQuery] = useState("Hải Châu, Đà Nẵng");
+  const [placeSuggestions, setPlaceSuggestions] = useState([]);
+  const [placeSearching, setPlaceSearching] = useState(false);
+  const [placeConfigured, setPlaceConfigured] = useState(true);
+  const [placeDropdownOpen, setPlaceDropdownOpen] = useState(false);
+  const [placeMessage, setPlaceMessage] = useState("");
+  const [selectingPlaceId, setSelectingPlaceId] = useState("");
 
   useEffect(() => {
     Promise.all([bizenApi.settings(), bizenApi.departments()])
       .then(([settingsData, departmentRows]) => {
-        if (settingsData) setSettings(settingsData);
+        if (settingsData) {
+          setSettings(settingsData);
+          setPlaceQuery(settingsData.storeAddress || "");
+        }
         setDepartments(departmentRows);
       })
       .catch((requestError) => setError(requestError.message || "Không tải được bộ phận/nhóm từ Neon."));
   }, []);
+
+  useEffect(() => {
+    const input = placeQuery.trim();
+
+    if (!placeDropdownOpen) {
+      setPlaceSearching(false);
+      return undefined;
+    }
+
+    if (input.length < 2) {
+      setPlaceSuggestions([]);
+      setPlaceSearching(false);
+      return undefined;
+    }
+
+    let active = true;
+    const timeoutId = window.setTimeout(async () => {
+      setPlaceSearching(true);
+      setPlaceMessage("");
+
+      try {
+        const response = await bizenApi.placeSuggestions({
+          input,
+          latitude: settings.storeLatitude,
+          longitude: settings.storeLongitude
+        });
+
+        if (!active) return;
+
+        setPlaceConfigured(response.configured !== false);
+        setPlaceSuggestions(response.suggestions || []);
+        if (response.configured === false) {
+          setPlaceMessage(response.issue?.message || "Chưa cấu hình GOOGLE_MAPS_API_KEY, vẫn có thể nhập tay hoặc dùng GPS hiện tại.");
+        }
+      } catch (requestError) {
+        if (!active) return;
+        setPlaceSuggestions([]);
+        setPlaceMessage(requestError.message || "Không tải được gợi ý địa điểm từ Google Places.");
+      } finally {
+        if (active) setPlaceSearching(false);
+      }
+    }, 350);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [placeDropdownOpen, placeQuery, settings.storeLatitude, settings.storeLongitude]);
 
   async function saveSettings(event) {
     event.preventDefault();
@@ -52,8 +111,16 @@ export default function Settings() {
       return;
     }
     setError("");
-    await bizenApi.updateSettings(settings);
-    setSaved(true);
+    setSaving(true);
+    try {
+      const updated = await bizenApi.updateSettings(settings);
+      setSettings(updated);
+      setSaved(true);
+    } catch (requestError) {
+      setError(requestError.message || "Không lưu được cấu hình. Kiểm tra API và thử lại.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function useCurrentLocation() {
@@ -72,6 +139,7 @@ export default function Settings() {
           storeLongitude: Number(position.coords.longitude.toFixed(7)),
           geofenceEnabled: true
         }));
+        setPlaceMessage("Đã lấy GPS hiện tại. Có thể lưu luôn hoặc tìm địa chỉ quán để app tự điền tên rõ hơn.");
         setLocating(false);
       },
       () => {
@@ -82,6 +150,42 @@ export default function Settings() {
     );
   }
 
+  async function selectPlace(suggestion) {
+    setSelectingPlaceId(suggestion.placeId);
+    setPlaceMessage("");
+    setError("");
+
+    try {
+      const response = await bizenApi.placeDetails(suggestion.placeId);
+      if (response.configured === false || !response.place) {
+        setPlaceConfigured(false);
+        setPlaceMessage(response.issue?.message || "Chưa cấu hình GOOGLE_MAPS_API_KEY, vẫn có thể nhập tay hoặc dùng GPS hiện tại.");
+        return;
+      }
+
+      const place = response.place;
+      const address = place.address || place.name || suggestion.text;
+      const latitude = place.latitude === null || place.latitude === undefined ? "" : Number(Number(place.latitude).toFixed(7));
+      const longitude = place.longitude === null || place.longitude === undefined ? "" : Number(Number(place.longitude).toFixed(7));
+
+      setPlaceQuery(address);
+      setSettings((current) => ({
+        ...current,
+        storeAddress: address,
+        storeLatitude: latitude === "" ? current.storeLatitude : latitude,
+        storeLongitude: longitude === "" ? current.storeLongitude : longitude,
+        geofenceEnabled: true
+      }));
+      setPlaceSuggestions([]);
+      setPlaceDropdownOpen(false);
+      setPlaceMessage("Đã lấy tọa độ từ Google Places.");
+    } catch (requestError) {
+      setPlaceMessage(requestError.message || "Không lấy được tọa độ địa điểm từ Google Places.");
+    } finally {
+      setSelectingPlaceId("");
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -89,8 +193,12 @@ export default function Settings() {
         title="Cấu hình hệ thống"
         description="Thiết lập giờ làm chuẩn, quy định đi trễ, công thức lương, OT và bộ phận/nhóm cho cửa hàng."
         actions={
-          <button onClick={saveSettings} className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
-            Lưu cấu hình
+          <button
+            onClick={saveSettings}
+            disabled={saving}
+            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {saving ? "Đang lưu..." : "Lưu cấu hình"}
           </button>
         }
       />
@@ -141,10 +249,54 @@ export default function Settings() {
               </label>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="text-sm font-medium text-slate-700 md:col-span-2">
-                Địa chỉ quán
-                <input value={settings.storeAddress || ""} onChange={(event) => setSettings({ ...settings, storeAddress: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-              </label>
+              <div className="relative text-sm font-medium text-slate-700 md:col-span-2">
+                <label htmlFor="store-address">Địa chỉ quán</label>
+                <div className="relative mt-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    id="store-address"
+                    value={placeQuery}
+                    onBlur={() => window.setTimeout(() => setPlaceDropdownOpen(false), 150)}
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      setPlaceQuery(nextValue);
+                      setPlaceDropdownOpen(true);
+                      setSettings((current) => ({ ...current, storeAddress: nextValue }));
+                    }}
+                    onFocus={() => setPlaceDropdownOpen(true)}
+                    placeholder="Nhập tên quán hoặc địa chỉ"
+                    className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-10 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                  {placeSearching ? <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" /> : null}
+                </div>
+                {placeDropdownOpen && placeSuggestions.length > 0 ? (
+                  <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                    {placeSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.placeId}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => selectPlace(suggestion)}
+                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={Boolean(selectingPlaceId)}
+                      >
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-slate-900">{suggestion.mainText || suggestion.text}</span>
+                          {suggestion.secondaryText ? <span className="block truncate text-xs font-medium text-slate-500">{suggestion.secondaryText}</span> : null}
+                        </span>
+                        {selectingPlaceId === suggestion.placeId ? <Loader2 className="ml-auto mt-0.5 h-4 w-4 shrink-0 animate-spin text-slate-400" /> : null}
+                      </button>
+                    ))}
+                    <div className="border-t border-slate-100 px-3 py-1.5 text-right text-[11px] font-semibold text-slate-400">Powered by Google</div>
+                  </div>
+                ) : null}
+                {placeMessage ? (
+                  <p className={`mt-2 text-xs ${placeConfigured ? "text-slate-500" : "text-amber-700"}`}>{placeMessage}</p>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-500">Gõ tên quán để lấy gợi ý từ Google Places; chọn một nơi sẽ tự điền tọa độ GPS.</p>
+                )}
+              </div>
               <label className="text-sm font-medium text-slate-700">
                 Latitude
                 <input type="number" step="0.0000001" value={settings.storeLatitude ?? ""} onChange={(event) => setSettings({ ...settings, storeLatitude: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />

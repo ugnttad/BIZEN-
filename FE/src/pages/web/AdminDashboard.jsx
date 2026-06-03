@@ -47,12 +47,15 @@ function formatDisplayDate(date = new Date()) {
 export default function AdminDashboard() {
   const [summary, setSummary] = useState({ employees: 0, checkedIn: 0, late: 0, leave: 0, payrollTotal: 0, departments: [], aiAlerts: [] });
   const [charts, setCharts] = useState({ weeklyAttendance: [], payrollTrend: [] });
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([bizenApi.dashboardSummary(), bizenApi.dashboardCharts()]).then(([summaryData, chartsData]) => {
-      setSummary(summaryData);
-      setCharts(chartsData);
-    });
+    Promise.all([bizenApi.dashboardSummary(), bizenApi.dashboardCharts()])
+      .then(([summaryData, chartsData]) => {
+        setSummary(summaryData);
+        setCharts(chartsData);
+      })
+      .catch((requestError) => setError(requestError.message || "Không tải được dashboard vận hành."));
   }, []);
 
   const payrollShort = `${Math.round((summary.payrollTotal || 0) / 1000000)} triệu`;
@@ -76,6 +79,8 @@ export default function AdminDashboard() {
           </button>
         }
       />
+
+      {error ? <p className="mb-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p> : null}
 
       <div className="mb-5 grid gap-3 lg:grid-cols-3">
         <div className="premium-card rounded-2xl p-4">

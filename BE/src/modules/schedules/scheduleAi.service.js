@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { env } from "../../config/env.js";
-import { createParsedResponse } from "../ai/openai.service.js";
+import { createParsedResponse, describeOpenAiIssue } from "../ai/openai.service.js";
 
 const aiScheduleResponseSchema = z.object({
   days: z.array(
@@ -234,7 +234,11 @@ export async function suggestSchedulePlan(context) {
     });
 
     if (!response?.output_parsed) {
-      return fallback;
+      return {
+        ...fallback,
+        mode: "neon-fallback",
+        providerIssue: describeOpenAiIssue(null)
+      };
     }
 
     const sanitized = sanitizePlan(response.output_parsed, context);
@@ -245,6 +249,12 @@ export async function suggestSchedulePlan(context) {
       model: env.openaiModel
     };
   } catch (error) {
-    return buildDeterministicPlan(context, `OpenAI planner chưa trả được lịch ổn định, đã dùng bộ tối ưu nội bộ. ${error.message || ""}`.trim());
+    const issue = describeOpenAiIssue(error);
+    return {
+      ...buildDeterministicPlan(context, `OpenAI planner chưa sẵn sàng: ${issue.message} Đã dùng bộ tối ưu nội bộ.`),
+      mode: "openai-fallback",
+      model: env.openaiModel,
+      providerIssue: issue
+    };
   }
 }

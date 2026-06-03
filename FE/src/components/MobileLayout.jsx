@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Bell, CalendarDays, ChevronDown, CreditCard, Home, LogOut, Monitor, ScanFace, UserRound } from "lucide-react";
+import { Bell, CalendarDays, ChevronDown, ClipboardCheck, CreditCard, Home, LogOut, Monitor, ScanFace, UserRound } from "lucide-react";
 import Avatar from "./Avatar";
 import { setEmployeeExperiencePreference } from "../modules/auth/authStore";
 import { clearMobileEmployeeSession, getFirstName, getMobileEmployeeSession } from "../modules/auth/mobileSession";
@@ -8,6 +8,7 @@ import { clearMobileEmployeeSession, getFirstName, getMobileEmployeeSession } fr
 const mobileNav = [
   { label: "Home", path: "/mobile/home", icon: Home },
   { label: "Lịch", path: "/mobile/schedule", icon: CalendarDays },
+  { label: "KPI", path: "/mobile/kpis", icon: ClipboardCheck },
   { label: "Scan", path: "/mobile/checkin", icon: ScanFace },
   { label: "Lương", path: "/mobile/payroll", icon: CreditCard },
   { label: "Hồ sơ", path: "/mobile/profile", icon: UserRound }
@@ -104,7 +105,7 @@ export default function MobileLayout() {
           <Outlet />
         </div>
 
-        <nav className="absolute inset-x-3 bottom-3 grid grid-cols-5 rounded-2xl border border-white/70 bg-white/90 p-1.5 shadow-2xl shadow-slate-950/10 backdrop-blur-xl">
+        <nav className="absolute inset-x-3 bottom-3 grid grid-cols-6 rounded-2xl border border-white/70 bg-white/90 p-1.5 shadow-2xl shadow-slate-950/10 backdrop-blur-xl">
           {mobileNav.map((item) => {
             const Icon = item.icon;
             return (

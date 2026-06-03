@@ -13,6 +13,7 @@ const emptyForm = {
   contactName: "",
   contactEmail: "",
   phone: "",
+  employeeCount: "10",
   password: "",
   confirmPassword: ""
 };
@@ -34,6 +35,7 @@ export default function CompanyRegisterPage() {
     const phoneDigits = form.phone.replace(/\D/g, "");
     const city = form.city.trim().toLowerCase();
     const normalizedEmail = form.contactEmail.trim().toLowerCase();
+    const employeeCount = Number(form.employeeCount);
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setError("Email admin chưa hợp lệ.");
@@ -45,6 +47,10 @@ export default function CompanyRegisterPage() {
     }
     if (phoneDigits && !/^0?\d{9,10}$/.test(phoneDigits)) {
       setError("Số điện thoại cần 9-11 chữ số.");
+      return;
+    }
+    if (!Number.isInteger(employeeCount) || employeeCount < 1 || employeeCount > 20) {
+      setError("Quy mô nhân sự cần từ 1 đến 20 người để AI xếp ca đúng phạm vi MVP.");
       return;
     }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(form.password)) {
@@ -64,6 +70,7 @@ export default function CompanyRegisterPage() {
         contactName: form.contactName,
         contactEmail: normalizedEmail,
         phone: phoneDigits,
+        employeeCount,
         password: form.password
       });
       setRequest(payload);
@@ -116,6 +123,7 @@ export default function CompanyRegisterPage() {
                   <p className="font-semibold text-emerald-900">Yêu cầu đã được gửi</p>
                   <p className="mt-1 text-sm text-emerald-800">
                     Trạng thái: <span className="font-semibold">{request.status}</span>. Chủ nền tảng BIZEN sẽ duyệt trước khi bạn đăng nhập và vận hành.
+                    {request.employeeCount ? ` Quy mô AI ban đầu: ${request.employeeCount} nhân sự.` : ""}
                   </p>
                   <Link to="/login" className="mt-3 inline-block text-sm font-semibold text-blue-700 hover:text-blue-800">
                     Về trang đăng nhập
@@ -165,6 +173,22 @@ export default function CompanyRegisterPage() {
                   <Phone className="h-4 w-4 text-slate-400" />
                   <input value={form.phone} onChange={(event) => updateField("phone", event.target.value)} className="w-full outline-none" />
                 </span>
+              </label>
+              <label className="block text-sm font-medium text-slate-700">
+                Quy mô nhân sự dự kiến
+                <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                  <UserRound className="h-4 w-4 text-slate-400" />
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={form.employeeCount}
+                    onChange={(event) => updateField("employeeCount", event.target.value)}
+                    className="w-full outline-none"
+                  />
+                </span>
+                <span className="mt-1 block text-xs text-slate-500">AI Suggest sẽ dùng số này để tạo target bộ phận và số người cần cho từng ca.</span>
               </label>
             </div>
 

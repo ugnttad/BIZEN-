@@ -9,6 +9,7 @@ const requestSelect = `
   contact_name AS "contactName",
   contact_email AS "contactEmail",
   phone,
+  employee_count AS "employeeCount",
   status,
   company_id AS "companyId",
   reviewed_by AS "reviewedBy",
@@ -19,39 +20,94 @@ const requestSelect = `
 `;
 
 const defaultDepartments = [
-  ["quan-ly-cua-hang", "Quản lý cửa hàng", 1],
-  ["pha-che", "Pha chế", 5],
-  ["thu-ngan", "Thu ngân", 3],
-  ["phuc-vu-order", "Phục vụ / Order", 6],
-  ["topping-bep-nhe", "Topping / Bếp nhẹ", 3],
-  ["kho-tap-vu", "Kho / Tạp vụ", 2]
+  { key: "quan-ly-cua-hang", name: "Quản lý cửa hàng", defaultCount: 1, minAt: 1 },
+  { key: "pha-che", name: "Pha chế", defaultCount: 5, minAt: 2 },
+  { key: "thu-ngan", name: "Thu ngân", defaultCount: 3, minAt: 4 },
+  { key: "phuc-vu-order", name: "Phục vụ / Order", defaultCount: 6, minAt: 3 },
+  { key: "topping-bep-nhe", name: "Topping / Bếp nhẹ", defaultCount: 3, minAt: 7 },
+  { key: "kho-tap-vu", name: "Kho / Tạp vụ", defaultCount: 2, minAt: 9 }
 ];
 
 const defaultShifts = [
-  ["ca-sang", "Ca sáng", "07:00 - 15:00", "07:00", 5, "#2563eb"],
-  ["ca-chieu", "Ca chiều", "14:00 - 22:00", "14:00", 5, "#7c3aed"],
-  ["ca-toi", "Ca tối", "17:00 - 23:00", "17:00", 4, "#4f46e5"],
-  ["ca-gay", "Ca gãy giờ cao điểm", "10:00 - 14:00, 17:00 - 21:00", "10:00", 3, "#059669"]
+  { key: "ca-sang", name: "Ca sáng", timeRange: "07:00 - 15:00", shortTime: "07:00", defaultCount: 5, minAt: 1, color: "#2563eb" },
+  { key: "ca-chieu", name: "Ca chiều", timeRange: "14:00 - 22:00", shortTime: "14:00", defaultCount: 5, minAt: 2, color: "#7c3aed" },
+  { key: "ca-toi", name: "Ca tối", timeRange: "17:00 - 23:00", shortTime: "17:00", defaultCount: 4, minAt: 4, color: "#4f46e5" },
+  { key: "ca-gay", name: "Ca gãy giờ cao điểm", timeRange: "10:00 - 14:00, 17:00 - 21:00", shortTime: "10:00", defaultCount: 3, minAt: 8, color: "#059669" }
 ];
 
-async function createCompanyDefaults(client, companyId) {
+let tenantSchemaReady = false;
+
+async function ensureTenantSchema(executor = query) {
+  if (tenantSchemaReady) return;
+
+  const sql = `
+    ALTER TABLE company_access_requests
+      ADD COLUMN IF NOT EXISTS employee_count INTEGER NOT NULL DEFAULT 20;
+  `;
+
+  if (typeof executor === "function") {
+    await executor(sql);
+  } else {
+    await executor.query(sql);
+  }
+
+  tenantSchemaReady = true;
+}
+
+function normalizeEmployeeCount(value) {
+  const count = Number(value || 10);
+  if (!Number.isFinite(count)) return 10;
+  return Math.min(20, Math.max(1, Math.round(count)));
+}
+
+function allocateCounts(templates, desiredTotal) {
+  const total = normalizeEmployeeCount(desiredTotal);
+  const rows = templates.map((template) => ({
+    ...template,
+    count: total >= template.minAt ? 1 : 0
+  }));
+  let remaining = total - rows.reduce((sum, row) => sum + row.count, 0);
+  const eligible = rows.filter((row) => total >= row.minAt);
+
+  while (remaining > 0 && eligible.length) {
+    eligible
+      .sort((left, right) => left.count / left.defaultCount - right.count / right.defaultCount || right.defaultCount - left.defaultCount);
+    const next = eligible.find((row) => row.count < row.defaultCount) || eligible[0];
+    next.count += 1;
+    remaining -= 1;
+  }
+
+  return rows;
+}
+
+function buildDepartmentTargets(employeeCount) {
+  return allocateCounts(defaultDepartments, employeeCount);
+}
+
+function buildShiftRequirements(employeeCount) {
+  const count = normalizeEmployeeCount(employeeCount);
+  const dailyCoverage = Math.max(1, Math.min(count, Math.ceil(count * 0.85)));
+  return allocateCounts(defaultShifts, dailyCoverage);
+}
+
+async function createCompanyDefaults(client, companyId, employeeCount = 10) {
   const suffix = companyId.slice(0, 8);
 
-  for (const [key, name, targetHeadcount] of defaultDepartments) {
+  for (const { key, name, count } of buildDepartmentTargets(employeeCount)) {
     await client.query(
       `INSERT INTO departments (id, company_id, name, target_headcount)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (id) DO NOTHING`,
-      [`${suffix}-${key}`, companyId, name, targetHeadcount]
+      [`${suffix}-${key}`, companyId, name, count]
     );
   }
 
-  for (const [key, name, timeRange, shortTime, requiredCount, color] of defaultShifts) {
+  for (const { key, name, timeRange, shortTime, count, color } of buildShiftRequirements(employeeCount)) {
     await client.query(
       `INSERT INTO shifts (id, company_id, name, time_range, short_time, required_count, color)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (id) DO NOTHING`,
-      [`${suffix}-${key}`, companyId, name, timeRange, shortTime, requiredCount, color]
+      [`${suffix}-${key}`, companyId, name, timeRange, shortTime, count, color]
     );
   }
 
@@ -69,10 +125,12 @@ async function createCompanyDefaults(client, companyId) {
 }
 
 export async function createCompanyAccessRequest(data) {
+  await ensureTenantSchema();
+
   const result = await query(
     `INSERT INTO company_access_requests
-      (company_name, city, contact_name, contact_email, phone, admin_password_hash)
-     VALUES ($1, $2, $3, $4, $5, $6)
+      (company_name, city, contact_name, contact_email, phone, employee_count, admin_password_hash)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING ${requestSelect}`,
     [
       data.companyName.trim(),
@@ -80,6 +138,7 @@ export async function createCompanyAccessRequest(data) {
       data.contactName.trim(),
       normalizeEmail(data.contactEmail),
       normalizePhone(data.phone) || null,
+      normalizeEmployeeCount(data.employeeCount),
       data.adminPasswordHash
     ]
   );
@@ -87,6 +146,8 @@ export async function createCompanyAccessRequest(data) {
 }
 
 export async function findCompanyAccessConflict(data) {
+  await ensureTenantSchema();
+
   const contactEmail = normalizeEmail(data.contactEmail);
   const companyName = data.companyName.trim();
   const [user, employee, activeEmailRequest, company, activeCompanyRequest] = await Promise.all([
@@ -118,6 +179,8 @@ export async function findCompanyAccessConflict(data) {
 }
 
 export async function listCompanyAccessRequests(status = "Pending") {
+  await ensureTenantSchema();
+
   const result = await query(
     `SELECT ${requestSelect}
      FROM company_access_requests
@@ -130,6 +193,8 @@ export async function listCompanyAccessRequests(status = "Pending") {
 
 export async function reviewCompanyAccessRequest(id, data) {
   return withTransaction(async (client) => {
+    await ensureTenantSchema(client);
+
     const current = await client.query(
       `SELECT *
        FROM company_access_requests
@@ -180,7 +245,7 @@ export async function reviewCompanyAccessRequest(id, data) {
       throw httpError(409, "Tên doanh nghiệp đã tồn tại, không thể tạo tenant trùng.");
     }
     const companyId = company.rows[0].id;
-    await createCompanyDefaults(client, companyId);
+    await createCompanyDefaults(client, companyId, request.employee_count);
 
     const admin = await client.query(
       `INSERT INTO app_users

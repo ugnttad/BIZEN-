@@ -58,6 +58,7 @@ export const env = {
   clientOrigin,
   clientOrigins: [...new Set([clientOrigin, ...configuredClientOrigins, ...vercelClientOrigins, ...localClientOrigins])],
   googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || defaultGoogleClientId,
+  googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_PLACES_API_KEY || "",
   awsRegion: process.env.AWS_REGION || "ap-southeast-1",
   awsRekognitionEnabled,
   awsRekognitionCollectionId: process.env.AWS_REKOGNITION_COLLECTION_ID || "bizen-employees",

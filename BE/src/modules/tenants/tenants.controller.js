@@ -11,6 +11,7 @@ const companyAccessRequestSchema = z.object({
   contactName: z.string().trim().min(2, "Tên người đại diện cần ít nhất 2 ký tự").max(80, "Tên người đại diện tối đa 80 ký tự"),
   contactEmail: z.string().trim().email("Email admin chưa hợp lệ").transform(normalizeEmail),
   phone: z.string().optional().transform((value) => normalizePhone(value || "")),
+  employeeCount: z.coerce.number().int().min(1, "Quy mô nhân sự tối thiểu 1 người").max(20, "BIZEN MVP hỗ trợ tối đa 20 nhân sự").default(10),
   password: z.string().refine(isStrongPassword, "Mật khẩu cần ít nhất 8 ký tự, có chữ và số")
 });
 
@@ -37,6 +38,7 @@ export async function createCompanyAccessRequestHandler(req, res) {
     contactName: data.contactName,
     contactEmail: data.contactEmail,
     phone: data.phone,
+    employeeCount: data.employeeCount,
     adminPasswordHash: hashPassword(data.password)
   });
 

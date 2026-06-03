@@ -24,7 +24,7 @@ export default function AIAssistantPage() {
       <PageHeader
         eyebrow="AI Assistant Panel"
         title="Trợ lý thông minh cho chủ sở hữu"
-        description="Chatbox đọc dữ liệu Neon và stream phản hồi qua OpenAI; khi thiếu API key, hệ thống chuyển sang fallback nội bộ."
+        description="Chatbox đọc dữ liệu Neon và stream phản hồi qua OpenAI; nếu provider hết quota hoặc lỗi tạm thời, hệ thống báo rõ trạng thái và chuyển sang fallback nội bộ."
       />
 
       {error ? <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p> : null}
