@@ -416,15 +416,15 @@ export default function ShiftScheduling() {
         setScheduleWeek(normalized);
         setDirty(true);
         setScheduleMessage(
-          payload.mode === "openai"
-            ? `OpenAI đã tối ưu lịch tuần này bằng dữ liệu nhân viên, nghỉ phép, lịch bận và workload realtime${payload.model ? ` (${payload.model})` : ""}.`
+          payload.mode === "gemini"
+            ? `Gemini đã tối ưu lịch tuần này bằng dữ liệu nhân viên, nghỉ phép, lịch bận và workload realtime${payload.model ? ` (${payload.model})` : ""}.`
             : payload.providerIssue
               ? `${payload.providerIssue.message} ${payload.providerIssue.action} BIZEN đã dùng bộ tối ưu nội bộ để lịch vẫn chạy được.`
             : "AI nội bộ đã tối ưu lịch bằng dữ liệu hiện có. Bạn vẫn có thể kéo-thả để tinh chỉnh trước khi Apply."
         );
       })
       .catch((error) => {
-        setScheduleMessage(error.message || "Không tạo được lịch AI. Kiểm tra backend và OPENAI_API_KEY.");
+        setScheduleMessage(error.message || "Không tạo được lịch AI. Kiểm tra backend và GEMINI_API_KEY.");
       })
       .finally(() => setSuggesting(false));
   }

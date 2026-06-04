@@ -9,8 +9,6 @@ const vercelRepoPath = join(rootDir, ".vercel", "repo.json");
 const targetEnvironments = process.argv.slice(2).length ? process.argv.slice(2) : ["production"];
 
 const requiredKeys = [
-  "OPENAI_API_KEY",
-  "OPENAI_MODEL",
   "AWS_REGION",
   "AWS_ACCESS_KEY_ID",
   "AWS_SECRET_ACCESS_KEY",
@@ -20,6 +18,7 @@ const requiredKeys = [
 ];
 
 const defaultValues = {
+  GEMINI_MODEL: "gemini-2.5-flash",
   AWS_REKOGNITION_ENABLED: "true",
   FACE_ID_ALLOW_DEMO_MODE: "false"
 };
@@ -78,7 +77,7 @@ function redactedOutput(output, values) {
 }
 
 if (!existsSync(envPath)) {
-  console.error("Missing BE/.env. Add OpenAI and AWS values there first.");
+  console.error("Missing BE/.env. Add Gemini and AWS values there first.");
   process.exit(1);
 }
 
@@ -89,14 +88,17 @@ if (!existsSync(vercelProjectPath) && !existsSync(vercelRepoPath)) {
 
 const env = parseDotenv(readFileSync(envPath, "utf8"));
 const missingKeys = requiredKeys.filter((key) => !env[key]);
+const geminiApiKey = env.GEMINI_API_KEY || env.GOOGLE_AI_API_KEY;
 
-if (missingKeys.length) {
-  console.error(`Missing AI/AWS values in BE/.env: ${missingKeys.join(", ")}`);
+if (!geminiApiKey || missingKeys.length) {
+  const missing = [...(geminiApiKey ? [] : ["GEMINI_API_KEY"]), ...missingKeys];
+  console.error(`Missing AI/AWS values in BE/.env: ${missing.join(", ")}`);
   process.exit(1);
 }
 
 const values = {
   ...defaultValues,
+  GEMINI_API_KEY: geminiApiKey,
   ...Object.fromEntries(requiredKeys.map((key) => [key, env[key]])),
   ...Object.fromEntries(optionalKeys.filter((key) => env[key]).map((key) => [key, env[key]]))
 };
@@ -104,7 +106,7 @@ const values = {
 const secretValues = Object.values(values).filter(Boolean);
 
 for (const environment of targetEnvironments) {
-  console.log(`Syncing AI/AWS env to Vercel ${environment}...`);
+  console.log(`Syncing Gemini/AWS env to Vercel ${environment}...`);
 
   for (const [key, value] of Object.entries(values)) {
     const added = runVercel(["env", "add", key, environment, "--yes", "--force", "--value", value]);
@@ -119,4 +121,4 @@ for (const environment of targetEnvironments) {
   }
 }
 
-console.log("AI/AWS env sync completed. Redeploy Vercel to apply the new values.");
+console.log("Gemini/AWS env sync completed. Redeploy Vercel to apply the new values.");

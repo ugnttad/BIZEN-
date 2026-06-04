@@ -63,7 +63,10 @@ export function createApp() {
       service: "bizen-backend",
       databaseConfigured: isDatabaseConfigured(),
       googleConfigured: Boolean(env.googleClientId),
-      openaiConfigured: Boolean(env.openaiApiKey),
+      aiProvider: "gemini",
+      geminiConfigured: Boolean(env.geminiApiKey),
+      geminiModel: env.geminiModel,
+      legacyOpenaiConfigured: Boolean(env.openaiApiKey),
       awsRekognitionEnabled: Boolean(env.awsRekognitionEnabled),
       faceIdDemoMode: Boolean(env.faceIdAllowDemoMode)
     });

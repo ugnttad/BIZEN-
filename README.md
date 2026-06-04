@@ -99,8 +99,8 @@ JWT_SECRET=replace-with-a-long-random-secret
 PASSWORD_LOGIN_SECRET=replace-this-login-password
 PLATFORM_ADMIN_EMAIL=platform@your-domain.com
 PLATFORM_ADMIN_PASSWORD=replace-with-a-strong-platform-password
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-5-mini
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.5-flash
 AWS_REGION=ap-southeast-1
 AWS_REKOGNITION_ENABLED=true
 AWS_ACCESS_KEY_ID=...
@@ -136,13 +136,13 @@ npm run vercel:env:maps
 
 The backend proxies Google Places Autocomplete and Place Details requests, so the Maps key is not exposed in the React bundle. Without `GOOGLE_MAPS_API_KEY`, owners can still enter the address manually or use browser GPS.
 
-For paid AI providers, keep `OPENAI_*` and `AWS_REKOGNITION_*` in `BE/.env`, then sync them to Vercel:
+For AI providers, keep `GEMINI_*` and `AWS_REKOGNITION_*` in `BE/.env`, then sync them to Vercel:
 
 ```bash
 npm run vercel:env:ai
 ```
 
-The AI sync script sends OpenAI and AWS Rekognition credentials to Vercel `production`, sets `AWS_REKOGNITION_ENABLED=true`, and keeps `FACE_ID_ALLOW_DEMO_MODE=false` unless overridden in `BE/.env`. Redeploy after syncing.
+The AI sync script sends Gemini and AWS Rekognition credentials to Vercel `production`, sets `AWS_REKOGNITION_ENABLED=true`, and keeps `FACE_ID_ALLOW_DEMO_MODE=false` unless overridden in `BE/.env`. Redeploy after syncing.
 
 To verify paid AI providers before a store rollout:
 
@@ -164,7 +164,7 @@ https://your-vercel-domain.vercel.app/api/health
 
 ## AI integrations
 
-BIZEN uses OpenAI for realtime assistant responses and structured schedule planning. `POST /api/ai/chat/stream` streams chat tokens to the dashboard, while `POST /api/schedules/ai-suggest` returns a full week schedule proposal with reasons and warnings.
+BIZEN uses Gemini 2.5 Flash for realtime assistant responses and structured schedule planning. `POST /api/ai/chat/stream` streams chat tokens to the dashboard, while `POST /api/schedules/ai-suggest` returns a full week schedule proposal with reasons and warnings.
 
 When a company registers, the requested employee count is stored with the tenant request. After Platform Admin approval, BIZEN scales the default department targets and shift required counts from that number, so AI Schedule Suggest starts from the company's real team size instead of a fixed 20-person template.
 

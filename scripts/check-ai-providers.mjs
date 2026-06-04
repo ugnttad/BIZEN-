@@ -4,20 +4,20 @@ import { join } from "node:path";
 
 dotenv.config({ path: join(process.cwd(), "BE", ".env") });
 
-const [{ env }, { createTextResponse }] = await Promise.all([import("../BE/src/config/env.js"), import("../BE/src/modules/ai/openai.service.js")]);
+const [{ env }, { createTextResponse }] = await Promise.all([import("../BE/src/config/env.js"), import("../BE/src/modules/ai/gemini.service.js")]);
 
 const shouldCreateAwsCollection = process.argv.includes("--create-aws-collection");
 const results = [];
 
-async function checkOpenAi() {
+async function checkGemini() {
   try {
-    if (!env.openaiApiKey) {
+    if (!env.geminiApiKey) {
       results.push({
-        provider: "openai",
+        provider: "gemini",
         ok: false,
-        model: env.openaiModel,
+        model: env.geminiModel,
         code: "missing_api_key",
-        message: "OPENAI_API_KEY is not configured."
+        message: "GEMINI_API_KEY is not configured."
       });
       return;
     }
@@ -29,19 +29,19 @@ async function checkOpenAi() {
     });
 
     results.push({
-      provider: "openai",
+      provider: "gemini",
       ok: Boolean(response?.output_text),
-      model: env.openaiModel,
+      model: env.geminiModel,
       sample: response?.output_text || ""
     });
   } catch (error) {
     results.push({
-      provider: "openai",
+      provider: "gemini",
       ok: false,
-      model: env.openaiModel,
+      model: env.geminiModel,
       status: error.status || null,
-      code: error.code || error.type || "openai_error",
-      message: error.message || "OpenAI check failed"
+      code: error.code || error.type || "gemini_error",
+      message: error.message || "Gemini check failed"
     });
   }
 }
@@ -90,7 +90,7 @@ async function checkAwsRekognition() {
   }
 }
 
-await Promise.all([checkOpenAi(), checkAwsRekognition()]);
+await Promise.all([checkGemini(), checkAwsRekognition()]);
 
 console.log(JSON.stringify(results, null, 2));
 

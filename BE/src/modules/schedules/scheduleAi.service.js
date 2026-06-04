@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { zodTextFormat } from "openai/helpers/zod";
 import { env } from "../../config/env.js";
-import { createParsedResponse, describeOpenAiIssue } from "../ai/openai.service.js";
+import { createParsedResponse, describeGeminiIssue } from "../ai/gemini.service.js";
 
 const aiScheduleResponseSchema = z.object({
   days: z.array(
@@ -19,8 +18,6 @@ const aiScheduleResponseSchema = z.object({
   warnings: z.array(z.string()),
   confidence: z.number().min(0).max(1)
 });
-
-const scheduleTextFormat = zodTextFormat(aiScheduleResponseSchema, "bizen_schedule_plan");
 
 function unique(values = []) {
   return [...new Set(values.filter(Boolean))];
@@ -229,7 +226,7 @@ export async function suggestSchedulePlan(context) {
       instructions:
         "Bạn là BIZEN AI Scheduling Planner cho SaaS quản trị nhân sự/quán dịch vụ. Hãy trả về JSON đúng schema, tối ưu lịch ca thực tế cho SME/hospitality, nói lý do bằng tiếng Việt ngắn gọn, và đặt confidence từ 0 đến 1. Không thêm dữ liệu ngoài context.",
       input: JSON.stringify(buildPlannerInput(context), null, 2),
-      textFormat: scheduleTextFormat,
+      schema: aiScheduleResponseSchema,
       maxOutputTokens: 2600
     });
 
@@ -237,7 +234,7 @@ export async function suggestSchedulePlan(context) {
       return {
         ...fallback,
         mode: "neon-fallback",
-        providerIssue: describeOpenAiIssue(null)
+        providerIssue: describeGeminiIssue(null)
       };
     }
 
@@ -245,15 +242,21 @@ export async function suggestSchedulePlan(context) {
     return {
       ...sanitized,
       reasons: sanitized.reasons.length ? sanitized.reasons : fallback.reasons,
-      mode: "openai",
-      model: env.openaiModel
+      mode: "gemini",
+      model: env.geminiModel
     };
   } catch (error) {
-    const issue = describeOpenAiIssue(error);
+    const issue = describeGeminiIssue(error);
+    return {
+      ...buildDeterministicPlan(context, `Gemini planner chua san sang: ${issue.message} Da dung bo toi uu noi bo.`),
+      mode: "gemini-fallback",
+      model: env.geminiModel,
+      providerIssue: issue
+    };
     return {
       ...buildDeterministicPlan(context, `OpenAI planner chưa sẵn sàng: ${issue.message} Đã dùng bộ tối ưu nội bộ.`),
-      mode: "openai-fallback",
-      model: env.openaiModel,
+      mode: "gemini-fallback",
+      model: env.geminiModel,
       providerIssue: issue
     };
   }

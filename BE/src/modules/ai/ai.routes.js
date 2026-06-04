@@ -5,7 +5,7 @@ import { asyncHandler } from "../../shared/asyncHandler.js";
 import { getBusinessDate } from "../../shared/businessDate.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
 import { ensurePayrollAdjustmentSchema } from "../payroll/payroll.service.js";
-import { createTextResponse, createTextStream, describeOpenAiIssue, isOpenAiReady } from "./openai.service.js";
+import { createTextResponse, createTextStream, describeGeminiIssue, isGeminiReady } from "./gemini.service.js";
 
 export const aiRouter = Router();
 
@@ -201,7 +201,7 @@ aiRouter.post(
       return res.status(400).json({ error: "Câu hỏi tối đa 500 ký tự" });
     }
 
-    if (!isOpenAiReady()) {
+    if (!isGeminiReady()) {
       return res.json({ reply: fallbackReply(message, context), mode: "neon-fallback" });
     }
 
@@ -211,9 +211,9 @@ aiRouter.post(
         input: buildChatInput(message, context)
       });
 
-      res.json({ reply: response.output_text || fallbackReply(message, context), mode: "openai", model: env.openaiModel });
+      res.json({ reply: response.output_text || fallbackReply(message, context), mode: "gemini", model: env.geminiModel });
     } catch (error) {
-      res.json({ reply: fallbackReply(message, context), mode: "openai-fallback", issue: describeOpenAiIssue(error) });
+      res.json({ reply: fallbackReply(message, context), mode: "gemini-fallback", issue: describeGeminiIssue(error) });
     }
   })
 );
@@ -244,14 +244,14 @@ aiRouter.post(
       closed = true;
     });
 
-    if (!isOpenAiReady()) {
+    if (!isGeminiReady()) {
       await streamFallbackReply(res, fallbackReply(message, context), "neon-fallback");
       if (!res.writableEnded) res.end();
       return;
     }
 
     try {
-      writeSse(res, "meta", { mode: "openai", model: env.openaiModel });
+      writeSse(res, "meta", { mode: "gemini", model: env.geminiModel });
       const stream = await createTextStream({
         instructions: AI_ASSISTANT_INSTRUCTIONS,
         input: buildChatInput(message, context)
@@ -266,15 +266,15 @@ aiRouter.post(
       }
 
       if (!closed && !res.writableEnded) {
-        writeSse(res, "done", { mode: "openai", model: env.openaiModel });
+        writeSse(res, "done", { mode: "gemini", model: env.geminiModel });
       }
     } catch (error) {
-      const issue = describeOpenAiIssue(error);
+      const issue = describeGeminiIssue(error);
       if (!closed && !res.writableEnded) {
         if (!streamedText) {
-          await streamFallbackReply(res, fallbackReply(message, context), "openai-fallback", issue);
+          await streamFallbackReply(res, fallbackReply(message, context), "gemini-fallback", issue);
         } else {
-          writeSse(res, "done", { mode: "openai-partial", model: env.openaiModel, issue });
+          writeSse(res, "done", { mode: "gemini-partial", model: env.geminiModel, issue });
         }
       }
     } finally {
