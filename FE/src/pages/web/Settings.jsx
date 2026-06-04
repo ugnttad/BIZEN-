@@ -156,7 +156,7 @@ export default function Settings() {
     setError("");
 
     try {
-      const response = await bizenApi.placeDetails(suggestion.placeId);
+      const response = await bizenApi.placeDetails(suggestion.placeId, suggestion.text || suggestion.mainText);
       if (response.configured === false || !response.place) {
         setPlaceConfigured(false);
         setPlaceMessage(response.issue?.message || "Chưa cấu hình GOOGLE_MAPS_API_KEY, vẫn có thể nhập tay hoặc dùng GPS hiện tại.");
@@ -275,8 +275,10 @@ export default function Settings() {
                       <button
                         key={suggestion.placeId}
                         type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => selectPlace(suggestion)}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          selectPlace(suggestion);
+                        }}
                         className="flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={Boolean(selectingPlaceId)}
                       >

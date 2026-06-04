@@ -9,6 +9,7 @@ await query(`
     ai_alerts,
     notifications,
     leave_requests,
+    payroll_adjustments,
     payroll_items,
     payroll_runs,
     schedule_slots,

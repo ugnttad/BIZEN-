@@ -35,7 +35,10 @@ const placeSuggestionsSchema = z.object({
 });
 
 const placeDetailsSchema = z.object({
-  placeId: z.string().trim().min(4).max(256)
+  placeId: z.string().trim().min(4).max(256),
+  text: z.string().trim().min(2).max(180).optional(),
+  latitude: optionalLatitude,
+  longitude: optionalLongitude
 });
 
 const defaultPlaceBias = {
@@ -51,6 +54,7 @@ const placeAutocompleteFieldMask = [
 ].join(",");
 
 const placeDetailsFieldMask = ["id", "formattedAddress", "location"].join(",");
+const placeTextSearchFieldMask = ["places.id", "places.formattedAddress", "places.location"].join(",");
 
 function googlePlacesHeaders(fieldMask) {
   return {
@@ -126,6 +130,43 @@ function mapPlaceSuggestion(suggestion) {
   };
 }
 
+function mapGooglePlace(payload, fallbackPlaceId = "") {
+  const name = payload?.formattedAddress || "";
+
+  return {
+    placeId: payload?.id || fallbackPlaceId,
+    name,
+    address: payload?.formattedAddress || name,
+    latitude: payload?.location?.latitude ?? null,
+    longitude: payload?.location?.longitude ?? null
+  };
+}
+
+function hasPlaceCoordinates(place) {
+  return typeof place?.latitude === "number" && typeof place?.longitude === "number";
+}
+
+async function searchPlaceByText(text, latitude, longitude) {
+  if (!text) return null;
+
+  const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: googlePlacesHeaders(placeTextSearchFieldMask),
+    body: JSON.stringify({
+      textQuery: text,
+      languageCode: "vi",
+      regionCode: "VN",
+      locationBias: buildLocationBias(latitude, longitude)
+    })
+  });
+
+  if (!response.ok) return null;
+
+  const payload = await response.json();
+  const firstPlace = payload.places?.[0];
+  return firstPlace ? mapGooglePlace(firstPlace) : null;
+}
+
 let settingsGeoSchemaReady = false;
 
 async function ensureSettingsGeoSchema() {
@@ -198,7 +239,7 @@ settingsRouter.get(
 settingsRouter.get(
   "/place-details",
   asyncHandler(async (req, res) => {
-    const { placeId } = placeDetailsSchema.parse(req.query);
+    const { placeId, text, latitude, longitude } = placeDetailsSchema.parse(req.query);
 
     if (!env.googleMapsApiKey) {
       res.json({ configured: false, place: null });
@@ -210,6 +251,12 @@ settingsRouter.get(
     });
 
     if (!response.ok) {
+      const placeFromText = await searchPlaceByText(text, latitude, longitude);
+      if (hasPlaceCoordinates(placeFromText)) {
+        res.json({ configured: true, place: placeFromText, fallback: "text-search" });
+        return;
+      }
+
       const message = await readGooglePlacesError(response, "Google Places không trả được chi tiết địa điểm.");
       const issue = describeGooglePlacesIssue(response.status, message);
       res.json({ configured: false, place: null, issue });
@@ -217,14 +264,15 @@ settingsRouter.get(
     }
 
     const payload = await response.json();
-    const name = payload.formattedAddress || "";
-    const place = {
-      placeId: payload.id || placeId,
-      name,
-      address: payload.formattedAddress || name,
-      latitude: payload.location?.latitude ?? null,
-      longitude: payload.location?.longitude ?? null
-    };
+    const place = mapGooglePlace(payload, placeId);
+
+    if (!hasPlaceCoordinates(place)) {
+      const placeFromText = await searchPlaceByText(text || place.address || place.name, latitude, longitude);
+      if (hasPlaceCoordinates(placeFromText)) {
+        res.json({ configured: true, place: placeFromText, fallback: "text-search" });
+        return;
+      }
+    }
 
     res.json({ configured: true, place });
   })

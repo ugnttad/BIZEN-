@@ -141,6 +141,23 @@ CREATE TABLE IF NOT EXISTS payroll_items (
   UNIQUE (payroll_run_id, employee_id)
 );
 
+CREATE TABLE IF NOT EXISTS payroll_adjustments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE,
+  month TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('Addition', 'Deduction')),
+  category TEXT NOT NULL,
+  amount NUMERIC(14, 0) NOT NULL CHECK (amount > 0),
+  note TEXT NOT NULL DEFAULT '',
+  created_by UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payroll_adjustments_company_month ON payroll_adjustments(company_id, month);
+CREATE INDEX IF NOT EXISTS idx_payroll_adjustments_employee_month ON payroll_adjustments(employee_id, month);
+
 CREATE TABLE IF NOT EXISTS leave_requests (
   id TEXT PRIMARY KEY,
   company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
@@ -288,6 +305,17 @@ CREATE TABLE IF NOT EXISTS community_messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_community_messages_company_created ON community_messages(company_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS community_typing (
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  sender_user_id UUID REFERENCES app_users(id) ON DELETE CASCADE,
+  sender_employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  is_typing BOOLEAN NOT NULL DEFAULT false,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (company_id, sender_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_community_typing_active ON community_typing(company_id, is_typing, updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS face_enrollment_images (
   storage_key TEXT PRIMARY KEY,

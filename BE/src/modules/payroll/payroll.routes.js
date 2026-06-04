@@ -5,7 +5,7 @@ import { asyncHandler } from "../../shared/asyncHandler.js";
 import { httpError } from "../../shared/httpError.js";
 import { calculatePayrollItem } from "../../shared/payrollCalc.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
-import { buildPayrollPreview } from "./payroll.service.js";
+import { buildPayrollPreview, ensurePayrollAdjustmentSchema, getPayrollAdjustmentTotals, listPayrollAdjustments } from "./payroll.service.js";
 
 export const payrollRouter = Router();
 
@@ -23,6 +23,10 @@ const payrollSelect = `
     COALESCE(pi.bhyt_employee, 0)::int AS "bhytEmployee",
     COALESCE(pi.bhtn_employee, 0)::int AS "bhtnEmployee",
     COALESCE(pi.other_deduction, 0)::int AS "otherDeduction",
+    COALESCE(adj.addition, 0)::int AS "manualAddition",
+    COALESCE(adj.deduction, 0)::int AS "manualDeduction",
+    GREATEST(COALESCE(pi.other_deduction, 0) - COALESCE(adj.deduction, 0), 0)::int AS "autoDeduction",
+    COALESCE(adj.adjustment_count, 0)::int AS "adjustmentCount",
     COALESCE(pi.bhxh_employee, 0)::int + COALESCE(pi.bhyt_employee, 0)::int + COALESCE(pi.bhtn_employee, 0)::int AS "insuranceDeduction",
     pi.deduction::int AS deduction,
     pi.final_salary::int AS "finalSalary",
@@ -33,11 +37,33 @@ const payrollSelect = `
   JOIN payroll_runs pr ON pr.id = pi.payroll_run_id
   JOIN employees e ON e.id = pi.employee_id
   LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
+  LEFT JOIN (
+    SELECT
+      company_id,
+      employee_id,
+      month,
+      COALESCE(SUM(amount) FILTER (WHERE kind = 'Addition'), 0)::int AS addition,
+      COALESCE(SUM(amount) FILTER (WHERE kind = 'Deduction'), 0)::int AS deduction,
+      COUNT(*)::int AS adjustment_count
+    FROM payroll_adjustments
+    GROUP BY company_id, employee_id, month
+  ) adj ON adj.company_id = pr.company_id AND adj.employee_id = pi.employee_id AND adj.month = pr.month
 `;
 
 const calculateSchema = z.object({
   month: z.string().regex(/^(0[1-9]|1[0-2])\/20\d{2}$/).optional()
 });
+
+const adjustmentSchema = z.object({
+  employeeId: z.string().trim().min(1),
+  month: z.string().regex(/^(0[1-9]|1[0-2])\/20\d{2}$/).optional(),
+  kind: z.enum(["Addition", "Deduction"]),
+  category: z.string().trim().min(2).max(80),
+  amount: z.coerce.number().int().positive().max(100000000),
+  note: z.string().trim().max(500).optional().default("")
+});
+
+const updateAdjustmentSchema = adjustmentSchema.omit({ employeeId: true, month: true }).partial();
 
 function parseMonth(month) {
   const [mm, yyyy] = month.split("/");
@@ -59,6 +85,7 @@ function parsePayrollMonth(value) {
 payrollRouter.get(
   "/",
   asyncHandler(async (req, res) => {
+    await ensurePayrollAdjustmentSchema();
     const month = parsePayrollMonth(req.query.month);
     const companyId = await getCompanyIdForUser(req.user);
     const employeeFilter = req.user.role === "Employee" ? " AND pi.employee_id = $3" : "";
@@ -86,6 +113,7 @@ payrollRouter.get(
 payrollRouter.post(
   "/calculate",
   asyncHandler(async (req, res) => {
+    await ensurePayrollAdjustmentSchema();
     if (req.user.role !== "Admin") {
       throw httpError(403, "Chỉ chủ sở hữu được tính lương");
     }
@@ -146,10 +174,12 @@ payrollRouter.post(
 
       const workingDays = attendance.rows.filter((row) => ["Present", "Late", "Overtime"].includes(row.status)).length || 0;
       const lateDays = attendance.rows.filter((row) => row.status === "Late").length;
-      const otherDeduction = lateDays * 50000;
+      const lateDeduction = lateDays * 50000;
 
       const overtimeHours = Math.max(0, attendance.rows.filter((row) => row.status === "Overtime").length * 2);
-      const bonus = 0;
+      const adjustmentTotals = await getPayrollAdjustmentTotals(companyId, employee.id, payrollMonth);
+      const bonus = adjustmentTotals.addition;
+      const otherDeduction = lateDeduction + adjustmentTotals.deduction;
 
       const calc = calculatePayrollItem({
         baseSalary: employee.baseSalary,
@@ -203,8 +233,94 @@ payrollRouter.post(
 );
 
 payrollRouter.get(
+  "/adjustments",
+  asyncHandler(async (req, res) => {
+    const month = parsePayrollMonth(req.query.month);
+    const companyId = await getCompanyIdForUser(req.user);
+    const employeeId = req.user.role === "Employee" ? req.user.employeeId : req.query.employeeId || null;
+    res.json(await listPayrollAdjustments(companyId, month, employeeId));
+  })
+);
+
+payrollRouter.post(
+  "/adjustments",
+  asyncHandler(async (req, res) => {
+    if (req.user.role !== "Admin") {
+      throw httpError(403, "Chỉ chủ sở hữu được nhập chi phí lương");
+    }
+
+    await ensurePayrollAdjustmentSchema();
+    const companyId = await getCompanyIdForUser(req.user);
+    const data = adjustmentSchema.parse(req.body ?? {});
+    const month = parsePayrollMonth(data.month);
+    const employee = await query("SELECT id FROM employees WHERE company_id = $1 AND id = $2 LIMIT 1", [companyId, data.employeeId]);
+    if (!employee.rows[0]) {
+      throw httpError(404, "Không tìm thấy nhân viên trong doanh nghiệp này");
+    }
+
+    const result = await query(
+      `INSERT INTO payroll_adjustments (company_id, employee_id, month, kind, category, amount, note, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id`,
+      [companyId, data.employeeId, month, data.kind, data.category, data.amount, data.note, req.user.id || null]
+    );
+    const rows = await listPayrollAdjustments(companyId, month, data.employeeId);
+    res.status(201).json(rows.find((item) => item.id === result.rows[0].id) || rows[0]);
+  })
+);
+
+payrollRouter.patch(
+  "/adjustments/:id",
+  asyncHandler(async (req, res) => {
+    if (req.user.role !== "Admin") {
+      throw httpError(403, "Chỉ chủ sở hữu được sửa chi phí lương");
+    }
+
+    await ensurePayrollAdjustmentSchema();
+    const companyId = await getCompanyIdForUser(req.user);
+    const data = updateAdjustmentSchema.parse(req.body ?? {});
+    const current = await query("SELECT id, month, employee_id FROM payroll_adjustments WHERE company_id = $1 AND id = $2", [companyId, req.params.id]);
+    if (!current.rows[0]) {
+      throw httpError(404, "Không tìm thấy chi phí lương");
+    }
+
+    await query(
+      `UPDATE payroll_adjustments
+       SET
+        kind = COALESCE($3, kind),
+        category = COALESCE($4, category),
+        amount = COALESCE($5, amount),
+        note = COALESCE($6, note),
+        updated_at = now()
+       WHERE company_id = $1 AND id = $2`,
+      [companyId, req.params.id, data.kind, data.category, data.amount, data.note]
+    );
+    const rows = await listPayrollAdjustments(companyId, current.rows[0].month, current.rows[0].employee_id);
+    res.json(rows.find((item) => item.id === req.params.id));
+  })
+);
+
+payrollRouter.delete(
+  "/adjustments/:id",
+  asyncHandler(async (req, res) => {
+    if (req.user.role !== "Admin") {
+      throw httpError(403, "Chỉ chủ sở hữu được xóa chi phí lương");
+    }
+
+    await ensurePayrollAdjustmentSchema();
+    const companyId = await getCompanyIdForUser(req.user);
+    const result = await query("DELETE FROM payroll_adjustments WHERE company_id = $1 AND id = $2 RETURNING id", [companyId, req.params.id]);
+    if (!result.rows[0]) {
+      throw httpError(404, "Không tìm thấy chi phí lương");
+    }
+    res.status(204).end();
+  })
+);
+
+payrollRouter.get(
   "/:employeeId",
   asyncHandler(async (req, res) => {
+    await ensurePayrollAdjustmentSchema();
     const month = parsePayrollMonth(req.query.month);
     const companyId = await getCompanyIdForUser(req.user);
     if (req.user.role === "Employee" && req.params.employeeId !== req.user.employeeId) {
@@ -218,7 +334,10 @@ payrollRouter.get(
     ]);
     const row = result.rows[0];
     if (row) {
-      res.json(row);
+      res.json({
+        ...row,
+        adjustments: await listPayrollAdjustments(companyId, month, req.params.employeeId)
+      });
       return;
     }
 

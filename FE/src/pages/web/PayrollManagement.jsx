@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calculator, CheckCircle2, Download, Filter, Search } from "lucide-react";
+import { Calculator, Download, Filter, Plus, ReceiptText, Search, Trash2 } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -21,24 +21,54 @@ import { formatCurrency, getCurrentPayrollMonth } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 
 const statusOptions = ["All", "Draft", "Reviewed", "Approved", "Paid"];
+const adjustmentCategories = ["Phụ cấp", "Thưởng", "Tạm ứng", "Phạt", "Hoàn ứng", "Chi phí khác"];
+
+const emptyAdjustmentForm = {
+  employeeId: "",
+  kind: "Addition",
+  category: "Phụ cấp",
+  amount: "",
+  note: ""
+};
 
 export default function PayrollManagement() {
   const [payrollRows, setPayrollRows] = useState([]);
+  const [adjustments, setAdjustments] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [payrollTrend, setPayrollTrend] = useState([]);
   const [status, setStatus] = useState("All");
   const [department, setDepartment] = useState("All");
   const [query, setQuery] = useState("");
   const [calculateOpen, setCalculateOpen] = useState(false);
+  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [adjustmentForm, setAdjustmentForm] = useState(emptyAdjustmentForm);
+  const [savingAdjustment, setSavingAdjustment] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [calculateMessage, setCalculateMessage] = useState("");
+  const [adjustmentMessage, setAdjustmentMessage] = useState("");
   const payrollMonth = getCurrentPayrollMonth();
 
+  async function loadPayrollData() {
+    const [payrollData, adjustmentData, departmentData, chartData] = await Promise.all([
+      bizenApi.payroll(payrollMonth),
+      bizenApi.payrollAdjustments(payrollMonth),
+      bizenApi.departments(),
+      bizenApi.dashboardCharts()
+    ]);
+    setPayrollRows(payrollData);
+    setAdjustments(adjustmentData);
+    setDepartments(departmentData);
+    setPayrollTrend(chartData.payrollTrend || []);
+    setAdjustmentForm((current) => ({
+      ...current,
+      employeeId: current.employeeId || payrollData[0]?.employeeId || ""
+    }));
+  }
+
   useEffect(() => {
-    Promise.all([bizenApi.payroll(), bizenApi.departments(), bizenApi.dashboardCharts()]).then(([payrollData, departmentData, chartData]) => {
-      setPayrollRows(payrollData);
-      setDepartments(departmentData);
-      setPayrollTrend(chartData.payrollTrend || []);
+    loadPayrollData().catch(() => {
+      setPayrollRows([]);
+      setAdjustments([]);
     });
   }, []);
 
@@ -56,6 +86,8 @@ export default function PayrollManagement() {
   const overtime = payrollRows.reduce((sum, row) => sum + row.overtimePay, 0);
   const insurance = payrollRows.reduce((sum, row) => sum + (row.insuranceDeduction || 0), 0);
   const deduction = payrollRows.reduce((sum, row) => sum + row.deduction, 0);
+  const manualAddition = adjustments.filter((item) => item.kind === "Addition").reduce((sum, item) => sum + item.amount, 0);
+  const manualDeduction = adjustments.filter((item) => item.kind === "Deduction").reduce((sum, item) => sum + item.amount, 0);
 
   async function runCalculatePayroll() {
     setCalculating(true);
@@ -63,7 +95,7 @@ export default function PayrollManagement() {
     try {
       const result = await bizenApi.calculatePayroll(payrollMonth);
       setPayrollRows(result.items || []);
-      setCalculateMessage(`Đã tính lương cho ${result.updated} nhân viên (đã trừ BHXH 8%, BHYT 1,5%, BHTN 1%).`);
+      setCalculateMessage(`Đã tính lương cho ${result.updated} nhân viên, gồm bảo hiểm và các khoản chi phí lương đã nhập.`);
     } catch (err) {
       setCalculateMessage(err.message || "Không tính được lương.");
     } finally {
@@ -71,11 +103,36 @@ export default function PayrollManagement() {
     }
   }
 
+  async function saveAdjustment(event) {
+    event.preventDefault();
+    setSavingAdjustment(true);
+    setAdjustmentMessage("");
+    try {
+      await bizenApi.createPayrollAdjustment({
+        ...adjustmentForm,
+        month: payrollMonth,
+        amount: Number(adjustmentForm.amount)
+      });
+      setAdjustmentForm({ ...emptyAdjustmentForm, employeeId: adjustmentForm.employeeId });
+      setAdjustmentMessage("Đã lưu khoản chi phí. Bấm Tính lương để áp dụng vào bảng lương chính thức.");
+      await loadPayrollData();
+    } catch (err) {
+      setAdjustmentMessage(err.message || "Không lưu được khoản chi phí lương.");
+    } finally {
+      setSavingAdjustment(false);
+    }
+  }
+
+  async function deleteAdjustment(id) {
+    await bizenApi.deletePayrollAdjustment(id);
+    await loadPayrollData();
+  }
+
   function exportPayrollCsv() {
     downloadCsv(`bizen-bang-luong-${payrollMonth.replace("/", "-")}.csv`, [
       ["Bảng lương BIZEN", payrollMonth],
       [],
-      ["Nhân viên", "Mã NV", "Bộ phận", "Ngày công", "OT giờ", "OT tiền", "Thưởng", "Bảo hiểm NLĐ", "Khấu trừ", "Thực lĩnh", "Trạng thái"],
+      ["Nhân viên", "Mã NV", "Bộ phận", "Ngày công", "OT giờ", "OT tiền", "Khoản cộng", "Khoản trừ", "Bảo hiểm NLĐ", "Khấu trừ", "Thực lĩnh", "Trạng thái"],
       ...rows.map((row) => [
         row.employeeName,
         row.employeeId,
@@ -84,6 +141,7 @@ export default function PayrollManagement() {
         row.overtimeHours,
         row.overtimePay,
         row.bonus,
+        row.manualDeduction || 0,
         row.insuranceDeduction || 0,
         row.deduction,
         row.finalSalary,
@@ -100,6 +158,10 @@ export default function PayrollManagement() {
         description="Gộp ngày công, tăng ca, thưởng và khấu trừ BHXH/BHYT/BHTN theo quy định VN."
         actions={
           <>
+            <button onClick={() => setAdjustmentOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+              <Plus className="h-4 w-4" />
+              Nhập chi phí
+            </button>
             <button onClick={() => setCalculateOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
               <Calculator className="h-4 w-4" />
               Tính lương
@@ -119,6 +181,70 @@ export default function PayrollManagement() {
         <StatCard title="Tổng khấu trừ" value={formatCurrency(deduction)} helper="BH + phạt trễ" tone="amber" />
         <StatCard title="Đã trả" value={payrollRows.filter((row) => row.status === "Paid").length} helper="bảng lương" tone="emerald" />
       </div>
+
+      <section className="mt-5 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-950">
+              <ReceiptText className="h-5 w-5 text-blue-600" />
+              Chi phí/điều chỉnh lương
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Khoản quản lý nhập tay cho tháng {payrollMonth}: cộng {formatCurrency(manualAddition)} · trừ {formatCurrency(manualDeduction)}.
+            </p>
+          </div>
+          <button onClick={() => setAdjustmentOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+            <Plus className="h-4 w-4" />
+            Thêm khoản
+          </button>
+        </div>
+
+        {adjustmentMessage ? <p className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">{adjustmentMessage}</p> : null}
+
+        {adjustments.length ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-100 text-sm">
+              <thead className="text-left text-xs font-semibold uppercase tracking-normal text-slate-500">
+                <tr>
+                  <th className="py-2 pr-3">Nhân viên</th>
+                  <th className="py-2 pr-3">Loại</th>
+                  <th className="py-2 pr-3">Danh mục</th>
+                  <th className="py-2 pr-3">Số tiền</th>
+                  <th className="py-2 pr-3">Ghi chú</th>
+                  <th className="py-2 text-right">Xóa</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {adjustments.slice(0, 8).map((item) => (
+                  <tr key={item.id}>
+                    <td className="py-3 pr-3">
+                      <p className="font-semibold text-slate-950">{item.employeeName}</p>
+                      <p className="text-xs text-slate-500">{item.department}</p>
+                    </td>
+                    <td className="py-3 pr-3">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.kind === "Addition" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
+                        {item.kind === "Addition" ? "Cộng" : "Trừ"}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-3 text-slate-600">{item.category}</td>
+                    <td className={`py-3 pr-3 font-semibold ${item.kind === "Addition" ? "text-emerald-700" : "text-rose-700"}`}>{formatCurrency(item.amount)}</td>
+                    <td className="max-w-xs truncate py-3 pr-3 text-slate-500">{item.note || "-"}</td>
+                    <td className="py-3 text-right">
+                      <button onClick={() => deleteAdjustment(item.id)} className="inline-grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-rose-600 hover:bg-rose-50" aria-label="Xóa chi phí lương">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+            Chưa có khoản phụ cấp, thưởng, tạm ứng hoặc khấu trừ nhập tay cho tháng này.
+          </p>
+        )}
+      </section>
 
       <section className="mt-5 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -184,7 +310,8 @@ export default function PayrollManagement() {
                   <th className="px-4 py-3">Nhân viên</th>
                   <th className="px-4 py-3">Ngày công</th>
                   <th className="px-4 py-3">OT</th>
-                  <th className="px-4 py-3">Thưởng</th>
+                  <th className="px-4 py-3">Khoản cộng</th>
+                  <th className="px-4 py-3">Khoản trừ</th>
                   <th className="px-4 py-3">BH (8+1,5+1%)</th>
                   <th className="px-4 py-3">Thực lĩnh</th>
                   <th className="px-4 py-3">Trạng thái</th>
@@ -204,7 +331,8 @@ export default function PayrollManagement() {
                     </td>
                     <td className="px-4 py-3 text-slate-600">{row.workingDays}</td>
                     <td className="px-4 py-3 text-slate-600">{row.overtimeHours}h</td>
-                    <td className="px-4 py-3 text-slate-600">{formatCurrency(row.bonus)}</td>
+                    <td className="px-4 py-3 font-semibold text-emerald-700">+{formatCurrency(row.bonus || 0)}</td>
+                    <td className="px-4 py-3 font-semibold text-rose-700">-{formatCurrency(row.manualDeduction || 0)}</td>
                     <td className="px-4 py-3 text-rose-600">{formatCurrency(row.insuranceDeduction || 0)}</td>
                     <td className="px-4 py-3 font-semibold text-slate-950">{formatCurrency(row.finalSalary)}</td>
                     <td className="px-4 py-3">
@@ -240,6 +368,7 @@ export default function PayrollManagement() {
             <li>BHYT: 1,5%</li>
             <li>BHTN: 1%</li>
             <li>Phạt đi trễ: 50.000đ/lần (ước tính)</li>
+            <li>Các khoản cộng/trừ do quản lý nhập trong mục Chi phí/điều chỉnh lương</li>
           </ul>
           {calculateMessage ? (
             <p className={`rounded-lg px-3 py-2 font-medium ${calculateMessage.startsWith("Chưa thể") || calculateMessage.startsWith("Không") ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}>
@@ -247,6 +376,66 @@ export default function PayrollManagement() {
             </p>
           ) : null}
         </div>
+      </Modal>
+
+      <Modal
+        open={adjustmentOpen}
+        title="Nhập chi phí lương"
+        onClose={() => setAdjustmentOpen(false)}
+        footer={
+          <>
+            <button onClick={() => setAdjustmentOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+              Đóng
+            </button>
+            <button type="submit" form="payroll-adjustment-form" disabled={savingAdjustment || !adjustmentForm.employeeId || !Number(adjustmentForm.amount)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300">
+              {savingAdjustment ? "Đang lưu..." : "Lưu khoản này"}
+            </button>
+          </>
+        }
+      >
+        <form id="payroll-adjustment-form" onSubmit={saveAdjustment} className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-semibold text-slate-700 sm:col-span-2">
+            Nhân viên
+            <select value={adjustmentForm.employeeId} onChange={(event) => setAdjustmentForm({ ...adjustmentForm, employeeId: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
+              {payrollRows.map((row) => (
+                <option key={row.employeeId} value={row.employeeId}>
+                  {row.employeeName} · {row.employeeId}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Loại khoản
+            <select value={adjustmentForm.kind} onChange={(event) => setAdjustmentForm({ ...adjustmentForm, kind: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
+              <option value="Addition">Cộng vào lương</option>
+              <option value="Deduction">Trừ khỏi lương</option>
+            </select>
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Danh mục
+            <select value={adjustmentForm.category} onChange={(event) => setAdjustmentForm({ ...adjustmentForm, category: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
+              {adjustmentCategories.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700">
+            Số tiền
+            <input type="number" min="1000" step="1000" value={adjustmentForm.amount} onChange={(event) => setAdjustmentForm({ ...adjustmentForm, amount: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="500000" />
+          </label>
+
+          <label className="block text-sm font-semibold text-slate-700 sm:col-span-2">
+            Ghi chú
+            <textarea value={adjustmentForm.note} onChange={(event) => setAdjustmentForm({ ...adjustmentForm, note: event.target.value })} rows={3} className="mt-1 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="VD: Phụ cấp gửi xe tháng này, tạm ứng ca Tết..." />
+          </label>
+
+          <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500 sm:col-span-2">
+            Sau khi lưu, BIZEN AI có thể đọc khoản này ngay. Để cập nhật thực lĩnh trên bảng lương, bấm Tính lương.
+          </p>
+        </form>
       </Modal>
     </div>
   );

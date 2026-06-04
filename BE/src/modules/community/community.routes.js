@@ -26,6 +26,17 @@ async function ensureCommunitySchema() {
         )
       `);
       await client.query("CREATE INDEX IF NOT EXISTS idx_community_messages_company_created ON community_messages(company_id, created_at DESC)");
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS community_typing (
+          company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+          sender_user_id UUID REFERENCES app_users(id) ON DELETE CASCADE,
+          sender_employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+          is_typing BOOLEAN NOT NULL DEFAULT false,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+          PRIMARY KEY (company_id, sender_user_id)
+        )
+      `);
+      await client.query("CREATE INDEX IF NOT EXISTS idx_community_typing_active ON community_typing(company_id, is_typing, updated_at DESC)");
     })
       .then(() => {
         communitySchemaReady = true;
@@ -41,6 +52,10 @@ async function ensureCommunitySchema() {
 
 const messageSchema = z.object({
   body: z.string().trim().min(1, "Tin nhắn không được để trống").max(1000, "Tin nhắn tối đa 1000 ký tự")
+});
+
+const typingSchema = z.object({
+  isTyping: z.coerce.boolean()
 });
 
 function messageSelect() {
@@ -121,5 +136,54 @@ communityRouter.post(
     );
     const result = await query(`${messageSelect()} WHERE m.company_id = $1 AND m.id = $2`, [companyId, inserted.rows[0].id]);
     res.status(201).json(result.rows[0]);
+  })
+);
+
+communityRouter.get(
+  "/typing",
+  asyncHandler(async (req, res) => {
+    await ensureCommunitySchema();
+    const companyId = await getCompanyIdForUser(req.user);
+    const result = await query(
+      `SELECT
+        t.sender_user_id AS "senderUserId",
+        t.sender_employee_id AS "senderEmployeeId",
+        t.updated_at AS "updatedAt",
+        COALESCE(e.name, u.name, 'BIZEN User') AS "senderName",
+        COALESCE(e.avatar_url, u.picture_url) AS "senderAvatarUrl",
+        e.position AS "senderPosition",
+        d.name AS "senderDepartment"
+       FROM community_typing t
+       LEFT JOIN app_users u ON u.id = t.sender_user_id
+       LEFT JOIN employees e ON e.id = t.sender_employee_id AND e.company_id = t.company_id
+       LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
+       WHERE t.company_id = $1
+         AND t.sender_user_id IS DISTINCT FROM $2
+         AND t.is_typing = true
+         AND t.updated_at > now() - interval '6 seconds'
+       ORDER BY t.updated_at DESC
+       LIMIT 8`,
+      [companyId, req.user.id]
+    );
+    res.json(result.rows);
+  })
+);
+
+communityRouter.post(
+  "/typing",
+  asyncHandler(async (req, res) => {
+    await ensureCommunitySchema();
+    const companyId = await getCompanyIdForUser(req.user);
+    const data = typingSchema.parse(req.body ?? {});
+    await query(
+      `INSERT INTO community_typing (company_id, sender_user_id, sender_employee_id, is_typing, updated_at)
+       VALUES ($1, $2, $3, $4, now())
+       ON CONFLICT (company_id, sender_user_id) DO UPDATE SET
+        sender_employee_id = EXCLUDED.sender_employee_id,
+        is_typing = EXCLUDED.is_typing,
+        updated_at = now()`,
+      [companyId, req.user.id, req.user.employeeId || null, data.isTyping]
+    );
+    res.status(204).end();
   })
 );

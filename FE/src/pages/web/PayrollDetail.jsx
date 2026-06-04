@@ -24,6 +24,7 @@ export default function PayrollDetail() {
   const [attendance, setAttendance] = useState(null);
   const [loading, setLoading] = useState(true);
   const payrollMonth = payroll?.month || getCurrentPayrollMonth();
+  const adjustments = payroll?.adjustments || [];
 
   useEffect(() => {
     let active = true;
@@ -102,10 +103,12 @@ export default function PayrollDetail() {
           <div className="mt-5 space-y-3 text-sm">
             {[
               ["Lương gross", formatCurrency(payroll.grossSalary || 0)],
+              ["Khoản cộng nhập tay", `+${formatCurrency(payroll.manualAddition || 0)}`],
               ["BHXH (8%)", `-${formatCurrency(payroll.bhxhEmployee || 0)}`],
               ["BHYT (1,5%)", `-${formatCurrency(payroll.bhytEmployee || 0)}`],
               ["BHTN (1%)", `-${formatCurrency(payroll.bhtnEmployee || 0)}`],
-              ["Khấu trừ khác", `-${formatCurrency(payroll.otherDeduction || 0)}`],
+              ["Khoản trừ nhập tay", `-${formatCurrency(payroll.manualDeduction || 0)}`],
+              ["Phạt/tự động", `-${formatCurrency(payroll.autoDeduction ?? payroll.autoLateDeduction ?? 0)}`],
               ["Tổng khấu trừ", `-${formatCurrency(payroll.deduction)}`]
             ].map(([label, value]) => (
               <div key={label} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
@@ -142,6 +145,26 @@ export default function PayrollDetail() {
           </div>
         </section>
       </div>
+
+      <section className="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-slate-950">Chi phí/điều chỉnh lương</h2>
+        <p className="mt-1 text-sm text-slate-500">Các khoản quản lý nhập tay cho tháng {payrollMonth}.</p>
+        <div className="mt-4 space-y-3">
+          {adjustments.map((item) => (
+            <div key={item.id} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold text-slate-950">{item.category}</p>
+                <p className="mt-1 text-sm text-slate-500">{item.note || "Không có ghi chú"}</p>
+              </div>
+              <span className={`text-sm font-bold ${item.kind === "Addition" ? "text-emerald-700" : "text-rose-700"}`}>
+                {item.kind === "Addition" ? "+" : "-"}
+                {formatCurrency(item.amount)}
+              </span>
+            </div>
+          ))}
+          {!adjustments.length ? <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500">Chưa có khoản cộng/trừ nhập tay.</p> : null}
+        </div>
+      </section>
 
       <section className="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-slate-950">Quy trình duyệt</h2>

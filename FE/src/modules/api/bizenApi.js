@@ -13,6 +13,8 @@ export const bizenApi = {
   communityMembers: () => apiClient.get("/community/members"),
   communityMessages: (limit = 80) => apiClient.get(`/community/messages?limit=${encodeURIComponent(limit)}`),
   sendCommunityMessage: (body) => apiClient.post("/community/messages", { body }),
+  communityTyping: () => apiClient.get("/community/typing"),
+  updateCommunityTyping: (isTyping) => apiClient.post("/community/typing", { isTyping }),
   requestEmployeeAccount: (payload) => apiClient.post("/auth/employee-account-requests", payload),
   accountRequests: (status = "Pending") => apiClient.get(`/auth/account-requests?status=${encodeURIComponent(status)}`),
   reviewAccountRequest: (id, payload) => apiClient.patch(`/auth/account-requests/${id}/status`, payload),
@@ -45,6 +47,11 @@ export const bizenApi = {
   payroll: (month = getCurrentPayrollMonth()) => apiClient.get(`/payroll?month=${encodeURIComponent(month)}`),
   calculatePayroll: (month = getCurrentPayrollMonth()) => apiClient.post("/payroll/calculate", { month }),
   payrollDetail: (employeeId, month = getCurrentPayrollMonth()) => apiClient.get(`/payroll/${employeeId}?month=${encodeURIComponent(month)}`),
+  payrollAdjustments: (month = getCurrentPayrollMonth(), employeeId) =>
+    apiClient.get(`/payroll/adjustments?month=${encodeURIComponent(month)}${employeeId ? `&employeeId=${encodeURIComponent(employeeId)}` : ""}`),
+  createPayrollAdjustment: (payload) => apiClient.post("/payroll/adjustments", payload),
+  updatePayrollAdjustment: (id, payload) => apiClient.patch(`/payroll/adjustments/${id}`, payload),
+  deletePayrollAdjustment: (id) => apiClient.delete(`/payroll/adjustments/${id}`),
   leaves: () => apiClient.get("/leaves"),
   createLeave: (payload) => apiClient.post("/leaves", payload),
   updateLeaveStatus: (id, status) => apiClient.patch(`/leaves/${id}/status`, { status }),
@@ -57,7 +64,8 @@ export const bizenApi = {
     if (longitude !== "" && longitude !== null && longitude !== undefined) params.set("longitude", longitude);
     return apiClient.get(`/settings/place-suggestions?${params.toString()}`);
   },
-  placeDetails: (placeId) => apiClient.get(`/settings/place-details?placeId=${encodeURIComponent(placeId)}`),
+  placeDetails: (placeId, text) =>
+    apiClient.get(`/settings/place-details?placeId=${encodeURIComponent(placeId)}${text ? `&text=${encodeURIComponent(text)}` : ""}`),
   kpiTasks: ({ date, status = "All", employeeId } = {}) => {
     const params = new URLSearchParams();
     if (date) params.set("date", date);

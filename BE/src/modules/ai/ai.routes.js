@@ -4,6 +4,7 @@ import { query } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { getBusinessDate } from "../../shared/businessDate.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
+import { ensurePayrollAdjustmentSchema } from "../payroll/payroll.service.js";
 import { createTextResponse, createTextStream, describeOpenAiIssue, isOpenAiReady } from "./openai.service.js";
 
 export const aiRouter = Router();
@@ -16,9 +17,10 @@ function currentPayrollMonth(date = new Date()) {
 }
 
 async function buildAiContext(companyId) {
+  await ensurePayrollAdjustmentSchema();
   const today = getBusinessDate();
   const payrollMonth = currentPayrollMonth();
-  const [summary, departments, lateEmployees, payrollDeductions, leaves, alerts] = await Promise.all([
+  const [summary, departments, lateEmployees, payrollDeductions, payrollAdjustments, leaves, alerts] = await Promise.all([
     query(
       `SELECT
         (SELECT COUNT(*)::int FROM employees WHERE company_id = $1) AS employees,
@@ -67,6 +69,22 @@ async function buildAiContext(companyId) {
       [companyId, payrollMonth]
     ),
     query(
+      `SELECT
+        e.name,
+        d.name AS department,
+        pa.kind,
+        pa.category,
+        pa.amount::int AS amount,
+        pa.note
+       FROM payroll_adjustments pa
+       JOIN employees e ON e.id = pa.employee_id AND e.company_id = pa.company_id
+       LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
+       WHERE pa.company_id = $1 AND pa.month = $2
+       ORDER BY pa.amount DESC, pa.created_at DESC
+       LIMIT 10`,
+      [companyId, payrollMonth]
+    ),
+    query(
       `SELECT lr.id, e.name AS employee, d.name AS department, lr.status, lr.days::float AS days, lr.reason
        FROM leave_requests lr
        JOIN employees e ON e.id = lr.employee_id
@@ -87,6 +105,7 @@ async function buildAiContext(companyId) {
     departments: departments.rows,
     lateEmployees: lateEmployees.rows,
     payrollDeductions: payrollDeductions.rows,
+    payrollAdjustments: payrollAdjustments.rows,
     leaveRequests: leaves.rows,
     alerts: alerts.rows
   };
@@ -106,12 +125,18 @@ function fallbackReply(text, context) {
   const shortage = context.departments?.find((item) => item.employees < item.targetHeadcount);
   const shortageAlert = context.alerts?.find((item) => normalizeText(`${item.title} ${item.detail}`).includes("thieu"));
   const highestDeduction = context.payrollDeductions?.[0];
+  const biggestAdjustment = context.payrollAdjustments?.[0];
 
   if (lower.includes("lich") || lower.includes("xep")) {
     return "Dựa trên Neon, nên tránh xếp nhân viên đang có đơn nghỉ đã duyệt và ưu tiên bù cho ca thiếu người. Hiện cảnh báo lớn nhất là Warehouse thiếu nhân sự so với target.";
   }
   if (lower.includes("tre")) {
     return topLate ? `Nhóm đi trễ nhiều nhất hiện là: ${topLate}. Chủ sở hữu nên nhắc riêng và kiểm tra lại ca/địa điểm check-in.` : "Hiện chưa có dữ liệu đi trễ trong Neon.";
+  }
+  if (lower.includes("chi phi") || lower.includes("phu cap") || lower.includes("tam ung") || lower.includes("thuong") || lower.includes("phat")) {
+    return biggestAdjustment
+      ? `Khoản nhập tay lớn nhất tháng ${context.payrollMonth}: ${biggestAdjustment.name} - ${biggestAdjustment.category} ${biggestAdjustment.kind === "Addition" ? "cộng" : "trừ"} ${biggestAdjustment.amount.toLocaleString("vi-VN")} VND. AI sẽ dùng khoản này khi phân tích payroll.`
+      : `Tháng ${context.payrollMonth} chưa có khoản chi phí/điều chỉnh lương nhập tay.`;
   }
   if (lower.includes("luong")) {
     return highestDeduction

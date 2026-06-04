@@ -18,8 +18,12 @@ function formatTime(value) {
 export default function CommunityPage() {
   const user = getAuthUser();
   const bottomRef = useRef(null);
+  const typingStopTimerRef = useRef(null);
+  const typingActiveRef = useRef(false);
+  const lastTypingPingRef = useRef(0);
   const [members, setMembers] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [typingUsers, setTypingUsers] = useState([]);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -27,9 +31,10 @@ export default function CommunityPage() {
 
   async function loadCommunity() {
     setError("");
-    const [memberRows, messageRows] = await Promise.all([bizenApi.communityMembers(), bizenApi.communityMessages()]);
+    const [memberRows, messageRows, typingRows] = await Promise.all([bizenApi.communityMembers(), bizenApi.communityMessages(), bizenApi.communityTyping()]);
     setMembers(memberRows);
     setMessages(messageRows);
+    setTypingUsers(typingRows);
   }
 
   useEffect(() => {
@@ -43,13 +48,26 @@ export default function CommunityPage() {
         if (active) setLoading(false);
       });
 
-    const timer = window.setInterval(() => {
-      loadCommunity().catch(() => {});
-    }, 15000);
+    const messageTimer = window.setInterval(() => {
+      if (document.hidden) return;
+      bizenApi.communityMessages().then(setMessages).catch(() => {});
+    }, 2000);
+    const typingTimer = window.setInterval(() => {
+      if (document.hidden) return;
+      bizenApi.communityTyping().then(setTypingUsers).catch(() => {});
+    }, 1500);
+    const memberTimer = window.setInterval(() => {
+      if (document.hidden) return;
+      bizenApi.communityMembers().then(setMembers).catch(() => {});
+    }, 30000);
 
     return () => {
       active = false;
-      window.clearInterval(timer);
+      window.clearInterval(messageTimer);
+      window.clearInterval(typingTimer);
+      window.clearInterval(memberTimer);
+      if (typingStopTimerRef.current) window.clearTimeout(typingStopTimerRef.current);
+      if (typingActiveRef.current) bizenApi.updateCommunityTyping(false).catch(() => {});
     };
   }, []);
 
@@ -58,12 +76,54 @@ export default function CommunityPage() {
   }, [messages.length]);
 
   const activeMembers = useMemo(() => members.filter((member) => member.status === "Active"), [members]);
+  const typingEmployeeIds = useMemo(() => new Set(typingUsers.map((item) => item.senderEmployeeId).filter(Boolean)), [typingUsers]);
+  const typingText = useMemo(() => {
+    if (!typingUsers.length) return "";
+    const names = typingUsers.map((item) => item.senderName).filter(Boolean);
+    if (names.length === 1) return `${names[0]} đang nhập...`;
+    if (names.length === 2) return `${names[0]} và ${names[1]} đang nhập...`;
+    return `${names[0]} và ${names.length - 1} người khác đang nhập...`;
+  }, [typingUsers]);
+
+  function setTyping(nextValue) {
+    const now = Date.now();
+    if (nextValue && typingActiveRef.current && now - lastTypingPingRef.current < 1200) return;
+    typingActiveRef.current = nextValue;
+    lastTypingPingRef.current = now;
+    bizenApi.updateCommunityTyping(nextValue).catch(() => {});
+  }
+
+  function scheduleTypingStop() {
+    if (typingStopTimerRef.current) window.clearTimeout(typingStopTimerRef.current);
+    typingStopTimerRef.current = window.setTimeout(() => {
+      setTyping(false);
+    }, 2200);
+  }
+
+  function handleBodyChange(event) {
+    const nextBody = event.target.value;
+    setBody(nextBody);
+    if (nextBody.trim()) {
+      setTyping(true);
+      scheduleTypingStop();
+      return;
+    }
+    if (typingStopTimerRef.current) window.clearTimeout(typingStopTimerRef.current);
+    setTyping(false);
+  }
+
+  function handleBlur() {
+    if (typingStopTimerRef.current) window.clearTimeout(typingStopTimerRef.current);
+    setTyping(false);
+  }
 
   async function submitMessage(event) {
     event.preventDefault();
     if (!body.trim()) return;
     setSending(true);
     setError("");
+    if (typingStopTimerRef.current) window.clearTimeout(typingStopTimerRef.current);
+    setTyping(false);
     try {
       const sent = await bizenApi.sendCommunityMessage(body.trim());
       setMessages((current) => [...current, sent]);
@@ -100,7 +160,14 @@ export default function CommunityPage() {
               <Avatar name={member.name} src={member.avatarUrl} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-950">{member.name}</p>
-                <p className="truncate text-xs text-slate-500">{member.position || member.department}</p>
+                {typingEmployeeIds.has(member.id) ? (
+                  <p className="inline-flex items-center gap-1 truncate text-xs font-semibold text-emerald-600">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                    Đang nhập...
+                  </p>
+                ) : (
+                  <p className="truncate text-xs text-slate-500">{member.position || member.department}</p>
+                )}
               </div>
               <StatusBadge status={member.role} />
             </div>
@@ -115,10 +182,14 @@ export default function CommunityPage() {
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-700">
               <MessageCircle className="h-5 w-5" />
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <h2 className="font-bold text-slate-950">Bảng tin doanh nghiệp</h2>
               <p className="text-sm text-slate-500">Mọi người trong workspace đều đọc và gửi được.</p>
             </div>
+            <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 sm:inline-flex">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              Realtime
+            </span>
           </div>
         </header>
 
@@ -150,6 +221,16 @@ export default function CommunityPage() {
               Chưa có tin nhắn nào. Gửi tin đầu tiên để mở cộng đồng nội bộ.
             </div>
           )}
+          {typingText ? (
+            <div className="flex items-center gap-2 px-2 text-xs font-semibold text-slate-500">
+              <span className="inline-flex gap-0.5 rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:120ms]" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:240ms]" />
+              </span>
+              {typingText}
+            </div>
+          ) : null}
           <div ref={bottomRef} />
         </div>
 
@@ -157,7 +238,8 @@ export default function CommunityPage() {
           <div className="flex items-end gap-2">
             <textarea
               value={body}
-              onChange={(event) => setBody(event.target.value)}
+              onChange={handleBodyChange}
+              onBlur={handleBlur}
               rows={2}
               placeholder="Nhắn cho mọi người trong doanh nghiệp..."
               className="min-h-12 flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
