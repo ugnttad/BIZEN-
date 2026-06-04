@@ -464,6 +464,71 @@ export async function validateFaceImageBuffer(imageBuffer) {
   return validateSingleFace(imageBuffer);
 }
 
+export async function findDuplicateEnrollmentFaces(imageBuffer) {
+  const collection = await ensureCollection();
+  if (collection?.rekognitionUnavailable && !env.faceIdAllowDemoMode) {
+    return {
+      ready: false,
+      provider: "aws-rekognition",
+      mode: "aws-required",
+      reason: collection.unavailableReason || "AWS Rekognition chưa khả dụng."
+    };
+  }
+
+  if (collection?.rekognitionUnavailable || collection?.missingCollection) {
+    return {
+      ready: false,
+      provider: env.faceIdAllowDemoMode ? "local-demo" : "aws-rekognition",
+      mode: env.faceIdAllowDemoMode ? "aws-not-configured" : "aws-required",
+      matches: [],
+      reason: collection.unavailableReason || "AWS Rekognition collection chưa sẵn sàng."
+    };
+  }
+
+  const result = await sendRekognition(
+    new SearchFacesByImageCommand({
+      CollectionId: env.awsRekognitionCollectionId,
+      Image: { Bytes: imageBuffer },
+      FaceMatchThreshold: env.awsRekognitionDuplicateMinSimilarity,
+      MaxFaces: 8,
+      QualityFilter: "AUTO"
+    }),
+    "search duplicate enrollment faces"
+  );
+
+  if (result.rekognitionUnavailable && !env.faceIdAllowDemoMode) {
+    return {
+      ready: false,
+      provider: "aws-rekognition",
+      mode: "aws-required",
+      matches: [],
+      reason: result.unavailableReason || "AWS Rekognition chưa khả dụng."
+    };
+  }
+
+  if (result.rekognitionUnavailable || result.missingCollection || result.noFace) {
+    return {
+      ready: false,
+      provider: env.faceIdAllowDemoMode ? "local-demo" : "aws-rekognition",
+      mode: env.faceIdAllowDemoMode ? "aws-not-configured" : "aws-required",
+      matches: [],
+      reason: result.unavailableReason || "Không tìm thấy dữ liệu khuôn mặt đã index."
+    };
+  }
+
+  return {
+    ready: true,
+    provider: "aws-rekognition",
+    collectionId: env.awsRekognitionCollectionId,
+    threshold: env.awsRekognitionDuplicateMinSimilarity,
+    matches: (result.FaceMatches || []).map((match) => ({
+      employeeId: match.Face?.ExternalImageId || null,
+      faceId: match.Face?.FaceId || null,
+      similarity: Number(match.Similarity || 0)
+    }))
+  };
+}
+
 export async function indexEmployeeFaceBuffer(employeeId, imageBuffer) {
   const face = await validateSingleFace(imageBuffer);
   if (!face.valid) {

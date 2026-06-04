@@ -4,13 +4,14 @@ import { getEmployeeAttendanceContext } from "./attendance.repository.js";
 import {
   approveFaceEnrollment,
   createPendingFaceEnrollment,
+  getApprovedFaceEnrollmentForEmployee,
   getFaceEnrollmentById,
   getLatestFaceEnrollment,
   listFaceEnrollments,
   rejectFaceEnrollment
 } from "./faceEnrollment.repository.js";
 import { readFaceEnrollmentImage, storeFaceEnrollmentImage } from "./faceEnrollment.storage.js";
-import { indexEmployeeFaceBuffer, validateFaceImage } from "./faceVerification.service.js";
+import { findDuplicateEnrollmentFaces, indexEmployeeFaceBuffer, validateFaceImage } from "./faceVerification.service.js";
 
 const faceEnrollSchema = z.object({
   employeeId: z.string().min(1),
@@ -121,6 +122,23 @@ export async function reviewFaceEnrollmentHandler(req, res) {
   }
 
   const image = await readFaceEnrollmentImage(enrollment.imageStorageKey);
+  const duplicateSearch = await findDuplicateEnrollmentFaces(image);
+  if (!duplicateSearch.ready && duplicateSearch.mode === "aws-required") {
+    throw httpError(502, duplicateSearch.reason || "AWS Rekognition chưa sẵn sàng để kiểm tra trùng khuôn mặt.");
+  }
+
+  for (const match of duplicateSearch.matches || []) {
+    if (!match.employeeId || match.employeeId === enrollment.employeeId) continue;
+
+    const duplicateOwner = await getApprovedFaceEnrollmentForEmployee(enrollment.companyId, match.employeeId);
+    if (!duplicateOwner) continue;
+
+    throw httpError(
+      409,
+      `Khuôn mặt này đã được duyệt cho ${duplicateOwner.employeeName} (${duplicateOwner.employeeId}) với độ giống ${Math.round(match.similarity)}%. Không thể dùng cùng một khuôn mặt cho 2 tài khoản.`
+    );
+  }
+
   const indexed = await indexEmployeeFaceBuffer(enrollment.employeeId, image);
   if (!indexed.enrolled) {
     throw httpError(422, indexed.reason || "AWS Rekognition could not index this face");

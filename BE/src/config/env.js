@@ -63,6 +63,7 @@ export const env = {
   awsRekognitionEnabled,
   awsRekognitionCollectionId: process.env.AWS_REKOGNITION_COLLECTION_ID || "bizen-employees",
   awsRekognitionMinSimilarity: Number(process.env.AWS_REKOGNITION_MIN_SIMILARITY || 90),
+  awsRekognitionDuplicateMinSimilarity: Number(process.env.AWS_REKOGNITION_DUPLICATE_MIN_SIMILARITY || 95),
   awsRekognitionFaceMinConfidence: Number(process.env.AWS_REKOGNITION_FACE_MIN_CONFIDENCE || 90),
   faceIdAllowDemoMode: faceIdDemoModeValue === "true" || faceIdDemoModeValue === "1",
   geminiApiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "",

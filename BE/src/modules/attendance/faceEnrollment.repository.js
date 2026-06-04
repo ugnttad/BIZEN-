@@ -84,6 +84,17 @@ export async function getApprovedFaceEnrollment(employeeId) {
   return withImageUrl(result.rows[0]);
 }
 
+export async function getApprovedFaceEnrollmentForEmployee(companyId, employeeId) {
+  const result = await query(
+    `${enrollmentSelect}
+     WHERE fe.company_id = $1 AND fe.employee_id = $2 AND fe.status = 'Approved'
+     ORDER BY fe.reviewed_at DESC NULLS LAST, fe.requested_at DESC
+     LIMIT 1`,
+    [companyId, employeeId]
+  );
+  return withImageUrl(result.rows[0]);
+}
+
 export async function approveFaceEnrollment(id, data) {
   const existing = await getFaceEnrollmentById(id);
   if (!existing) return null;

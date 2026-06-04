@@ -20,6 +20,7 @@ const requiredKeys = [
 const defaultValues = {
   GEMINI_MODEL: "gemini-2.5-flash",
   AWS_REKOGNITION_ENABLED: "true",
+  AWS_REKOGNITION_DUPLICATE_MIN_SIMILARITY: "95",
   FACE_ID_ALLOW_DEMO_MODE: "false"
 };
 
