@@ -4,10 +4,14 @@ import {
   CalendarX2,
   CalendarPlus2,
   CheckCircle2,
+  Clock3,
   GripVertical,
   Loader2,
+  Pencil,
+  Plus,
   RotateCcw,
   Sparkles,
+  Trash2,
   UserMinus,
   UsersRound
 } from "lucide-react";
@@ -22,6 +26,15 @@ const shiftTone = {
   violet: "border-violet-200 bg-violet-50 text-violet-700",
   indigo: "border-indigo-200 bg-indigo-50 text-indigo-700",
   cyan: "border-cyan-200 bg-cyan-50 text-cyan-700"
+};
+
+const emptyShiftForm = {
+  id: "",
+  name: "",
+  startTime: "08:00",
+  endTime: "17:00",
+  required: 3,
+  color: "blue"
 };
 
 function unique(values = []) {
@@ -134,6 +147,26 @@ function getShiftTone(color) {
   return shiftTone[color] || "border-blue-200 bg-blue-50 text-blue-700";
 }
 
+function splitShiftTime(shift) {
+  const match = /(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/.exec(shift?.time || "");
+  return {
+    startTime: match?.[1] || shift?.shortTime || "08:00",
+    endTime: match?.[2] || "17:00"
+  };
+}
+
+function providerIssueText(issue) {
+  if (!issue) return "";
+  if (issue.primary || issue.fallback) {
+    return [issue.primary, issue.fallback]
+      .filter(Boolean)
+      .map((item) => [item.message, item.action].filter(Boolean).join(" "))
+      .filter(Boolean)
+      .join(" ");
+  }
+  return [issue.message, issue.action].filter(Boolean).join(" ");
+}
+
 function isEmployeeOnLeave(employeeId, workDate, leaveBlocks) {
   return leaveBlocks.find((leave) => leave.employeeId === employeeId && leave.from <= workDate && workDate <= leave.to);
 }
@@ -189,6 +222,11 @@ export default function ShiftScheduling() {
   const [applyOpen, setApplyOpen] = useState(false);
   const [scheduleMessage, setScheduleMessage] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [attendanceSettings, setAttendanceSettings] = useState(null);
+  const [shiftEditorOpen, setShiftEditorOpen] = useState(false);
+  const [shiftForm, setShiftForm] = useState(emptyShiftForm);
+  const [shiftSaving, setShiftSaving] = useState(false);
+  const [shiftError, setShiftError] = useState("");
   const [todayIso, setTodayIso] = useState(getTodayIso);
   const weekStart = useMemo(() => getWeekStartIso(todayIso), [todayIso]);
   const weekDays = useMemo(() => buildWeekDays(weekStart, todayIso), [weekStart, todayIso]);
@@ -201,7 +239,7 @@ export default function ShiftScheduling() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([bizenApi.employees(), bizenApi.shifts(), bizenApi.scheduleWeek(weekStart), bizenApi.leaves(), bizenApi.scheduleAvailability()]).then(([employeeRows, shiftRows, scheduleRows, leaveRows, availability]) => {
+    Promise.all([bizenApi.employees(), bizenApi.shifts(), bizenApi.scheduleWeek(weekStart), bizenApi.leaves(), bizenApi.scheduleAvailability(), bizenApi.settings()]).then(([employeeRows, shiftRows, scheduleRows, leaveRows, availability, settingsData]) => {
       if (!active) return;
       const normalized = normalizeScheduleRows(scheduleRows, shiftRows, weekDays);
       setEmployees(employeeRows);
@@ -210,6 +248,7 @@ export default function ShiftScheduling() {
       setBaselineSchedule(normalized);
       setLeaveRequests(leaveRows);
       setAvailabilityRows(availability);
+      setAttendanceSettings(settingsData || null);
       setAiScheduleReasons(["Không xếp nhân viên đang nghỉ phép hoặc đã báo bận.", "Cân bằng workload theo từng bộ phận/nhóm."]);
       setAiScheduleWarnings([]);
     });
@@ -403,6 +442,74 @@ export default function ShiftScheduling() {
     setDirty(true);
   }
 
+  async function refreshShiftsAndSchedule() {
+    const [shiftRows, scheduleRows] = await Promise.all([bizenApi.shifts(), bizenApi.scheduleWeek(weekStart)]);
+    const normalized = normalizeScheduleRows(scheduleRows, shiftRows, weekDays);
+    setShifts(shiftRows);
+    setScheduleWeek(normalized);
+    setBaselineSchedule(normalized);
+    setDirty(false);
+  }
+
+  function openCreateShift() {
+    setShiftForm(emptyShiftForm);
+    setShiftError("");
+    setShiftEditorOpen(true);
+  }
+
+  function openEditShift(shift) {
+    const time = splitShiftTime(shift);
+    setShiftForm({
+      id: shift.id,
+      name: shift.name,
+      startTime: time.startTime,
+      endTime: time.endTime,
+      required: shift.required || 1,
+      color: shiftTone[shift.color] ? shift.color : "blue"
+    });
+    setShiftError("");
+    setShiftEditorOpen(true);
+  }
+
+  async function saveShiftConfig(event) {
+    event?.preventDefault();
+    setShiftSaving(true);
+    setShiftError("");
+    try {
+      const payload = {
+        name: shiftForm.name,
+        startTime: shiftForm.startTime,
+        endTime: shiftForm.endTime,
+        required: Number(shiftForm.required),
+        color: shiftForm.color
+      };
+      if (shiftForm.id) {
+        await bizenApi.updateShift(shiftForm.id, payload);
+      } else {
+        await bizenApi.createShift(payload);
+      }
+      await refreshShiftsAndSchedule();
+      setShiftEditorOpen(false);
+      setScheduleMessage("Đã cập nhật cấu hình ca. AI Suggest sẽ dùng số người cần mới.");
+    } catch (error) {
+      setShiftError(error.message || "Không lưu được ca làm.");
+    } finally {
+      setShiftSaving(false);
+    }
+  }
+
+  async function removeShift(shift) {
+    if (!window.confirm(`Xóa ${shift.name}? Chỉ xóa được khi ca chưa nằm trong lịch hoặc hồ sơ nhân viên.`)) return;
+    setShiftError("");
+    try {
+      await bizenApi.deleteShift(shift.id);
+      await refreshShiftsAndSchedule();
+      setScheduleMessage("Đã xóa ca làm khỏi cấu hình lịch.");
+    } catch (error) {
+      setScheduleMessage(error.message || "Không xóa được ca làm này.");
+    }
+  }
+
   function suggestSchedule() {
     setSuggesting(true);
     setScheduleMessage("");
@@ -421,7 +528,7 @@ export default function ShiftScheduling() {
             : payload.mode === "gemini" || payload.mode === "gemini-after-groq"
               ? `Gemini đã tối ưu lịch tuần này${payload.mode === "gemini-after-groq" ? " sau khi Groq lỗi tạm thời" : ""}${payload.model ? ` (${payload.model})` : ""}.`
             : payload.providerIssue
-              ? `${payload.providerIssue.message} ${payload.providerIssue.action} BIZEN đã dùng bộ tối ưu nội bộ để lịch vẫn chạy được.`
+              ? `${providerIssueText(payload.providerIssue)} BIZEN đã dùng bộ tối ưu nội bộ để lịch vẫn chạy được.`
             : "AI nội bộ đã tối ưu lịch bằng dữ liệu hiện có. Bạn vẫn có thể kéo-thả để tinh chỉnh trước khi Apply."
         );
       })
@@ -452,9 +559,9 @@ export default function ShiftScheduling() {
   return (
     <div>
       <PageHeader
-        eyebrow="AI-driven Scheduling"
+        eyebrow="Shift Scheduling"
         title={`Xếp lịch tuần ${weekRangeLabel}`}
-        description="Kéo nhân viên vào từng ca, đổi ca giữa các ngày, kiểm tra thiếu người và lưu lịch khi đã chốt."
+        description="Thiết lập ca làm, số người cần mỗi ca, kéo-thả nhân viên và dùng AI để gợi ý lấp các vị trí còn thiếu."
         actions={
           <>
             <button
@@ -648,15 +755,48 @@ export default function ShiftScheduling() {
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-950">Shift cards</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-slate-950">Cấu hình ca</h2>
+                <p className="mt-1 text-sm text-slate-500">AI dùng số người cần của từng ca để tính thiếu người.</p>
+              </div>
+              <button
+                type="button"
+                onClick={openCreateShift}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Thêm ca
+              </button>
+            </div>
+
+            {attendanceSettings ? (
+              <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold leading-5 text-blue-800">
+                Giờ chuẩn trong Settings: {attendanceSettings.workStart} - {attendanceSettings.workEnd}, grace {attendanceSettings.lateGraceMinutes} phút. Nếu nhân viên có lịch ca, chấm công sẽ ưu tiên giờ của ca đó.
+              </div>
+            ) : null}
+
             <div className="mt-4 space-y-3">
               {shifts.map((shift) => (
                 <div key={shift.id} className="rounded-lg border border-slate-200 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className={`inline-flex min-w-0 rounded-full border px-2 py-1 text-xs font-bold ${getShiftTone(shift.color)}`}>{shift.name}</p>
-                    <span className="shrink-0 text-sm font-semibold text-blue-700">{shift.required} người</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={`inline-flex max-w-full rounded-full border px-2 py-1 text-xs font-bold ${getShiftTone(shift.color)}`}>{shift.name}</p>
+                      <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                        <Clock3 className="h-3.5 w-3.5 text-slate-400" />
+                        {shift.time}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-blue-700">Cần {shift.required} người/ca</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <button type="button" onClick={() => openEditShift(shift)} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50" aria-label="Sửa ca">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" onClick={() => removeShift(shift)} className="grid h-8 w-8 place-items-center rounded-lg border border-rose-100 text-rose-500 hover:bg-rose-50" aria-label="Xóa ca">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <p className="mt-2 text-sm text-slate-500">{shift.time}</p>
                 </div>
               ))}
             </div>
@@ -726,6 +866,88 @@ export default function ShiftScheduling() {
           </section>
         </aside>
       </div>
+
+      <Modal
+        open={shiftEditorOpen}
+        title={shiftForm.id ? "Sửa ca làm" : "Thêm ca làm"}
+        onClose={() => setShiftEditorOpen(false)}
+        footer={
+          <>
+            <button type="button" onClick={() => setShiftEditorOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+              Hủy
+            </button>
+            <button type="button" onClick={saveShiftConfig} disabled={shiftSaving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-slate-300">
+              {shiftSaving ? "Đang lưu..." : "Lưu ca"}
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={saveShiftConfig} className="space-y-4">
+          <label className="block text-sm font-medium text-slate-700">
+            Tên ca
+            <input
+              value={shiftForm.name}
+              onChange={(event) => setShiftForm({ ...shiftForm, name: event.target.value })}
+              placeholder="VD: Ca sáng"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm font-medium text-slate-700">
+              Giờ bắt đầu
+              <input
+                type="time"
+                value={shiftForm.startTime}
+                onChange={(event) => setShiftForm({ ...shiftForm, startTime: event.target.value })}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              Giờ kết thúc
+              <input
+                type="time"
+                value={shiftForm.endTime}
+                onChange={(event) => setShiftForm({ ...shiftForm, endTime: event.target.value })}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm font-medium text-slate-700">
+              Số người cần
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={shiftForm.required}
+                onChange={(event) => setShiftForm({ ...shiftForm, required: event.target.value })}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              Màu hiển thị
+              <select
+                value={shiftForm.color}
+                onChange={(event) => setShiftForm({ ...shiftForm, color: event.target.value })}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="blue">Blue</option>
+                <option value="violet">Violet</option>
+                <option value="indigo">Indigo</option>
+                <option value="cyan">Cyan</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
+            Ví dụ: ca 08:00 - 17:00 cần 5 người thì AI Suggest sẽ cố lấp đủ 5 người cho ca đó. Check-in sau giờ bắt đầu cộng grace sẽ tính trễ; check-out sau giờ kết thúc sẽ tính OT.
+          </div>
+
+          {shiftError ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{shiftError}</p> : null}
+        </form>
+      </Modal>
 
       <Modal
         open={applyOpen}

@@ -84,10 +84,21 @@ export async function listAttendance({ date = getBusinessDate(), companyId } = {
       a.note,
       e.name AS "employeeName",
       d.name AS department,
-      COALESCE(sh.time_range, settings.work_start || ' - ' || settings.work_end, '08:00 - 17:00') AS "shiftTime"
+      COALESCE(scheduled_shift.time_range, sh.time_range, settings.work_start || ' - ' || settings.work_end, '08:00 - 17:00') AS "shiftTime"
      FROM attendance_records a
      JOIN employees e ON e.id = a.employee_id
      LEFT JOIN departments d ON d.id = e.department_id
+     LEFT JOIN LATERAL (
+       SELECT scheduled_shifts.time_range
+       FROM schedule_days sd
+       JOIN schedule_slots ss ON ss.schedule_day_id = sd.id
+       JOIN shifts scheduled_shifts ON scheduled_shifts.id = ss.shift_id
+       WHERE sd.company_id = a.company_id
+         AND sd.work_date = a.work_date
+         AND a.employee_id = ANY(ss.employee_ids)
+       ORDER BY scheduled_shifts.short_time
+       LIMIT 1
+     ) scheduled_shift ON true
      LEFT JOIN shifts sh ON sh.id = e.shift_id
      LEFT JOIN app_settings settings ON settings.company_id = e.company_id
      WHERE a.company_id = $1 AND a.work_date = $2
@@ -103,8 +114,8 @@ export async function listEmployeeAttendance(employeeId, companyId) {
     `SELECT
       to_char(a.work_date, 'DD/MM/YYYY') AS date,
       to_char(a.work_date, 'YYYY-MM-DD') AS "workDate",
-      COALESCE(sh.name, 'Ca làm') AS shift,
-      COALESCE(sh.time_range, settings.work_start || ' - ' || settings.work_end, '08:00 - 17:00') AS "shiftTime",
+      COALESCE(scheduled_shift.name, sh.name, 'Ca làm') AS shift,
+      COALESCE(scheduled_shift.time_range, sh.time_range, settings.work_start || ' - ' || settings.work_end, '08:00 - 17:00') AS "shiftTime",
       a.check_in AS "checkIn",
       a.check_out AS "checkOut",
       a.total_hours::float AS hours,
@@ -117,6 +128,17 @@ export async function listEmployeeAttendance(employeeId, companyId) {
       a.note
      FROM attendance_records a
      JOIN employees e ON e.id = a.employee_id
+     LEFT JOIN LATERAL (
+       SELECT scheduled_shifts.name, scheduled_shifts.time_range
+       FROM schedule_days sd
+       JOIN schedule_slots ss ON ss.schedule_day_id = sd.id
+       JOIN shifts scheduled_shifts ON scheduled_shifts.id = ss.shift_id
+       WHERE sd.company_id = a.company_id
+         AND sd.work_date = a.work_date
+         AND a.employee_id = ANY(ss.employee_ids)
+       ORDER BY scheduled_shifts.short_time
+       LIMIT 1
+     ) scheduled_shift ON true
      LEFT JOIN shifts sh ON sh.id = e.shift_id
      LEFT JOIN app_settings settings ON settings.company_id = e.company_id
      WHERE a.employee_id = $1 AND a.company_id = $2
@@ -187,15 +209,15 @@ export async function getAttendanceRecord(employeeId, workDate, companyId) {
   return result.rows[0];
 }
 
-export async function getEmployeeAttendanceContext(employeeId) {
+export async function getEmployeeAttendanceContext(employeeId, workDate = getBusinessDate()) {
   await ensureAttendanceGeoSchema();
   const result = await query(
     `SELECT
       e.id AS "employeeId",
       e.name AS "employeeName",
       e.company_id AS "companyId",
-      COALESCE(sh.short_time, settings.work_start, '08:00') AS "shiftStart",
-      COALESCE(sh.time_range, settings.work_start || ' - ' || settings.work_end, '08:00 - 17:00') AS "shiftTime",
+      COALESCE(scheduled_shift.short_time, sh.short_time, settings.work_start, '08:00') AS "shiftStart",
+      COALESCE(scheduled_shift.time_range, sh.time_range, settings.work_start || ' - ' || settings.work_end, '08:00 - 17:00') AS "shiftTime",
       COALESCE(settings.late_grace_minutes, 10)::int AS "lateGraceMinutes",
       COALESCE(settings.store_address, 'Hải Châu, Đà Nẵng') AS "storeAddress",
       COALESCE(settings.store_latitude, 16.0678000)::float AS "storeLatitude",
@@ -203,10 +225,21 @@ export async function getEmployeeAttendanceContext(employeeId) {
       COALESCE(settings.geofence_radius_meters, 200)::int AS "geofenceRadiusMeters",
       COALESCE(settings.geofence_enabled, true) AS "geofenceEnabled"
      FROM employees e
+     LEFT JOIN LATERAL (
+       SELECT scheduled_shifts.short_time, scheduled_shifts.time_range
+       FROM schedule_days sd
+       JOIN schedule_slots ss ON ss.schedule_day_id = sd.id
+       JOIN shifts scheduled_shifts ON scheduled_shifts.id = ss.shift_id
+       WHERE sd.company_id = e.company_id
+         AND sd.work_date = $2::date
+         AND e.id = ANY(ss.employee_ids)
+       ORDER BY scheduled_shifts.short_time
+       LIMIT 1
+     ) scheduled_shift ON true
      LEFT JOIN shifts sh ON sh.id = e.shift_id
      LEFT JOIN app_settings settings ON settings.company_id = e.company_id
      WHERE e.id = $1`,
-    [employeeId]
+    [employeeId, workDate]
   );
   return result.rows[0];
 }

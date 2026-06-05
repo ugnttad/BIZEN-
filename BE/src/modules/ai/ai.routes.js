@@ -20,6 +20,8 @@ import {
 
 export const aiRouter = Router();
 
+const MAX_CHAT_AI_OUTPUT_TOKENS = 360;
+
 const AI_ASSISTANT_INSTRUCTIONS =
   "Bạn là BIZEN AI, trợ lý vận hành nhân sự/payroll trong hệ thống SaaS BIZEN. Trả lời bằng tiếng Việt, ngắn gọn, thực dụng. Chỉ dùng dữ liệu hệ thống được cung cấp; nếu thiếu dữ liệu, nói rõ là chưa đủ dữ liệu. Ưu tiên hành động cụ thể cho chủ sở hữu SME/hospitality tại Đà Nẵng.";
 
@@ -85,7 +87,7 @@ async function buildAiContext(companyId) {
        LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
        WHERE pr.company_id = $1 AND pr.month = $2
        ORDER BY pi.deduction DESC
-       LIMIT 6`,
+       LIMIT 4`,
       [companyId, payrollMonth]
     ),
     query(
@@ -101,7 +103,7 @@ async function buildAiContext(companyId) {
        LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
        WHERE pa.company_id = $1 AND pa.month = $2
        ORDER BY pa.amount DESC, pa.created_at DESC
-       LIMIT 10`,
+       LIMIT 5`,
       [companyId, payrollMonth]
     ),
     query(
@@ -111,7 +113,7 @@ async function buildAiContext(companyId) {
        LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
        WHERE lr.company_id = $1
        ORDER BY lr.status DESC, lr.id DESC
-       LIMIT 8`,
+       LIMIT 5`,
       [companyId]
     ),
     query("SELECT alert_type AS type, title, detail FROM ai_alerts WHERE company_id = $1 ORDER BY id", [companyId])
@@ -177,6 +179,10 @@ function buildChatInput(message, context) {
   return `Câu hỏi của người dùng: ${message}\n\nDữ liệu Neon hiện có:\n${JSON.stringify(context, null, 2)}`;
 }
 
+function buildCompactChatInput(message, context) {
+  return JSON.stringify({ question: message, neon: context });
+}
+
 function writeSse(res, event, payload) {
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
@@ -229,7 +235,8 @@ aiRouter.post(
       try {
         const response = await createGroqTextResponse({
           instructions: AI_ASSISTANT_INSTRUCTIONS,
-          input: buildChatInput(message, context)
+          input: buildCompactChatInput(message, context),
+          maxOutputTokens: MAX_CHAT_AI_OUTPUT_TOKENS
         });
 
         if (response?.output_text) {
@@ -245,7 +252,8 @@ aiRouter.post(
     try {
       const response = await createGeminiTextResponse({
         instructions: AI_ASSISTANT_INSTRUCTIONS,
-        input: buildChatInput(message, context)
+        input: buildCompactChatInput(message, context),
+        maxOutputTokens: MAX_CHAT_AI_OUTPUT_TOKENS
       });
 
       res.json({ reply: response.output_text || fallbackReply(message, context), mode: isGroqReady() ? "gemini-after-groq" : "gemini", model: env.geminiModel });
@@ -291,7 +299,8 @@ aiRouter.post(
       writeSse(res, "meta", { mode, model });
       const stream = await createStream({
         instructions: AI_ASSISTANT_INSTRUCTIONS,
-        input: buildChatInput(message, context)
+        input: buildCompactChatInput(message, context),
+        maxOutputTokens: MAX_CHAT_AI_OUTPUT_TOKENS
       });
 
       for await (const event of stream) {

@@ -29,10 +29,10 @@ const defaultDepartments = [
 ];
 
 const defaultShifts = [
-  { key: "ca-sang", name: "Ca sáng", timeRange: "07:00 - 15:00", shortTime: "07:00", defaultCount: 5, minAt: 1, color: "#2563eb" },
-  { key: "ca-chieu", name: "Ca chiều", timeRange: "14:00 - 22:00", shortTime: "14:00", defaultCount: 5, minAt: 2, color: "#7c3aed" },
-  { key: "ca-toi", name: "Ca tối", timeRange: "17:00 - 23:00", shortTime: "17:00", defaultCount: 4, minAt: 4, color: "#4f46e5" },
-  { key: "ca-gay", name: "Ca gãy giờ cao điểm", timeRange: "10:00 - 14:00, 17:00 - 21:00", shortTime: "10:00", defaultCount: 3, minAt: 8, color: "#059669" }
+  { key: "ca-sang", name: "Ca sáng", timeRange: "08:00 - 17:00", shortTime: "08:00", defaultCount: 5, minAt: 1, color: "blue" },
+  { key: "ca-cao-diem-trua", name: "Ca cao điểm trưa", timeRange: "10:00 - 14:00", shortTime: "10:00", defaultCount: 2, minAt: 8, color: "cyan" },
+  { key: "ca-chieu", name: "Ca chiều", timeRange: "13:00 - 21:00", shortTime: "13:00", defaultCount: 4, minAt: 2, color: "violet" },
+  { key: "ca-toi", name: "Ca tối", timeRange: "17:00 - 22:00", shortTime: "17:00", defaultCount: 3, minAt: 4, color: "indigo" }
 ];
 
 let tenantSchemaReady = false;

@@ -214,6 +214,9 @@ export default function Settings() {
               </div>
               <h2 className="text-base font-semibold text-slate-950">Giờ làm và đi trễ</h2>
             </div>
+            <p className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold leading-5 text-slate-600">
+              Đây là giờ chấm công mặc định của doanh nghiệp. Nếu nhân viên đã được xếp vào một ca cụ thể trong màn Xếp ca, hệ thống sẽ ưu tiên giờ bắt đầu/kết thúc của ca đó để tính đi trễ và OT.
+            </p>
             <div className="grid gap-3 md:grid-cols-3">
               <label className="text-sm font-medium text-slate-700">
                 Giờ bắt đầu

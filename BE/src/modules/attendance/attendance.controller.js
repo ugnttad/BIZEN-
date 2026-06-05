@@ -62,11 +62,29 @@ function calculateHours(checkIn, checkOut) {
   return Math.round(((adjustedEnd - start) / 60) * 100) / 100;
 }
 
-function resolveStatus(shiftStart, lateGraceMinutes, checkIn) {
-  const shiftStartMinutes = toMinutes(shiftStart);
+function resolveShiftEnd(shiftTime) {
+  const match = /(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/.exec(shiftTime || "");
+  return match ? match[2] : null;
+}
+
+function isAfterShiftEnd(shiftStart, shiftEnd, checkOut) {
+  const startMinutes = toMinutes(shiftStart);
+  const endMinutes = toMinutes(shiftEnd);
+  const checkOutMinutes = toMinutes(checkOut);
+  if (startMinutes === null || endMinutes === null || checkOutMinutes === null) return false;
+
+  const adjustedEnd = endMinutes < startMinutes ? endMinutes + 24 * 60 : endMinutes;
+  const adjustedCheckOut = checkOutMinutes < startMinutes ? checkOutMinutes + 24 * 60 : checkOutMinutes;
+  return adjustedCheckOut > adjustedEnd;
+}
+
+function resolveStatus(context, checkIn, checkOut = null) {
+  const shiftStartMinutes = toMinutes(context.shiftStart);
   const checkInMinutes = toMinutes(checkIn);
   if (shiftStartMinutes === null || checkInMinutes === null) return "Present";
-  return checkInMinutes > shiftStartMinutes + lateGraceMinutes ? "Late" : "Present";
+  const shiftEnd = resolveShiftEnd(context.shiftTime);
+  if (checkOut && isAfterShiftEnd(context.shiftStart, shiftEnd, checkOut)) return "Overtime";
+  return checkInMinutes > shiftStartMinutes + context.lateGraceMinutes ? "Late" : "Present";
 }
 
 function resolveAttendanceEvent(existing, context, checkTime) {
@@ -76,7 +94,7 @@ function resolveAttendanceEvent(existing, context, checkTime) {
       checkIn: checkTime,
       checkOut: existing?.checkOut || null,
       totalHours: existing?.totalHours || 0,
-      status: resolveStatus(context.shiftStart, context.lateGraceMinutes, checkTime)
+      status: resolveStatus(context, checkTime)
     };
   }
 
@@ -85,7 +103,7 @@ function resolveAttendanceEvent(existing, context, checkTime) {
     checkIn: existing.checkIn,
     checkOut: checkTime,
     totalHours: calculateHours(existing.checkIn, checkTime),
-    status: ["Absent", "Leave"].includes(existing.status) ? resolveStatus(context.shiftStart, context.lateGraceMinutes, existing.checkIn) : existing.status
+    status: ["Absent", "Leave"].includes(existing.status) || ["Present", "Late"].includes(existing.status) ? resolveStatus(context, existing.checkIn, checkTime) : existing.status
   };
 }
 
@@ -165,7 +183,7 @@ export async function listAttendanceHandler(req, res) {
 export async function upsertAttendanceHandler(req, res) {
   const data = attendanceSchema.parse(req.body);
   const companyId = await getCompanyIdForUser(req.user);
-  const context = await getEmployeeAttendanceContext(data.employeeId);
+  const context = await getEmployeeAttendanceContext(data.employeeId, data.workDate);
   if (!context) throw httpError(404, "Không tìm thấy nhân viên");
   if (context.companyId !== companyId) throw httpError(403, "Nhân viên thuộc doanh nghiệp khác");
 
@@ -243,7 +261,8 @@ export async function faceCheckinHandler(req, res) {
     throw httpError(403, "Employees can only check in as themselves");
   }
 
-  const context = await getEmployeeAttendanceContext(payload.employeeId);
+  const workDate = payload.workDate || getBusinessDate();
+  const context = await getEmployeeAttendanceContext(payload.employeeId, workDate);
   if (!context) {
     throw httpError(404, "Employee not found");
   }
@@ -268,7 +287,6 @@ export async function faceCheckinHandler(req, res) {
   }
 
   const geofence = resolveGeofence(payload, context);
-  const workDate = payload.workDate || getBusinessDate();
   const checkTime = getBusinessTime();
   const existing = await getAttendanceRecord(payload.employeeId, workDate, context.companyId);
   const event = resolveAttendanceEvent(existing, context, checkTime);

@@ -4,6 +4,7 @@ import { createParsedResponse as createGeminiParsedResponse, describeGeminiIssue
 import { createParsedResponse as createGroqParsedResponse, describeGroqIssue, isGroqReady } from "../ai/groq.service.js";
 
 const createParsedResponse = createGeminiParsedResponse;
+const MAX_SCHEDULE_AI_OUTPUT_TOKENS = 1400;
 
 const aiScheduleResponseSchema = z.object({
   days: z.array(
@@ -143,8 +144,8 @@ function sanitizePlan(plan, context) {
 
   return {
     days,
-    reasons: unique(plan.reasons || []).slice(0, 8),
-    warnings: unique(warnings).slice(0, 8),
+    reasons: unique(plan.reasons || []).slice(0, 4),
+    warnings: unique(warnings).slice(0, 4),
     confidence: typeof plan.confidence === "number" ? plan.confidence : 0.72
   };
 }
@@ -221,6 +222,55 @@ function buildPlannerInput(context) {
   };
 }
 
+function buildCompactPlannerInput(context) {
+  const workloadObject = Object.fromEntries(context.workload.entries());
+
+  return {
+    keys: "shift.need=required; employee.pref=preferred shift; schedule.d=workDate; slot.s=shiftId; slot.e=employeeIds",
+    today: context.today,
+    rules: [
+      "use only ids from context",
+      "no inactive/approved-leave/busy employee on that date",
+      "max one shift per employee per day",
+      "meet shift.need if possible, otherwise warn",
+      "keep valid current assignments and balance low hrs/late"
+    ],
+    shifts: context.shifts.map((shift) => ({
+      id: shift.id,
+      need: getShiftRequired(shift),
+      time: shift.time
+    })),
+    employees: context.employees
+      .filter((employee) => employee.status !== "Inactive")
+      .map((employee) => ({
+        id: employee.id,
+        dept: employee.department,
+        pref: employee.shiftId,
+        hrs: Math.round(Number(workloadObject[employee.id]?.recentHours || 0)),
+        late: workloadObject[employee.id]?.lateCount || 0
+      })),
+    schedule: makeCompleteDays(context.days, context.shifts).map((day) => ({
+      d: day.workDate,
+      slots: day.shifts.map((slot) => ({ s: slot.shiftId, e: slot.employees }))
+    })),
+    unavailable: [
+      ...context.leaves
+        .filter((leave) => leave.status === "Approved")
+        .map((leave) => ({
+          t: "leave",
+          id: leave.employeeId,
+          from: leave.from,
+          to: leave.to
+        })),
+      ...context.busyRows.map((busy) => ({
+        t: "busy",
+        id: busy.employeeId,
+        date: normalizeWorkDate(busy.busyDate)
+      }))
+    ]
+  };
+}
+
 async function suggestSchedulePlanLegacy(context) {
   const fallback = buildDeterministicPlan(context);
 
@@ -230,7 +280,7 @@ async function suggestSchedulePlanLegacy(context) {
         "Bạn là BIZEN AI Scheduling Planner cho SaaS quản trị nhân sự/quán dịch vụ. Hãy trả về JSON đúng schema, tối ưu lịch ca thực tế cho SME/hospitality, nói lý do bằng tiếng Việt ngắn gọn, và đặt confidence từ 0 đến 1. Không thêm dữ liệu ngoài context.",
       input: JSON.stringify(buildPlannerInput(context), null, 2),
       schema: aiScheduleResponseSchema,
-      maxOutputTokens: 2600
+      maxOutputTokens: MAX_SCHEDULE_AI_OUTPUT_TOKENS
     });
 
     if (!response?.output_parsed) {
@@ -266,14 +316,14 @@ async function suggestSchedulePlanLegacy(context) {
 }
 
 const SCHEDULE_PLANNER_INSTRUCTIONS =
-  "Ban la BIZEN AI Scheduling Planner cho SaaS quan tri nhan su/quan dich vu. Tra ve JSON dung schema, toi uu lich ca thuc te cho SME/hospitality, neu ly do bang tieng Viet ngan gon. Chi su dung employeeId va shiftId co trong context. Khong them du lieu ngoai context.";
+  "Ban la BIZEN AI Scheduling Planner. Tra ve JSON minified dung schema: {days:[{workDate,shifts:[{shiftId,employees}]}],reasons,warnings,confidence}. reasons toi da 3 cau ngan, warnings toi da 3 cau. Chi dung employeeId va shiftId co trong context. Khong markdown, khong giai thich ngoai JSON.";
 
 async function runSchedulePlanner({ context, provider, model, createParsedResponse }) {
   const response = await createParsedResponse({
     instructions: SCHEDULE_PLANNER_INSTRUCTIONS,
-    input: JSON.stringify(buildPlannerInput(context), null, 2),
+    input: JSON.stringify(buildCompactPlannerInput(context)),
     schema: aiScheduleResponseSchema,
-    maxOutputTokens: 2600
+    maxOutputTokens: MAX_SCHEDULE_AI_OUTPUT_TOKENS
   });
 
   if (!response?.output_parsed) {
