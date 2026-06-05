@@ -5,7 +5,18 @@ import { asyncHandler } from "../../shared/asyncHandler.js";
 import { getBusinessDate } from "../../shared/businessDate.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
 import { ensurePayrollAdjustmentSchema } from "../payroll/payroll.service.js";
-import { createTextResponse, createTextStream, describeGeminiIssue, isGeminiReady } from "./gemini.service.js";
+import {
+  createTextResponse as createGeminiTextResponse,
+  createTextStream as createGeminiTextStream,
+  describeGeminiIssue,
+  isGeminiReady
+} from "./gemini.service.js";
+import {
+  createTextResponse as createGroqTextResponse,
+  createTextStream as createGroqTextStream,
+  describeGroqIssue,
+  isGroqReady
+} from "./groq.service.js";
 
 export const aiRouter = Router();
 
@@ -210,17 +221,34 @@ aiRouter.post(
       return res.status(400).json({ error: "Câu hỏi tối đa 500 ký tự" });
     }
 
-    if (!isGeminiReady()) {
+    if (!isGroqReady() && !isGeminiReady()) {
       return res.json({ reply: fallbackReply(message, context), mode: "neon-fallback" });
     }
 
+    if (isGroqReady()) {
+      try {
+        const response = await createGroqTextResponse({
+          instructions: AI_ASSISTANT_INSTRUCTIONS,
+          input: buildChatInput(message, context)
+        });
+
+        if (response?.output_text) {
+          return res.json({ reply: response.output_text, mode: "groq", model: env.groqModel });
+        }
+      } catch (error) {
+        if (!isGeminiReady()) {
+          return res.json({ reply: fallbackReply(message, context), mode: "groq-fallback", issue: describeGroqIssue(error) });
+        }
+      }
+    }
+
     try {
-      const response = await createTextResponse({
+      const response = await createGeminiTextResponse({
         instructions: AI_ASSISTANT_INSTRUCTIONS,
         input: buildChatInput(message, context)
       });
 
-      res.json({ reply: response.output_text || fallbackReply(message, context), mode: "gemini", model: env.geminiModel });
+      res.json({ reply: response.output_text || fallbackReply(message, context), mode: isGroqReady() ? "gemini-after-groq" : "gemini", model: env.geminiModel });
     } catch (error) {
       res.json({ reply: fallbackReply(message, context), mode: "gemini-fallback", issue: describeGeminiIssue(error) });
     }
@@ -253,15 +281,15 @@ aiRouter.post(
       closed = true;
     });
 
-    if (!isGeminiReady()) {
+    if (!isGroqReady() && !isGeminiReady()) {
       await streamFallbackReply(res, fallbackReply(message, context), "neon-fallback");
       if (!res.writableEnded) res.end();
       return;
     }
 
-    try {
-      writeSse(res, "meta", { mode: "gemini", model: env.geminiModel });
-      const stream = await createTextStream({
+    async function streamProvider({ mode, model, createStream }) {
+      writeSse(res, "meta", { mode, model });
+      const stream = await createStream({
         instructions: AI_ASSISTANT_INSTRUCTIONS,
         input: buildChatInput(message, context)
       });
@@ -275,15 +303,36 @@ aiRouter.post(
       }
 
       if (!closed && !res.writableEnded) {
-        writeSse(res, "done", { mode: "gemini", model: env.geminiModel });
+        writeSse(res, "done", { mode, model });
+      }
+    }
+
+    try {
+      if (isGroqReady()) {
+        await streamProvider({ mode: "groq", model: env.groqModel, createStream: createGroqTextStream });
+      } else {
+        await streamProvider({ mode: "gemini", model: env.geminiModel, createStream: createGeminiTextStream });
       }
     } catch (error) {
-      const issue = describeGeminiIssue(error);
+      const primaryIssue = isGroqReady() ? describeGroqIssue(error) : describeGeminiIssue(error);
       if (!closed && !res.writableEnded) {
-        if (!streamedText) {
-          await streamFallbackReply(res, fallbackReply(message, context), "gemini-fallback", issue);
+        if (!streamedText && isGroqReady() && isGeminiReady()) {
+          try {
+            await streamProvider({ mode: "gemini-after-groq", model: env.geminiModel, createStream: createGeminiTextStream });
+          } catch (geminiError) {
+            if (!streamedText && !res.writableEnded) {
+              await streamFallbackReply(res, fallbackReply(message, context), "ai-fallback", {
+                primary: primaryIssue,
+                fallback: describeGeminiIssue(geminiError)
+              });
+            } else if (!res.writableEnded) {
+              writeSse(res, "done", { mode: "gemini-partial", model: env.geminiModel, issue: describeGeminiIssue(geminiError) });
+            }
+          }
+        } else if (!streamedText) {
+          await streamFallbackReply(res, fallbackReply(message, context), isGroqReady() ? "groq-fallback" : "gemini-fallback", primaryIssue);
         } else {
-          writeSse(res, "done", { mode: "gemini-partial", model: env.geminiModel, issue });
+          writeSse(res, "done", { mode: isGroqReady() ? "groq-partial" : "gemini-partial", model: isGroqReady() ? env.groqModel : env.geminiModel, issue: primaryIssue });
         }
       }
     } finally {

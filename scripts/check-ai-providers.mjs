@@ -4,7 +4,11 @@ import { join } from "node:path";
 
 dotenv.config({ path: join(process.cwd(), "BE", ".env") });
 
-const [{ env }, { createTextResponse }] = await Promise.all([import("../BE/src/config/env.js"), import("../BE/src/modules/ai/gemini.service.js")]);
+const [{ env }, { createTextResponse: createGeminiTextResponse }, { createTextResponse: createGroqTextResponse }] = await Promise.all([
+  import("../BE/src/config/env.js"),
+  import("../BE/src/modules/ai/gemini.service.js"),
+  import("../BE/src/modules/ai/groq.service.js")
+]);
 
 const shouldCreateAwsCollection = process.argv.includes("--create-aws-collection");
 const results = [];
@@ -22,7 +26,7 @@ async function checkGemini() {
       return;
     }
 
-    const response = await createTextResponse({
+    const response = await createGeminiTextResponse({
       instructions: "Trả lời đúng một câu ngắn bằng tiếng Việt.",
       input: "Viết: BIZEN AI đã sẵn sàng demo.",
       maxOutputTokens: 80
@@ -42,6 +46,43 @@ async function checkGemini() {
       status: error.status || null,
       code: error.code || error.type || "gemini_error",
       message: error.message || "Gemini check failed"
+    });
+  }
+}
+
+async function checkGroq() {
+  try {
+    if (!env.groqApiKey) {
+      results.push({
+        provider: "groq",
+        ok: true,
+        model: env.groqModel,
+        status: "not_configured",
+        message: "GROQ_API_KEY is not configured. App will use Gemini/fallback until this key is added."
+      });
+      return;
+    }
+
+    const response = await createGroqTextResponse({
+      instructions: "Tra loi dung mot cau ngan bang tieng Viet.",
+      input: "Viet: BIZEN AI da san sang demo bang Groq.",
+      maxOutputTokens: 80
+    });
+
+    results.push({
+      provider: "groq",
+      ok: Boolean(response?.output_text),
+      model: env.groqModel,
+      sample: response?.output_text || ""
+    });
+  } catch (error) {
+    results.push({
+      provider: "groq",
+      ok: false,
+      model: env.groqModel,
+      status: error.status || null,
+      code: error.code || error.type || "groq_error",
+      message: error.message || "Groq check failed"
     });
   }
 }
@@ -90,7 +131,7 @@ async function checkAwsRekognition() {
   }
 }
 
-await Promise.all([checkGemini(), checkAwsRekognition()]);
+await Promise.all([checkGroq(), checkGemini(), checkAwsRekognition()]);
 
 console.log(JSON.stringify(results, null, 2));
 

@@ -66,7 +66,7 @@ export default function AiChat({ compact = false }) {
         onEvent: (event, payload) => {
           if (event === "meta") {
             setMessages((current) =>
-              current.map((message) => (message.id === aiMessageId ? { ...message, mode: payload?.mode || "gemini", issue: payload?.issue || null } : message))
+              current.map((message) => (message.id === aiMessageId ? { ...message, mode: payload?.mode || "ai", issue: payload?.issue || null } : message))
             );
           }
 
@@ -126,7 +126,7 @@ export default function AiChat({ compact = false }) {
                 Realtime
               </span>
             </div>
-            <p className="mt-0.5 truncate text-xs text-slate-500">Neon data + Gemini 2.5 Flash</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">Neon data + Groq/Gemini fallback</p>
           </div>
         </div>
       </header>

@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { env } from "../../config/env.js";
-import { createParsedResponse, describeGeminiIssue } from "../ai/gemini.service.js";
+import { createParsedResponse as createGeminiParsedResponse, describeGeminiIssue, isGeminiReady } from "../ai/gemini.service.js";
+import { createParsedResponse as createGroqParsedResponse, describeGroqIssue, isGroqReady } from "../ai/groq.service.js";
+
+const createParsedResponse = createGeminiParsedResponse;
 
 const aiScheduleResponseSchema = z.object({
   days: z.array(
@@ -218,7 +221,7 @@ function buildPlannerInput(context) {
   };
 }
 
-export async function suggestSchedulePlan(context) {
+async function suggestSchedulePlanLegacy(context) {
   const fallback = buildDeterministicPlan(context);
 
   try {
@@ -260,4 +263,99 @@ export async function suggestSchedulePlan(context) {
       providerIssue: issue
     };
   }
+}
+
+const SCHEDULE_PLANNER_INSTRUCTIONS =
+  "Ban la BIZEN AI Scheduling Planner cho SaaS quan tri nhan su/quan dich vu. Tra ve JSON dung schema, toi uu lich ca thuc te cho SME/hospitality, neu ly do bang tieng Viet ngan gon. Chi su dung employeeId va shiftId co trong context. Khong them du lieu ngoai context.";
+
+async function runSchedulePlanner({ context, provider, model, createParsedResponse }) {
+  const response = await createParsedResponse({
+    instructions: SCHEDULE_PLANNER_INSTRUCTIONS,
+    input: JSON.stringify(buildPlannerInput(context), null, 2),
+    schema: aiScheduleResponseSchema,
+    maxOutputTokens: 2600
+  });
+
+  if (!response?.output_parsed) {
+    throw new Error(`${provider} planner did not return valid JSON.`);
+  }
+
+  const sanitized = sanitizePlan(response.output_parsed, context);
+  const fallback = buildDeterministicPlan(context);
+  return {
+    ...sanitized,
+    reasons: sanitized.reasons.length ? sanitized.reasons : fallback.reasons,
+    mode: provider,
+    model
+  };
+}
+
+export async function suggestSchedulePlan(context) {
+  const fallback = buildDeterministicPlan(context);
+
+  if (isGroqReady()) {
+    try {
+      return await runSchedulePlanner({
+        context,
+        provider: "groq",
+        model: env.groqModel,
+        createParsedResponse: createGroqParsedResponse
+      });
+    } catch (groqError) {
+      const groqIssue = describeGroqIssue(groqError);
+
+      if (isGeminiReady()) {
+        try {
+          return await runSchedulePlanner({
+            context,
+            provider: "gemini-after-groq",
+            model: env.geminiModel,
+            createParsedResponse: createGeminiParsedResponse
+          });
+        } catch (geminiError) {
+          return {
+            ...buildDeterministicPlan(context, "Groq/Gemini planner chua san sang. BIZEN da dung bo toi uu noi bo de lich van chay duoc."),
+            mode: "ai-fallback",
+            model: env.groqModel,
+            providerIssue: {
+              primary: groqIssue,
+              fallback: describeGeminiIssue(geminiError)
+            }
+          };
+        }
+      }
+
+      return {
+        ...buildDeterministicPlan(context, `Groq planner chua san sang: ${groqIssue.message} BIZEN da dung bo toi uu noi bo.`),
+        mode: "groq-fallback",
+        model: env.groqModel,
+        providerIssue: groqIssue
+      };
+    }
+  }
+
+  if (isGeminiReady()) {
+    try {
+      return await runSchedulePlanner({
+        context,
+        provider: "gemini",
+        model: env.geminiModel,
+        createParsedResponse: createGeminiParsedResponse
+      });
+    } catch (geminiError) {
+      const issue = describeGeminiIssue(geminiError);
+      return {
+        ...buildDeterministicPlan(context, `Gemini planner chua san sang: ${issue.message} BIZEN da dung bo toi uu noi bo.`),
+        mode: "gemini-fallback",
+        model: env.geminiModel,
+        providerIssue: issue
+      };
+    }
+  }
+
+  return {
+    ...fallback,
+    mode: "neon-fallback",
+    providerIssue: describeGroqIssue(null)
+  };
 }
