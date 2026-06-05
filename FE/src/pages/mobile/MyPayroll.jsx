@@ -39,6 +39,7 @@ export default function MyPayroll() {
     ["Phạt/tự động", -(payroll.autoDeduction ?? payroll.autoLateDeduction ?? 0)],
     ["Thực lĩnh", payroll.finalSalary]
   ];
+  const isHourly = payroll.payType === "Hourly";
 
   return (
     <div className="space-y-4">
@@ -55,7 +56,7 @@ export default function MyPayroll() {
       <section className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="font-semibold text-slate-950">Chi tiết</h2>
         <p className="mt-1 text-xs text-slate-500">
-          Ngày công: {payroll.workingDays}/22 · OT: {payroll.overtimeHours}h
+          {isHourly ? `Tổng giờ: ${payroll.totalHours || 0}h · Ngày công: ${payroll.workingDays}` : `Ngày công: ${payroll.workingDays}/22`} · OT: {payroll.overtimeHours}h
         </p>
         <div className="mt-4 space-y-3">
           {lines.map(([label, value]) => (

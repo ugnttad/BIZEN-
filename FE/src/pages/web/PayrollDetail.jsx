@@ -25,6 +25,7 @@ export default function PayrollDetail() {
   const [loading, setLoading] = useState(true);
   const payrollMonth = payroll?.month || getCurrentPayrollMonth();
   const adjustments = payroll?.adjustments || [];
+  const isHourly = payroll?.payType === "Hourly";
 
   useEffect(() => {
     let active = true;
@@ -89,8 +90,8 @@ export default function PayrollDetail() {
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Lương CB" value={formatCurrency(payroll.baseSalary)} helper="theo hợp đồng" icon={BadgeDollarSign} tone="blue" />
-        <StatCard title="Ngày công" value={`${payroll.workingDays}/22`} helper="từ chấm công" icon={CalendarCheck2} tone="emerald" />
+        <StatCard title={isHourly ? "Lương giờ" : "Lương tháng"} value={formatCurrency(isHourly ? payroll.hourlyRate || 0 : payroll.baseSalary)} helper={isHourly ? "theo vai trò" : "theo hợp đồng"} icon={BadgeDollarSign} tone="blue" />
+        <StatCard title={isHourly ? "Tổng giờ" : "Ngày công"} value={isHourly ? `${payroll.totalHours || 0}h` : `${payroll.workingDays}/22`} helper={isHourly ? `${payroll.workingDays} ngày có công` : "từ chấm công"} icon={CalendarCheck2} tone="emerald" />
         <StatCard title="Tăng ca" value={`${payroll.overtimeHours}h`} helper={formatCurrency(payroll.overtimePay)} icon={Clock3} tone="violet" />
         <StatCard title="Lương gross" value={formatCurrency(payroll.grossSalary || 0)} helper="trước khấu trừ" icon={PlusCircle} tone="amber" />
         <StatCard title="Bảo hiểm" value={formatCurrency(payroll.insuranceDeduction || 0)} helper="BHXH+BHYT+BHTN" icon={MinusCircle} tone="rose" />
@@ -140,7 +141,7 @@ export default function PayrollDetail() {
             </div>
             <div className="rounded-lg border border-slate-200 p-4">
               <p className="text-sm font-medium text-slate-500">Công thức OT</p>
-              <p className="mt-3 text-sm font-semibold text-slate-950">Lương giờ x 150%</p>
+              <p className="mt-3 text-sm font-semibold text-slate-950">{isHourly ? "Đơn giá giờ x 150%" : "Lương tháng / 22 / 8 x 150%"}</p>
             </div>
           </div>
         </section>

@@ -14,7 +14,9 @@ const employeeSchema = z.object({
   position: z.string().min(2),
   role: z.enum(["Admin", "Employee"]).default("Employee"),
   contractType: z.string().min(2),
-  baseSalary: z.coerce.number().nonnegative(),
+  payType: z.enum(["Monthly", "Hourly"]).optional(),
+  baseSalary: z.coerce.number().nonnegative().optional(),
+  hourlyRate: z.coerce.number().nonnegative().optional(),
   status: z.enum(["Active", "On leave", "Inactive"]).default("Active"),
   email: z.string().email(),
   phone: z.string().optional(),
@@ -30,6 +32,8 @@ const cafeShopConstraints = {
   maxOwners: 1,
   minBaseSalary: 1000000,
   maxBaseSalary: 30000000,
+  minHourlyRate: 10000,
+  maxHourlyRate: 500000,
   passwordPattern: /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
   phonePattern: /^0?\d{9,10}$/
 };
@@ -77,7 +81,24 @@ function normalizeEmployeePayload(data) {
   if (data.name) data.name = data.name.trim();
   if (data.email) data.email = normalizeEmail(data.email);
   if (data.phone) data.phone = normalizePhone(data.phone);
+  if (data.payType || data.contractType) {
+    data.payType = normalizePayType(data.payType || inferPayTypeFromContract(data.contractType));
+  }
+  if (data.baseSalary !== undefined) data.baseSalary = Number(data.baseSalary);
+  if (data.hourlyRate !== undefined) data.hourlyRate = Number(data.hourlyRate);
   return data;
+}
+
+function normalizePayType(value) {
+  return value === "Hourly" ? "Hourly" : "Monthly";
+}
+
+function inferPayTypeFromContract(contractType = "") {
+  const normalized = stripVietnamese(contractType).toLowerCase();
+  if (normalized.includes("part") || normalized.includes("ban thoi gian") || normalized.includes("thoi vu")) {
+    return "Hourly";
+  }
+  return "Monthly";
 }
 
 function isOperational(employee) {
@@ -139,7 +160,10 @@ async function assertCafeShopConstraints(companyId, data, current = null) {
     status: data.status ?? current?.status ?? "Active",
     role: data.role ?? current?.role ?? "Employee",
     position: data.position ?? current?.position,
+    contractType: data.contractType ?? current?.contractType ?? "",
+    payType: normalizePayType(data.payType ?? current?.payType ?? inferPayTypeFromContract(data.contractType ?? current?.contractType)),
     baseSalary: Number(data.baseSalary ?? current?.baseSalary ?? 0),
+    hourlyRate: Number(data.hourlyRate ?? current?.hourlyRate ?? 0),
     phone: data.phone ?? current?.phone ?? "",
     department: departmentName
   };
@@ -178,8 +202,12 @@ async function assertCafeShopConstraints(companyId, data, current = null) {
     throw httpError(400, "Chức vụ công việc phải khớp với bộ phận làm việc");
   }
 
-  if (nextEmployee.baseSalary < cafeShopConstraints.minBaseSalary || nextEmployee.baseSalary > cafeShopConstraints.maxBaseSalary) {
+  if (nextEmployee.payType === "Monthly" && (nextEmployee.baseSalary < cafeShopConstraints.minBaseSalary || nextEmployee.baseSalary > cafeShopConstraints.maxBaseSalary)) {
     throw httpError(400, "Lương cơ bản cần nằm trong khoảng 1.000.000 - 30.000.000 VNĐ/tháng");
+  }
+
+  if (nextEmployee.payType === "Hourly" && (nextEmployee.hourlyRate < cafeShopConstraints.minHourlyRate || nextEmployee.hourlyRate > cafeShopConstraints.maxHourlyRate)) {
+    throw httpError(400, "Lương theo giờ cần nằm trong khoảng 10.000 - 500.000 VNĐ/giờ");
   }
 
   const phoneDigits = normalizePhone(nextEmployee.phone);
@@ -222,6 +250,9 @@ export async function getEmployeeHandler(req, res) {
 
 export async function createEmployeeHandler(req, res) {
   const data = normalizeEmployeePayload(employeeSchema.parse(req.body));
+  data.payType = normalizePayType(data.payType || inferPayTypeFromContract(data.contractType));
+  data.baseSalary = Number(data.baseSalary ?? 0);
+  data.hourlyRate = Number(data.hourlyRate ?? 0);
   const companyId = await getCompanyIdForUser(req.user);
   assertCanAssignRole(req.user, data.role);
   if (!data.accountPassword) {

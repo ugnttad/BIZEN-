@@ -44,7 +44,9 @@ CREATE TABLE IF NOT EXISTS employees (
   position TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('Admin', 'Employee')),
   contract_type TEXT NOT NULL,
+  pay_type TEXT NOT NULL DEFAULT 'Monthly' CHECK (pay_type IN ('Monthly', 'Hourly')),
   base_salary NUMERIC(14, 0) NOT NULL DEFAULT 0,
+  hourly_rate NUMERIC(14, 0) NOT NULL DEFAULT 0,
   status TEXT NOT NULL CHECK (status IN ('Active', 'On leave', 'Inactive')),
   email TEXT NOT NULL UNIQUE,
   phone TEXT,
@@ -130,8 +132,12 @@ CREATE TABLE IF NOT EXISTS payroll_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   payroll_run_id UUID REFERENCES payroll_runs(id) ON DELETE CASCADE,
   employee_id TEXT REFERENCES employees(id) ON DELETE CASCADE,
+  pay_type TEXT NOT NULL DEFAULT 'Monthly' CHECK (pay_type IN ('Monthly', 'Hourly')),
   base_salary NUMERIC(14, 0) NOT NULL,
+  hourly_rate NUMERIC(14, 0) NOT NULL DEFAULT 0,
   working_days NUMERIC(5, 1) NOT NULL,
+  total_hours NUMERIC(6, 2) NOT NULL DEFAULT 0,
+  regular_hours NUMERIC(6, 2) NOT NULL DEFAULT 0,
   overtime_hours NUMERIC(6, 2) NOT NULL,
   overtime_pay NUMERIC(14, 0) NOT NULL,
   bonus NUMERIC(14, 0) NOT NULL,
@@ -350,6 +356,12 @@ ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhxh_employee NUMERIC(14, 0) 
 ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhyt_employee NUMERIC(14, 0) NOT NULL DEFAULT 0;
 ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS bhtn_employee NUMERIC(14, 0) NOT NULL DEFAULT 0;
 ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS other_deduction NUMERIC(14, 0) NOT NULL DEFAULT 0;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS pay_type TEXT NOT NULL DEFAULT 'Monthly';
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC(14, 0) NOT NULL DEFAULT 0;
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS pay_type TEXT NOT NULL DEFAULT 'Monthly';
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC(14, 0) NOT NULL DEFAULT 0;
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS total_hours NUMERIC(6, 2) NOT NULL DEFAULT 0;
+ALTER TABLE payroll_items ADD COLUMN IF NOT EXISTS regular_hours NUMERIC(6, 2) NOT NULL DEFAULT 0;
 
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 7);
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 7);

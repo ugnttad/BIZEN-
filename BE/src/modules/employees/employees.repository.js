@@ -1,4 +1,5 @@
 import { query } from "../../config/db.js";
+import { ensureEmployeeCompensationSchema } from "./employeeCompensation.service.js";
 
 const employeeSelect = `
   SELECT
@@ -10,7 +11,9 @@ const employeeSelect = `
     e.position,
     e.role,
     e.contract_type AS "contractType",
+    e.pay_type AS "payType",
     e.base_salary::int AS "baseSalary",
+    e.hourly_rate::int AS "hourlyRate",
     e.status,
     e.email,
     e.phone,
@@ -25,16 +28,19 @@ const employeeSelect = `
 `;
 
 export async function listEmployees(companyId) {
+  await ensureEmployeeCompensationSchema();
   const result = await query(`${employeeSelect} WHERE e.company_id = $1 ORDER BY e.id`, [companyId]);
   return result.rows;
 }
 
 export async function getEmployeeById(id, companyId) {
+  await ensureEmployeeCompensationSchema();
   const result = await query(`${employeeSelect} WHERE e.id = $1 AND e.company_id = $2`, [id, companyId]);
   return result.rows[0];
 }
 
 async function nextEmployeeId(companyId) {
+  await ensureEmployeeCompensationSchema();
   const prefix = companyId.replace(/-/g, "").slice(0, 8).toUpperCase();
   const existing = await query(`SELECT id FROM employees WHERE company_id = $1 AND id LIKE $2`, [companyId, `${prefix}-NV%`]);
 
@@ -54,6 +60,7 @@ async function nextEmployeeId(companyId) {
 }
 
 export async function createEmployee(companyId, data) {
+  await ensureEmployeeCompensationSchema();
   const id = await nextEmployeeId(companyId);
   const shift = data.shiftId
     ? { id: data.shiftId }
@@ -61,8 +68,8 @@ export async function createEmployee(companyId, data) {
 
   await query(
     `INSERT INTO employees
-      (id, company_id, name, department_id, position, role, contract_type, base_salary, status, email, phone, start_date, manager_name, shift_id, leave_remaining, address)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_DATE, $12, $13, $14, $15)`,
+      (id, company_id, name, department_id, position, role, contract_type, pay_type, base_salary, hourly_rate, status, email, phone, start_date, manager_name, shift_id, leave_remaining, address)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_DATE, $14, $15, $16, $17)`,
     [
       id,
       companyId,
@@ -71,7 +78,9 @@ export async function createEmployee(companyId, data) {
       data.position,
       data.role,
       data.contractType,
+      data.payType,
       data.baseSalary,
+      data.hourlyRate,
       data.status,
       data.email,
       data.phone,
@@ -85,6 +94,7 @@ export async function createEmployee(companyId, data) {
 }
 
 export async function updateEmployee(id, companyId, data) {
+  await ensureEmployeeCompensationSchema();
   await query(
     `UPDATE employees SET
       name = COALESCE($2, name),
@@ -92,19 +102,38 @@ export async function updateEmployee(id, companyId, data) {
       position = COALESCE($4, position),
       role = COALESCE($5, role),
       contract_type = COALESCE($6, contract_type),
-      base_salary = COALESCE($7, base_salary),
-      status = COALESCE($8, status),
-      email = COALESCE($9, email),
-      phone = COALESCE($10, phone),
-      address = COALESCE($11, address),
-      avatar_url = COALESCE($12, avatar_url),
+      pay_type = COALESCE($7, pay_type),
+      base_salary = COALESCE($8, base_salary),
+      hourly_rate = COALESCE($9, hourly_rate),
+      status = COALESCE($10, status),
+      email = COALESCE($11, email),
+      phone = COALESCE($12, phone),
+      address = COALESCE($13, address),
+      avatar_url = COALESCE($14, avatar_url),
       updated_at = now()
-     WHERE id = $1 AND company_id = $13`,
-    [id, data.name, data.departmentId, data.position, data.role, data.contractType, data.baseSalary, data.status, data.email, data.phone, data.address, data.avatarUrl, companyId]
+     WHERE id = $1 AND company_id = $15`,
+    [
+      id,
+      data.name,
+      data.departmentId,
+      data.position,
+      data.role,
+      data.contractType,
+      data.payType,
+      data.baseSalary,
+      data.hourlyRate,
+      data.status,
+      data.email,
+      data.phone,
+      data.address,
+      data.avatarUrl,
+      companyId
+    ]
   );
   return getEmployeeById(id, companyId);
 }
 
 export async function deleteEmployee(id, companyId) {
+  await ensureEmployeeCompensationSchema();
   await query("DELETE FROM employees WHERE id = $1 AND company_id = $2", [id, companyId]);
 }

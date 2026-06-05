@@ -5,17 +5,42 @@ import { attendanceToday, departments, employees, shifts, scheduleWeek, leaveReq
 
 assertEnv();
 
+function getEmployeePaySettings(employee) {
+  const payType = String(employee[5]).toLowerCase().includes("part") ? "Hourly" : "Monthly";
+  const seedSalary = Number(employee[6]);
+  return {
+    payType,
+    baseSalary: payType === "Hourly" ? 0 : seedSalary,
+    hourlyRate: payType === "Hourly" ? Math.max(10000, Math.round(seedSalary / 120 / 1000) * 1000) : 0
+  };
+}
+
 function calculatePayroll(employee, index) {
   const workingDays = [22, 21, 22, 20, 0, 22, 22, 21, 22, 18, 22, 22, 22, 22, 0, 22, 21, 22, 20, 22][index];
   const overtimeHours = [4, 0, 2, 7, 0, 1, 0, 0, 3, 0, 8, 2, 4, 1, 0, 5, 0, 1, 2, 9][index];
   const bonus = [1200000, 400000, 600000, 300000, 0, 900000, 300000, 200000, 700000, 0, 650000, 350000, 1500000, 500000, 0, 800000, 200000, 250000, 100000, 900000][index];
   const otherDeduction = [0, 150000, 0, 0, 200000, 0, 0, 120000, 0, 300000, 0, 0, 0, 0, 180000, 0, 100000, 0, 0, 0][index];
   const statuses = ["Paid", "Draft", "Reviewed", "Approved", "Draft", "Paid", "Reviewed", "Reviewed", "Approved", "Draft", "Paid", "Reviewed", "Paid", "Approved", "Draft", "Reviewed", "Draft", "Reviewed", "Draft", "Approved"];
-  const baseSalary = Number(employee[6]);
-  const calc = calculatePayrollItem({ baseSalary, workingDays, overtimeHours, bonus, otherDeduction: otherDeduction[index] });
+  const pay = getEmployeePaySettings(employee);
+  const totalHours = pay.payType === "Hourly" ? workingDays * 4 + overtimeHours : workingDays * 8 + overtimeHours;
+  const calc = calculatePayrollItem({
+    payType: pay.payType,
+    baseSalary: pay.baseSalary,
+    hourlyRate: pay.hourlyRate,
+    workingDays,
+    totalHours,
+    overtimeHours,
+    bonus,
+    otherDeduction: otherDeduction[index]
+  });
 
   return {
+    payType: calc.payType,
+    baseSalary: calc.baseSalary,
+    hourlyRate: calc.hourlyRate,
     workingDays,
+    totalHours: calc.totalHours,
+    regularHours: calc.regularHours,
     overtimeHours,
     overtimePay: calc.overtimePay,
     bonus,
@@ -62,18 +87,21 @@ await withTransaction(async (client) => {
   }
 
   for (const employee of employees) {
+    const pay = getEmployeePaySettings(employee);
     await client.query(
       `INSERT INTO employees
-        (id, company_id, name, department_id, position, role, contract_type, base_salary, status, email, phone, start_date, manager_name, shift_id, leave_remaining, address)
+        (id, company_id, name, department_id, position, role, contract_type, pay_type, base_salary, hourly_rate, status, email, phone, start_date, manager_name, shift_id, leave_remaining, address)
        VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
        ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         department_id = EXCLUDED.department_id,
         position = EXCLUDED.position,
         role = EXCLUDED.role,
         contract_type = EXCLUDED.contract_type,
+        pay_type = EXCLUDED.pay_type,
         base_salary = EXCLUDED.base_salary,
+        hourly_rate = EXCLUDED.hourly_rate,
         status = EXCLUDED.status,
         email = EXCLUDED.email,
         phone = EXCLUDED.phone,
@@ -83,7 +111,26 @@ await withTransaction(async (client) => {
         leave_remaining = EXCLUDED.leave_remaining,
         address = EXCLUDED.address,
         updated_at = now()`,
-      [employee[0], companyId, ...employee.slice(1)]
+      [
+        employee[0],
+        companyId,
+        employee[1],
+        employee[2],
+        employee[3],
+        employee[4],
+        employee[5],
+        pay.payType,
+        pay.baseSalary,
+        pay.hourlyRate,
+        employee[7],
+        employee[8],
+        employee[9],
+        employee[10],
+        employee[11],
+        employee[12],
+        employee[13],
+        employee[14]
+      ]
     );
   }
 
@@ -156,12 +203,16 @@ await withTransaction(async (client) => {
     const payroll = calculatePayroll(employee, index);
     await client.query(
       `INSERT INTO payroll_items
-        (payroll_run_id, employee_id, base_salary, working_days, overtime_hours, overtime_pay, bonus,
+        (payroll_run_id, employee_id, pay_type, base_salary, hourly_rate, working_days, total_hours, regular_hours, overtime_hours, overtime_pay, bonus,
          gross_salary, bhxh_employee, bhyt_employee, bhtn_employee, other_deduction, deduction, final_salary, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
        ON CONFLICT (payroll_run_id, employee_id) DO UPDATE SET
+        pay_type = EXCLUDED.pay_type,
         base_salary = EXCLUDED.base_salary,
+        hourly_rate = EXCLUDED.hourly_rate,
         working_days = EXCLUDED.working_days,
+        total_hours = EXCLUDED.total_hours,
+        regular_hours = EXCLUDED.regular_hours,
         overtime_hours = EXCLUDED.overtime_hours,
         overtime_pay = EXCLUDED.overtime_pay,
         bonus = EXCLUDED.bonus,
@@ -176,8 +227,12 @@ await withTransaction(async (client) => {
       [
         payrollRun.rows[0].id,
         employee[0],
-        employee[6],
+        payroll.payType,
+        payroll.baseSalary,
+        payroll.hourlyRate,
         payroll.workingDays,
+        payroll.totalHours,
+        payroll.regularHours,
         payroll.overtimeHours,
         payroll.overtimePay,
         payroll.bonus,

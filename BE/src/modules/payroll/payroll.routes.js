@@ -13,8 +13,12 @@ const payrollSelect = `
   SELECT
     pi.employee_id AS "employeeId",
     pr.month,
+    COALESCE(pi.pay_type, 'Monthly') AS "payType",
     pi.base_salary::int AS "baseSalary",
+    COALESCE(pi.hourly_rate, 0)::int AS "hourlyRate",
     pi.working_days::float AS "workingDays",
+    COALESCE(pi.total_hours, 0)::float AS "totalHours",
+    COALESCE(pi.regular_hours, 0)::float AS "regularHours",
     pi.overtime_hours::float AS "overtimeHours",
     pi.overtime_pay::int AS "overtimePay",
     pi.bonus::int AS bonus,
@@ -80,6 +84,14 @@ function parsePayrollMonth(value) {
     throw httpError(400, "Tháng lương cần có định dạng MM/YYYY");
   }
   return month;
+}
+
+function isPaidAttendance(row) {
+  return ["Present", "Late", "Overtime"].includes(row.status) && row.checkOut;
+}
+
+function sumAttendanceHours(rows) {
+  return Math.round(rows.filter(isPaidAttendance).reduce((sum, row) => sum + Number(row.totalHours || 0), 0) * 100) / 100;
 }
 
 payrollRouter.get(
@@ -156,7 +168,11 @@ payrollRouter.post(
     const payrollRunId = run.rows[0].id;
 
     const employees = await query(
-      `SELECT id, base_salary::int AS "baseSalary"
+      `SELECT
+        id,
+        pay_type AS "payType",
+        base_salary::int AS "baseSalary",
+        hourly_rate::int AS "hourlyRate"
        FROM employees
        WHERE company_id = $1 AND status = 'Active'`,
       [companyId]
@@ -165,25 +181,29 @@ payrollRouter.post(
     let updated = 0;
     for (const employee of employees.rows) {
       const attendance = await query(
-        `SELECT status FROM attendance_records
+        `SELECT status, check_out AS "checkOut", total_hours::float AS "totalHours" FROM attendance_records
          WHERE company_id = $1 AND employee_id = $2
            AND work_date >= $3::date
            AND work_date < ($3::date + INTERVAL '1 month')`,
         [companyId, employee.id, start]
       );
 
-      const workingDays = attendance.rows.filter((row) => ["Present", "Late", "Overtime"].includes(row.status)).length || 0;
+      const workingDays = attendance.rows.filter(isPaidAttendance).length || 0;
+      const totalHours = sumAttendanceHours(attendance.rows);
       const lateDays = attendance.rows.filter((row) => row.status === "Late").length;
       const lateDeduction = lateDays * 50000;
 
-      const overtimeHours = Math.max(0, attendance.rows.filter((row) => row.status === "Overtime").length * 2);
+      const overtimeHours = Math.max(0, attendance.rows.filter((row) => row.status === "Overtime" && row.checkOut).length * 2);
       const adjustmentTotals = await getPayrollAdjustmentTotals(companyId, employee.id, payrollMonth);
       const bonus = adjustmentTotals.addition;
       const otherDeduction = lateDeduction + adjustmentTotals.deduction;
 
       const calc = calculatePayrollItem({
+        payType: employee.payType,
         baseSalary: employee.baseSalary,
+        hourlyRate: employee.hourlyRate,
         workingDays: workingDays || 0,
+        totalHours,
         overtimeHours,
         bonus,
         otherDeduction
@@ -191,11 +211,16 @@ payrollRouter.post(
 
       await query(
         `INSERT INTO payroll_items
-          (payroll_run_id, employee_id, base_salary, working_days, overtime_hours, overtime_pay, bonus,
+          (payroll_run_id, employee_id, pay_type, base_salary, hourly_rate, working_days, total_hours, regular_hours, overtime_hours, overtime_pay, bonus,
            gross_salary, bhxh_employee, bhyt_employee, bhtn_employee, other_deduction, deduction, final_salary, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'Draft')
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, 'Draft')
          ON CONFLICT (payroll_run_id, employee_id) DO UPDATE SET
+          pay_type = EXCLUDED.pay_type,
+          base_salary = EXCLUDED.base_salary,
+          hourly_rate = EXCLUDED.hourly_rate,
           working_days = EXCLUDED.working_days,
+          total_hours = EXCLUDED.total_hours,
+          regular_hours = EXCLUDED.regular_hours,
           overtime_hours = EXCLUDED.overtime_hours,
           overtime_pay = EXCLUDED.overtime_pay,
           bonus = EXCLUDED.bonus,
@@ -210,8 +235,12 @@ payrollRouter.post(
         [
           payrollRunId,
           employee.id,
+          calc.payType,
           employee.baseSalary,
+          employee.hourlyRate,
           calc.workingDays ?? workingDays,
+          calc.totalHours,
+          calc.regularHours,
           overtimeHours,
           calc.overtimePay,
           bonus,

@@ -58,7 +58,16 @@ async function buildAiContext(companyId) {
       [companyId]
     ),
     query(
-      `SELECT e.name, d.name AS department, pi.deduction::int AS deduction, pi.final_salary::int AS "finalSalary", pi.status
+      `SELECT
+        e.name,
+        d.name AS department,
+        COALESCE(pi.pay_type, 'Monthly') AS "payType",
+        pi.base_salary::int AS "baseSalary",
+        COALESCE(pi.hourly_rate, 0)::int AS "hourlyRate",
+        COALESCE(pi.total_hours, 0)::float AS "totalHours",
+        pi.deduction::int AS deduction,
+        pi.final_salary::int AS "finalSalary",
+        pi.status
        FROM payroll_items pi
        JOIN payroll_runs pr ON pr.id = pi.payroll_run_id
        JOIN employees e ON e.id = pi.employee_id

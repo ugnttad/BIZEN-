@@ -7,7 +7,7 @@ import LoadingState from "../../components/LoadingState";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
-import { cafeShopConstraints, contractTypes, employeeRoles, hospitalityPositions } from "../../constants/hospitality";
+import { cafeShopConstraints, contractTypes, employeeRoles, hospitalityPositions, payTypes } from "../../constants/hospitality";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 import { getAuthUser } from "../../modules/auth/authStore";
@@ -18,7 +18,9 @@ const emptyForm = {
   position: "",
   role: "Employee",
   contractType: "Toàn thời gian",
+  payType: "Monthly",
   baseSalary: "",
+  hourlyRate: "",
   status: "Active",
   email: "",
   phone: "",
@@ -77,6 +79,25 @@ function normalizePosition(departmentName, role, currentPosition) {
 
 function normalizePhone(value = "") {
   return value.replace(/\D/g, "");
+}
+
+function inferPayTypeFromContract(contractType = "") {
+  const normalized = stripVietnamese(contractType).toLowerCase();
+  if (normalized.includes("part") || normalized.includes("ban thoi gian") || normalized.includes("thoi vu")) {
+    return "Hourly";
+  }
+  return "Monthly";
+}
+
+function getPayTypeLabel(value) {
+  return payTypes.find((item) => item.value === value)?.label || "Theo tháng";
+}
+
+function formatEmployeeSalary(employee) {
+  if (employee.payType === "Hourly") {
+    return `${formatCurrency(employee.hourlyRate || 0)}/giờ`;
+  }
+  return `${formatCurrency(employee.baseSalary || 0)}/tháng`;
 }
 
 function isOperational(employee) {
@@ -155,7 +176,9 @@ export default function EmployeeManagement() {
       role: employee.role,
       position: normalizePosition(employee.department, employee.role, employee.position),
       contractType: employee.contractType,
+      payType: employee.payType || inferPayTypeFromContract(employee.contractType),
       baseSalary: employee.baseSalary,
+      hourlyRate: employee.hourlyRate || "",
       status: employee.status,
       email: employee.email,
       phone: employee.phone,
@@ -190,6 +213,14 @@ export default function EmployeeManagement() {
     }));
   }
 
+  function updateContractType(nextContractType) {
+    setForm((current) => ({
+      ...current,
+      contractType: nextContractType,
+      payType: inferPayTypeFromContract(nextContractType)
+    }));
+  }
+
   async function saveEmployee(event) {
     event.preventDefault();
     if (!canMutateEmployees) {
@@ -199,7 +230,9 @@ export default function EmployeeManagement() {
 
     const trimmedName = form.name.trim();
     const normalizedEmail = form.email.trim().toLowerCase();
-    const salary = Number(form.baseSalary);
+    const isHourly = form.payType === "Hourly";
+    const salary = Number(form.baseSalary || 0);
+    const hourlyRate = Number(form.hourlyRate || 0);
     const phoneDigits = normalizePhone(form.phone);
     const editingEmployee = rows.find((employee) => employee.id === editingId);
     const nextOperationalCount = modalMode === "create" ? operationalCount + 1 : operationalCount;
@@ -233,8 +266,13 @@ export default function EmployeeManagement() {
       return;
     }
 
-    if (salary < cafeShopConstraints.minBaseSalary || salary > cafeShopConstraints.maxBaseSalary) {
+    if (!isHourly && (salary < cafeShopConstraints.minBaseSalary || salary > cafeShopConstraints.maxBaseSalary)) {
       setFormError(`Lương cơ bản cần nằm trong khoảng ${formatCurrency(cafeShopConstraints.minBaseSalary)} - ${formatCurrency(cafeShopConstraints.maxBaseSalary)}.`);
+      return;
+    }
+
+    if (isHourly && (hourlyRate < cafeShopConstraints.minHourlyRate || hourlyRate > cafeShopConstraints.maxHourlyRate)) {
+      setFormError(`Lương theo giờ cần nằm trong khoảng ${formatCurrency(cafeShopConstraints.minHourlyRate)} - ${formatCurrency(cafeShopConstraints.maxHourlyRate)}.`);
       return;
     }
 
@@ -275,7 +313,9 @@ export default function EmployeeManagement() {
       email: normalizedEmail,
       phone: phoneDigits,
       departmentId,
-      baseSalary: salary,
+      payType: form.payType,
+      baseSalary: isHourly ? 0 : salary,
+      hourlyRate: isHourly ? hourlyRate : 0,
       accountPassword: form.accountPassword || undefined
     };
 
@@ -323,7 +363,7 @@ export default function EmployeeManagement() {
         {[
           { label: "Quy mô", value: `${cafeShopConstraints.minRecommendedEmployees}-${cafeShopConstraints.maxActiveEmployees}`, helper: `${operationalCount} nhân sự đang làm` },
           { label: "Hồ sơ chủ", value: `${ownerCount}/${cafeShopConstraints.maxOwners}`, helper: "nếu chủ cũng chấm công" },
-          { label: "Mức lương", value: "1-30 triệu", helper: "ràng buộc theo tháng" },
+          { label: "Mức lương", value: "Tháng/giờ", helper: "full-time theo tháng, part-time theo giờ" },
           { label: "Chức vụ", value: "Theo bộ phận", helper: "cafe/trà sữa nhỏ" }
         ].map((rule) => (
           <div key={rule.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
@@ -369,7 +409,7 @@ export default function EmployeeManagement() {
                   <th className="px-4 py-3">Bộ phận/nhóm</th>
                   <th className="px-4 py-3">Vai trò</th>
                   <th className="px-4 py-3">Hợp đồng</th>
-                  <th className="px-4 py-3">Lương cơ bản</th>
+                  <th className="px-4 py-3">Mức lương</th>
                   <th className="px-4 py-3">Trạng thái</th>
                   <th className="px-4 py-3 text-right">Thao tác</th>
                 </tr>
@@ -393,7 +433,10 @@ export default function EmployeeManagement() {
                       <StatusBadge status={employee.role} />
                     </td>
                     <td className="px-4 py-3 text-slate-600">{employee.contractType}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{formatCurrency(employee.baseSalary)}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-slate-900">{formatEmployeeSalary(employee)}</p>
+                      <p className="text-xs text-slate-500">{getPayTypeLabel(employee.payType)}</p>
+                    </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={employee.status} />
                     </td>
@@ -480,7 +523,7 @@ export default function EmployeeManagement() {
           </label>
           <label className="text-sm font-medium text-slate-700">
             Loại hợp đồng
-            <select value={form.contractType} onChange={(event) => setForm({ ...form, contractType: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
+            <select value={form.contractType} onChange={(event) => updateContractType(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
               {contractTypes.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -489,9 +532,28 @@ export default function EmployeeManagement() {
             </select>
           </label>
           <label className="text-sm font-medium text-slate-700">
-            Lương cơ bản (VNĐ/tháng)
-            <input type="number" value={form.baseSalary} onChange={(event) => setForm({ ...form, baseSalary: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            Cách tính lương
+            <select value={form.payType} onChange={(event) => setForm({ ...form, payType: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 outline-none">
+              {payTypes.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </label>
+          {form.payType === "Hourly" ? (
+            <label className="text-sm font-medium text-slate-700">
+              Lương theo giờ (VNĐ/giờ)
+              <input type="number" min="10000" step="1000" value={form.hourlyRate} onChange={(event) => setForm({ ...form, hourlyRate: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="25000" />
+              <p className="mt-1 text-xs text-slate-500">Dùng cho bán thời gian/thời vụ, payroll sẽ nhân theo tổng giờ chấm công.</p>
+            </label>
+          ) : (
+            <label className="text-sm font-medium text-slate-700">
+              Lương tháng (VNĐ/tháng)
+              <input type="number" min="1000000" step="100000" value={form.baseSalary} onChange={(event) => setForm({ ...form, baseSalary: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="8000000" />
+              <p className="mt-1 text-xs text-slate-500">Dùng cho toàn thời gian, payroll quy đổi theo ngày công tháng.</p>
+            </label>
+          )}
           <label className="text-sm font-medium text-slate-700">
             Email
             <input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />

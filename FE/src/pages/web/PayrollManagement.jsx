@@ -31,6 +31,22 @@ const emptyAdjustmentForm = {
   note: ""
 };
 
+function isHourlyPayroll(row) {
+  return row.payType === "Hourly";
+}
+
+function getPayTypeLabel(row) {
+  return isHourlyPayroll(row) ? "Theo giờ" : "Theo tháng";
+}
+
+function getPayRateLabel(row) {
+  return isHourlyPayroll(row) ? `${formatCurrency(row.hourlyRate || 0)}/giờ` : `${formatCurrency(row.baseSalary || 0)}/tháng`;
+}
+
+function getWorkUnitLabel(row) {
+  return isHourlyPayroll(row) ? `${row.totalHours || 0}h` : `${row.workingDays}/22`;
+}
+
 export default function PayrollManagement() {
   const [payrollRows, setPayrollRows] = useState([]);
   const [adjustments, setAdjustments] = useState([]);
@@ -132,12 +148,15 @@ export default function PayrollManagement() {
     downloadCsv(`bizen-bang-luong-${payrollMonth.replace("/", "-")}.csv`, [
       ["Bảng lương BIZEN", payrollMonth],
       [],
-      ["Nhân viên", "Mã NV", "Bộ phận", "Ngày công", "OT giờ", "OT tiền", "Khoản cộng", "Khoản trừ", "Bảo hiểm NLĐ", "Khấu trừ", "Thực lĩnh", "Trạng thái"],
+      ["Nhân viên", "Mã NV", "Bộ phận", "Cách tính", "Mức lương", "Ngày công", "Tổng giờ", "OT giờ", "OT tiền", "Khoản cộng", "Khoản trừ", "Bảo hiểm NLĐ", "Khấu trừ", "Thực lĩnh", "Trạng thái"],
       ...rows.map((row) => [
         row.employeeName,
         row.employeeId,
         row.department,
+        getPayTypeLabel(row),
+        getPayRateLabel(row),
         row.workingDays,
+        row.totalHours || 0,
         row.overtimeHours,
         row.overtimePay,
         row.bonus,
@@ -155,7 +174,7 @@ export default function PayrollManagement() {
       <PageHeader
         eyebrow="Tính lương"
         title={`Bảng lương tháng ${payrollMonth}`}
-        description="Gộp ngày công, tăng ca, thưởng và khấu trừ BHXH/BHYT/BHTN theo quy định VN."
+        description="Gộp ngày công/tổng giờ, tăng ca, thưởng, khấu trừ và bảo hiểm cho nhân viên toàn thời gian."
         actions={
           <>
             <button onClick={() => setAdjustmentOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
@@ -308,7 +327,8 @@ export default function PayrollManagement() {
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-normal text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Nhân viên</th>
-                  <th className="px-4 py-3">Ngày công</th>
+                  <th className="px-4 py-3">Cách tính</th>
+                  <th className="px-4 py-3">Công/giờ</th>
                   <th className="px-4 py-3">OT</th>
                   <th className="px-4 py-3">Khoản cộng</th>
                   <th className="px-4 py-3">Khoản trừ</th>
@@ -329,7 +349,11 @@ export default function PayrollManagement() {
                         </span>
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{row.workingDays}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-slate-900">{getPayTypeLabel(row)}</p>
+                      <p className="text-xs text-slate-500">{getPayRateLabel(row)}</p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{getWorkUnitLabel(row)}</td>
                     <td className="px-4 py-3 text-slate-600">{row.overtimeHours}h</td>
                     <td className="px-4 py-3 font-semibold text-emerald-700">+{formatCurrency(row.bonus || 0)}</td>
                     <td className="px-4 py-3 font-semibold text-rose-700">-{formatCurrency(row.manualDeduction || 0)}</td>

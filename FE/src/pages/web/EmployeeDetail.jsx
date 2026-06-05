@@ -67,9 +67,11 @@ export default function EmployeeDetail() {
   const attendance = attendanceHistory.find((record) => record.date === today) || attendanceHistory[0];
   const shift = shifts.find((item) => item.id === employee.shiftId);
   const employeeHistory = attendanceHistory;
+  const isHourly = employee.payType === "Hourly";
+  const baseCompensation = isHourly ? (employee.hourlyRate || 0) * 80 : employee.baseSalary;
   const payrollHistory = getRecentPayrollMonths(3).map((month, index, months) => ({
     month,
-    value: index === months.length - 1 ? payroll?.finalSalary || employee.baseSalary : employee.baseSalary + (index === 0 ? 450000 : 650000),
+    value: index === months.length - 1 ? payroll?.finalSalary || baseCompensation : baseCompensation + (index === 0 ? 450000 : 650000),
     status: index === months.length - 1 ? payroll?.status || "Draft" : "Paid"
   }));
 
@@ -103,7 +105,7 @@ export default function EmployeeDetail() {
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Lương cơ bản" value={formatCurrency(employee.baseSalary)} helper="theo hợp đồng" icon={CreditCard} tone="blue" />
+        <StatCard title={isHourly ? "Lương theo giờ" : "Lương cơ bản"} value={formatCurrency(isHourly ? employee.hourlyRate || 0 : employee.baseSalary)} helper={isHourly ? "VNĐ/giờ theo vai trò" : "theo hợp đồng"} icon={CreditCard} tone="blue" />
         <StatCard title="Ca mặc định" value={shift?.name || "Chưa xếp"} helper={shift?.time || "Đang cập nhật"} icon={Clock3} tone="violet" />
         <StatCard title="Ngày phép còn lại" value={`${employee.leaveRemaining} ngày`} helper="năm 2026" icon={CalendarDays} tone="emerald" />
         <StatCard title="Lương tháng này" value={formatCurrency(payroll?.finalSalary || 0)} helper={payroll?.status || "Draft"} icon={BriefcaseBusiness} tone="amber" />

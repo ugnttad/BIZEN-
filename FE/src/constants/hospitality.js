@@ -36,6 +36,11 @@ export const contractTypes = [
   { value: "Thử việc", label: "Thử việc" }
 ];
 
+export const payTypes = [
+  { value: "Monthly", label: "Theo tháng" },
+  { value: "Hourly", label: "Theo giờ" }
+];
+
 export const employeeRoles = [
   { value: "Employee", label: "Nhân viên" },
   { value: "Admin", label: "Chủ sở hữu" }
@@ -47,6 +52,8 @@ export const cafeShopConstraints = {
   maxOwners: 1,
   minBaseSalary: 1000000,
   maxBaseSalary: 30000000,
+  minHourlyRate: 10000,
+  maxHourlyRate: 500000,
   passwordPattern: /^(?=.*[A-Za-z])(?=.*\d).{8,}$/,
   phonePattern: /^0?\d{9,10}$/
 };

@@ -1,11 +1,13 @@
 import { query, withTransaction } from "../../config/db.js";
 import { httpError } from "../../shared/httpError.js";
 import { calculatePayrollItem } from "../../shared/payrollCalc.js";
+import { ensureEmployeeCompensationSchema } from "../employees/employeeCompensation.service.js";
 
 let payrollAdjustmentSchemaReady = false;
 let payrollAdjustmentSchemaPromise = null;
 
 export async function ensurePayrollAdjustmentSchema() {
+  await ensureEmployeeCompensationSchema();
   if (payrollAdjustmentSchemaReady) return;
   if (!payrollAdjustmentSchemaPromise) {
     payrollAdjustmentSchemaPromise = withTransaction(async (client) => {
@@ -43,6 +45,18 @@ export async function ensurePayrollAdjustmentSchema() {
 function parseMonth(month) {
   const [mm, yyyy] = month.split("/");
   return `${yyyy}-${mm}-01`;
+}
+
+function isPaidAttendance(row) {
+  return ["Present", "Late", "Overtime"].includes(row.status) && row.checkOut;
+}
+
+function sumAttendanceHours(rows) {
+  return Math.round(
+    rows
+      .filter(isPaidAttendance)
+      .reduce((sum, row) => sum + Number(row.totalHours || 0), 0) * 100
+  ) / 100;
 }
 
 export async function listPayrollAdjustments(companyId, month, employeeId = null) {
@@ -89,7 +103,13 @@ export async function getPayrollAdjustmentTotals(companyId, employeeId, month) {
 export async function buildPayrollPreview(companyId, employeeId, month) {
   await ensurePayrollAdjustmentSchema();
   const employee = await query(
-    `SELECT e.id, e.base_salary::int AS "baseSalary", e.name, d.name AS department
+    `SELECT
+      e.id,
+      e.pay_type AS "payType",
+      e.base_salary::int AS "baseSalary",
+      e.hourly_rate::int AS "hourlyRate",
+      e.name,
+      d.name AS department
      FROM employees e
      LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
      WHERE e.id = $1 AND e.company_id = $2`,
@@ -101,24 +121,28 @@ export async function buildPayrollPreview(companyId, employeeId, month) {
 
   const start = parseMonth(month);
   const attendance = await query(
-    `SELECT status, check_out AS "checkOut" FROM attendance_records
+    `SELECT status, check_out AS "checkOut", total_hours::float AS "totalHours" FROM attendance_records
      WHERE company_id = $1 AND employee_id = $2
        AND work_date >= $3::date
        AND work_date < ($3::date + INTERVAL '1 month')`,
     [companyId, employeeId, start]
   );
 
-  const workingDays = attendance.rows.filter((row) => ["Present", "Late", "Overtime"].includes(row.status) && row.checkOut).length;
+  const workingDays = attendance.rows.filter(isPaidAttendance).length;
+  const totalHours = sumAttendanceHours(attendance.rows);
   const lateDays = attendance.rows.filter((row) => row.status === "Late").length;
   const missingCheckoutDays = attendance.rows.filter((row) => ["Present", "Late", "Overtime"].includes(row.status) && !row.checkOut).length;
   const lateDeduction = lateDays * 50000;
-  const overtimeHours = Math.max(0, attendance.rows.filter((row) => row.status === "Overtime").length * 2);
+  const overtimeHours = Math.max(0, attendance.rows.filter((row) => row.status === "Overtime" && row.checkOut).length * 2);
   const adjustmentTotals = await getPayrollAdjustmentTotals(companyId, employeeId, month);
   const adjustments = await listPayrollAdjustments(companyId, month, employeeId);
 
   const calc = calculatePayrollItem({
+    payType: employee.rows[0].payType,
     baseSalary: employee.rows[0].baseSalary,
+    hourlyRate: employee.rows[0].hourlyRate,
     workingDays,
+    totalHours,
     overtimeHours,
     bonus: adjustmentTotals.addition,
     otherDeduction: lateDeduction + adjustmentTotals.deduction
@@ -127,8 +151,12 @@ export async function buildPayrollPreview(companyId, employeeId, month) {
   return {
     employeeId,
     month,
+    payType: calc.payType,
     baseSalary: employee.rows[0].baseSalary,
+    hourlyRate: employee.rows[0].hourlyRate,
     workingDays,
+    totalHours: calc.totalHours,
+    regularHours: calc.regularHours,
     overtimeHours,
     overtimePay: calc.overtimePay,
     bonus: adjustmentTotals.addition,
