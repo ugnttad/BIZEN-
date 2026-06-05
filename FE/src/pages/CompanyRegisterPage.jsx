@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Building2, CheckCircle2, LockKeyhole, Mail, Phone, Send, UserRound } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Building2, CheckCircle2, LinkIcon, LockKeyhole, Mail, MapPin, Phone, Send, UserRound } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
 import { bizenApi } from "../modules/api/bizenApi";
 
 const emptyForm = {
   companyName: "",
   city: "Đà Nẵng",
+  businessType: "Cafe / Milk tea",
+  businessAddress: "",
+  taxCode: "",
+  website: "",
+  verificationNote: "",
   contactName: "",
   contactEmail: "",
   phone: "",
@@ -32,9 +38,18 @@ export default function CompanyRegisterPage() {
     const city = form.city.trim().toLowerCase();
     const normalizedEmail = form.contactEmail.trim().toLowerCase();
     const employeeCount = Number(form.employeeCount);
+    const taxCode = form.taxCode.replace(/\D/g, "");
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setError("Email admin chưa hợp lệ.");
+      return;
+    }
+    if (form.businessAddress.trim().length < 5) {
+      setError("Cần nhập địa chỉ kinh doanh để BIZEN xác minh quán/doanh nghiệp.");
+      return;
+    }
+    if (!/^\d{10}(\d{3})?$/.test(taxCode)) {
+      setError("Mã số thuế cần 10 hoặc 13 chữ số.");
       return;
     }
     if (!["đà nẵng", "da nang"].includes(city)) {
@@ -63,6 +78,11 @@ export default function CompanyRegisterPage() {
       const payload = await bizenApi.createCompanyRequest({
         companyName: form.companyName,
         city: "Đà Nẵng",
+        businessType: form.businessType,
+        businessAddress: form.businessAddress,
+        taxCode,
+        website: form.website,
+        verificationNote: form.verificationNote,
         contactName: form.contactName,
         contactEmail: normalizedEmail,
         phone: phoneDigits,
@@ -87,9 +107,7 @@ export default function CompanyRegisterPage() {
               <ArrowLeft className="h-4 w-4" />
               Về trang chủ
             </Link>
-            <div className="mt-10 grid h-14 w-14 place-items-center rounded-lg bg-blue-600 text-white">
-              <Building2 className="h-7 w-7" />
-            </div>
+            <BrandLogo className="mt-10" />
             <h1 className="mt-5 text-3xl font-semibold tracking-normal text-slate-950 md:text-4xl">Đăng ký doanh nghiệp sử dụng BIZEN</h1>
             <p className="mt-4 text-sm leading-6 text-slate-600">
               Doanh nghiệp gửi thông tin trước. Chủ nền tảng BIZEN duyệt tenant, sau đó email đại diện mới trở thành chủ sở hữu đầu tiên — có quyền tạo nhân sự và duyệt tài khoản nhân viên.
@@ -136,6 +154,48 @@ export default function CompanyRegisterPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block text-sm font-medium text-slate-700">
+                Loại hình kinh doanh
+                <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                  <BadgeCheck className="h-4 w-4 text-slate-400" />
+                  <input required value={form.businessType} onChange={(event) => updateField("businessType", event.target.value)} className="w-full outline-none" />
+                </span>
+              </label>
+              <label className="block text-sm font-medium text-slate-700">
+                Mã số thuế
+                <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                  <BadgeCheck className="h-4 w-4 text-slate-400" />
+                  <input required inputMode="numeric" value={form.taxCode} onChange={(event) => updateField("taxCode", event.target.value)} className="w-full outline-none" placeholder="10 hoặc 13 chữ số" />
+                </span>
+              </label>
+            </div>
+
+            <label className="block text-sm font-medium text-slate-700">
+              Địa chỉ kinh doanh
+              <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                <MapPin className="h-4 w-4 text-slate-400" />
+                <input required value={form.businessAddress} onChange={(event) => updateField("businessAddress", event.target.value)} className="w-full outline-none" placeholder="Số nhà, đường, phường/xã" />
+              </span>
+            </label>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Link xác minh
+                <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                  <LinkIcon className="h-4 w-4 text-slate-400" />
+                  <input value={form.website} onChange={(event) => updateField("website", event.target.value)} className="w-full outline-none" placeholder="Google Maps, Facebook hoặc website" />
+                </span>
+              </label>
+              <label className="block text-sm font-medium text-slate-700">
+                Ghi chú xác minh
+                <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                  <BadgeCheck className="h-4 w-4 text-slate-400" />
+                  <input value={form.verificationNote} onChange={(event) => updateField("verificationNote", event.target.value)} className="w-full outline-none" placeholder="Ví dụ: tên chủ hộ, chi nhánh, giờ mở cửa" />
+                </span>
+              </label>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm font-medium text-slate-700">
                 Người đại diện
                 <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
                   <UserRound className="h-4 w-4 text-slate-400" />
@@ -158,6 +218,7 @@ export default function CompanyRegisterPage() {
                   <Mail className="h-4 w-4 text-slate-400" />
                   <input required type="email" value={form.contactEmail} onChange={(event) => updateField("contactEmail", event.target.value)} className="w-full outline-none" />
                 </span>
+                <span className="mt-1 block text-xs text-slate-500">Dùng email thật để nhận duyệt tenant và đặt lại mật khẩu khi quên.</span>
               </label>
               <label className="block text-sm font-medium text-slate-700">
                 Điện thoại
@@ -208,9 +269,9 @@ export default function CompanyRegisterPage() {
               {loading ? "Đang gửi…" : "Gửi yêu cầu doanh nghiệp"}
             </button>
 
-            <Link to="/register-employee" className="text-center text-sm font-semibold text-blue-700 hover:text-blue-800">
-              Tôi là nhân viên — yêu cầu tài khoản
-            </Link>
+            <p className="text-center text-xs leading-5 text-slate-500">
+              Nhân viên không cần đăng ký riêng; chủ/quản lý sẽ cấp email và mật khẩu sau khi tạo hồ sơ.
+            </p>
           </form>
         </section>
       </div>

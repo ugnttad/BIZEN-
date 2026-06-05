@@ -3,6 +3,8 @@ import { getCurrentPayrollMonth } from "../../lib/utils";
 
 export const bizenApi = {
   passwordLogin: (payload) => apiClient.post("/auth/login", payload),
+  requestPasswordReset: (email) => apiClient.post("/auth/password-reset/request", { email }),
+  confirmPasswordReset: (payload) => apiClient.post("/auth/password-reset/confirm", payload),
   googleLogin: (credential) => apiClient.post("/auth/google", { credential }),
   me: () => apiClient.get("/auth/me"),
   createCompanyRequest: (payload) => apiClient.post("/tenants/company-requests", payload),
@@ -15,7 +17,6 @@ export const bizenApi = {
   sendCommunityMessage: (body) => apiClient.post("/community/messages", { body }),
   communityTyping: () => apiClient.get("/community/typing"),
   updateCommunityTyping: (isTyping) => apiClient.post("/community/typing", { isTyping }),
-  requestEmployeeAccount: (payload) => apiClient.post("/auth/employee-account-requests", payload),
   accountRequests: (status = "Pending") => apiClient.get(`/auth/account-requests?status=${encodeURIComponent(status)}`),
   reviewAccountRequest: (id, payload) => apiClient.patch(`/auth/account-requests/${id}/status`, payload),
   dashboardSummary: () => apiClient.get("/dashboard/summary"),

@@ -4,7 +4,6 @@ import {
   Activity,
   BarChart3,
   Bell,
-  Building2,
   CalendarCheck2,
   ChevronDown,
   ChevronRight,
@@ -31,6 +30,7 @@ import {
   X
 } from "lucide-react";
 import Avatar from "./Avatar";
+import BrandLogo from "./BrandLogo";
 import { bizenApi } from "../modules/api/bizenApi";
 import { clearAuthSession, getAuthUser, getDefaultPathForRole } from "../modules/auth/authStore";
 
@@ -228,9 +228,7 @@ export default function WebLayout() {
             sidebarCollapsed ? "justify-center px-1" : "gap-3 px-3"
           }`}
         >
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10 transition duration-300 group-hover:scale-105 group-hover:bg-blue-600">
-            <Building2 className="h-5 w-5" />
-          </div>
+          <BrandLogo compact />
           {sidebarCollapsed ? null : (
             <div className="min-w-0">
               <p className="text-xl font-bold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
@@ -303,13 +301,7 @@ export default function WebLayout() {
           <aside className="animate-slide-over relative flex h-full w-[min(88vw,340px)] flex-col border-r border-white/70 bg-white px-4 py-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <Link to={homePath} className="flex items-center gap-3 rounded-xl">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-950 text-white">
-                  <Building2 className="h-5 w-5" />
-                </span>
-                <span>
-                  <span className="block text-lg font-bold text-slate-950">BIZEN</span>
-                  <span className="block text-xs font-medium text-slate-500">Cloud HR & Payroll</span>
-                </span>
+                <BrandLogo />
               </Link>
               <button className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 text-slate-600" onClick={() => setMenuOpen(false)} aria-label="Đóng menu">
                 <X className="h-5 w-5" />

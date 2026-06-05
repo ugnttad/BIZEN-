@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Building2, LockKeyhole, Mail, Smartphone } from "lucide-react";
+import { LockKeyhole, Mail, Smartphone } from "lucide-react";
+import BrandLogo from "../../components/BrandLogo";
 import GoogleLoginButton from "../../modules/auth/GoogleLoginButton";
 import { bizenApi } from "../../modules/api/bizenApi";
 import { getDefaultPathForRole, saveAuthSession, setEmployeeExperiencePreference } from "../../modules/auth/authStore";
@@ -67,13 +68,7 @@ export default function MobileLogin() {
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-teal-400 to-amber-400" />
         <div>
           <Link to="/" className="group flex w-fit items-center gap-3 rounded-xl">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
-              <Building2 className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
-              <p className="text-sm text-slate-500">Employee App</p>
-            </div>
+            <BrandLogo subtitle="Employee App" />
           </Link>
 
           <div className="mt-14">
@@ -101,6 +96,10 @@ export default function MobileLogin() {
               </span>
             </label>
 
+            <Link to="/forgot-password" className="block text-right text-sm font-semibold text-blue-700 hover:text-blue-800">
+              Quên mật khẩu?
+            </Link>
+
             {error ? <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p> : null}
 
             <button type="submit" disabled={loading} className="btn-motion login-submit-button w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30 disabled:bg-slate-300">
@@ -112,10 +111,8 @@ export default function MobileLogin() {
               <span className="text-xs font-semibold uppercase tracking-normal text-slate-400">Google</span>
               <span className="h-px flex-1 bg-slate-200" />
             </div>
-            <GoogleLoginButton mode="mobile" onSuccess={handleGoogleSuccess} />
-            <Link to="/register-employee" className="block text-center text-sm font-semibold text-blue-700 hover:text-blue-800">
-              Yêu cầu tài khoản employee
-            </Link>
+            <GoogleLoginButton mode="mobile" />
+            <p className="text-center text-xs leading-5 text-slate-500">Tài khoản nhân viên được chủ/quản lý cấp bằng email và mật khẩu.</p>
           </form>
         </div>
       </section>

@@ -5,7 +5,7 @@ import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
 
-const statusTabs = ["Pending", "All", "Approved", "Rejected", "Suspended"];
+const statusTabs = ["All", "Approved", "Suspended", "Rejected", "Pending"];
 
 function formatDateTime(value) {
   if (!value) return "-";
@@ -18,8 +18,17 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function formatDate(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
 export default function AccountApprovals() {
-  const [status, setStatus] = useState("Pending");
+  const [status, setStatus] = useState("All");
   const [query, setQuery] = useState("");
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +41,7 @@ export default function AccountApprovals() {
     bizenApi
       .accountRequests(nextStatus)
       .then(setRequests)
-      .catch((err) => setError(err.message || "Khong tai duoc yeu cau tai khoan."))
+      .catch((err) => setError(err.message || "Không tải được tài khoản."))
       .finally(() => setLoading(false));
   }
 
@@ -43,7 +52,12 @@ export default function AccountApprovals() {
   const rows = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return requests;
-    return requests.filter((item) => [item.name, item.email, item.employeeId, item.department, item.role].join(" ").toLowerCase().includes(normalized));
+    return requests.filter((item) =>
+      [item.name, item.email, item.employeeId, item.department, item.role, item.requestFullName, item.requestPhone, item.requestCitizenId]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized)
+    );
   }, [requests, query]);
 
   async function review(id, nextStatus) {
@@ -64,7 +78,7 @@ export default function AccountApprovals() {
       <PageHeader
         eyebrow="Access control"
         title="Tài khoản đăng nhập"
-        description="Khi chủ sở hữu tạo nhân viên kèm mật khẩu, tài khoản được cấp ngay. Màn này dùng để xem, duyệt yêu cầu tự đăng ký và khóa tài khoản khi cần."
+        description="Chủ/quản lý cấp tài khoản bằng email và mật khẩu trong hồ sơ nhân viên. Màn này dùng để xem trạng thái, khóa hoặc mở lại tài khoản khi cần."
         actions={
           <button onClick={() => loadRequests(status)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             <RefreshCw className="h-4 w-4" />
@@ -122,6 +136,25 @@ export default function AccountApprovals() {
                     <p className="mt-1 truncate text-xs text-slate-500">
                       {item.employeeId || "Company account"} - {item.email}
                     </p>
+                    {item.requestFullName || item.requestPhone || item.requestCitizenId || item.requestDateOfBirth || item.requestAddress || item.requestNote ? (
+                      <div className="mt-2 grid gap-1 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                        <p>
+                          Gửi form: <span className="font-semibold text-slate-800">{item.requestFullName || "-"}</span>
+                        </p>
+                        <p>
+                          SĐT: <span className="font-semibold text-slate-800">{item.requestPhone || "-"}</span> · CCCD:{" "}
+                          <span className="font-semibold text-slate-800">{item.requestCitizenId || "-"}</span>
+                        </p>
+                        <p>
+                          Ngày sinh: <span className="font-semibold text-slate-800">{formatDate(item.requestDateOfBirth)}</span>
+                        </p>
+                        {item.requestAddress || item.requestNote ? (
+                          <p className="break-words">
+                            {[item.requestAddress, item.requestNote].filter(Boolean).join(" - ")}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                   <p className="text-sm text-slate-600">{item.department || item.position || "-"}</p>
                   <div className="flex flex-wrap items-center gap-2">

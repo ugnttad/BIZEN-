@@ -55,6 +55,7 @@ export function createApp() {
   app.use(helmet());
   app.use(cors(resolveCorsOptions));
   app.use(express.json({ limit: "5mb" }));
+  app.use(express.urlencoded({ extended: false, limit: "32kb" }));
   app.use(morgan("dev"));
 
   app.get(["/health", "/api/health"], (_req, res) => {

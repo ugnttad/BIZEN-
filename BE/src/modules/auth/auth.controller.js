@@ -6,18 +6,19 @@ import { env } from "../../config/env.js";
 import { httpError } from "../../shared/httpError.js";
 import { isStrongPassword, normalizeEmail } from "../../shared/validation.js";
 import {
-  createEmployeeAccountRequest,
+  createPasswordResetToken,
   findEmployeeByEmail,
   getUserByEmail,
   getUserById,
   listAccountRequests,
   reviewAccountRequest,
+  resetPasswordWithToken,
   touchUserLogin,
   upsertGoogleUser
 } from "./auth.repository.js";
 import { getPlatformAdminUser, isPlatformAdminCredentials, isPlatformAdminTokenPayload } from "./platformAdmin.js";
 import { hashPassword, verifyPassword } from "./password.service.js";
-import { buildEmployeeApprovedEmail, buildEmployeeRequestEmail, sendMail } from "../mail/mail.service.js";
+import { buildEmployeeApprovedEmail, buildPasswordResetEmail, sendMail } from "../mail/mail.service.js";
 
 const googleLoginSchema = z.object({
   credential: z.string().min(20)
@@ -28,8 +29,12 @@ const passwordLoginSchema = z.object({
   password: z.string().min(6)
 });
 
-const employeeAccountRequestSchema = z.object({
-  email: z.string().trim().email().transform(normalizeEmail),
+const passwordResetRequestSchema = z.object({
+  email: z.string().trim().email().transform(normalizeEmail)
+});
+
+const passwordResetConfirmSchema = z.object({
+  token: z.string().min(30),
   password: z.string().refine(isStrongPassword, "Password must have at least 8 characters, one letter and one number")
 });
 
@@ -67,12 +72,51 @@ async function getCompanyName(companyId) {
   return result.rows[0]?.name || "doanh nghiệp";
 }
 
-export async function googleLoginHandler(req, res) {
+function isAllowedReturnOrigin(value) {
+  if (!value) return false;
+
+  try {
+    const url = new URL(value);
+    const origin = url.origin;
+    const hostname = url.hostname;
+    const isLocal =
+      env.nodeEnv !== "production" &&
+      (hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname.startsWith("192.168.") ||
+        hostname.startsWith("10.") ||
+        /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname));
+
+    return env.clientOrigins.includes(origin) || isLocal;
+  } catch {
+    return false;
+  }
+}
+
+function encodeJsonForHash(value) {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function getDefaultRedirectPath(user, experience = "web") {
+  if (user.role === "Employee") return experience === "mobile" ? "/mobile/home" : "/web/me";
+  if (user.role === "Admin") return "/web/home";
+  if (user.role === "PlatformAdmin") return "/platform/companies";
+  return "/login";
+}
+
+function getRequestOrigin(req) {
+  const host = req.headers.host;
+  if (!host) return env.clientOrigin;
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const protocol = forwardedProto || req.protocol || "https";
+  return `${protocol}://${host}`;
+}
+
+async function completeGoogleLogin(credential) {
   if (!env.googleClientId || env.googleClientId.includes("your-google")) {
     throw httpError(500, "GOOGLE_CLIENT_ID is not configured on the backend deployment");
   }
 
-  const { credential } = googleLoginSchema.parse(req.body);
   const ticket = await client.verifyIdToken({
     idToken: credential,
     audience: env.googleClientId
@@ -92,8 +136,7 @@ export async function googleLoginHandler(req, res) {
 
   if (!existingUser) {
     if (employee) {
-      await createEmployeeAccountRequest(employee);
-      throw httpError(403, "Employee account request was sent to the owner for approval");
+      throw httpError(403, "Chủ/quản lý cần cấp tài khoản đăng nhập cho email nhân viên này trước.");
     }
 
     throw httpError(403, "This email is not attached to an approved BIZEN account");
@@ -116,10 +159,31 @@ export async function googleLoginHandler(req, res) {
   );
   assertSupportedTenantRole(user);
 
-  res.json({
+  return {
     token: signToken(user),
     user
-  });
+  };
+}
+
+export async function googleLoginHandler(req, res) {
+  const { credential } = googleLoginSchema.parse(req.body);
+  res.json(await completeGoogleLogin(credential));
+}
+
+export async function googleRedirectLoginHandler(req, res) {
+  const { credential } = googleLoginSchema.parse(req.body);
+  const experience = req.query.experience === "mobile" ? "mobile" : "web";
+  const returnOrigin = isAllowedReturnOrigin(req.query.returnOrigin) ? new URL(req.query.returnOrigin).origin : getRequestOrigin(req);
+  const session = await completeGoogleLogin(credential);
+  const callbackUrl = new URL("/auth/google/callback", returnOrigin);
+  callbackUrl.hash = new URLSearchParams({
+    token: session.token,
+    user: encodeJsonForHash(session.user),
+    experience,
+    next: getDefaultRedirectPath(session.user, experience)
+  }).toString();
+
+  res.redirect(303, callbackUrl.toString());
 }
 
 export async function passwordLoginHandler(req, res) {
@@ -160,50 +224,41 @@ export async function passwordLoginHandler(req, res) {
   });
 }
 
-export async function requestEmployeeAccountHandler(req, res) {
-  const data = employeeAccountRequestSchema.parse(req.body);
-  const employee = await findEmployeeByEmail(data.email);
+export async function requestPasswordResetHandler(req, res) {
+  const data = passwordResetRequestSchema.parse(req.body);
+  const user = await getUserByEmail(data.email);
 
-  if (!employee) {
-    throw httpError(404, "The owner must create this employee profile before an account can be requested");
-  }
-  assertSupportedTenantRole(employee);
-
-  const [existingUser, activeCompanyRequest] = await Promise.all([
-    getUserByEmail(data.email),
-    query(
-      `SELECT id FROM company_access_requests
-       WHERE lower(contact_email) = lower($1)
-         AND status IN ('Pending', 'Approved')
-       LIMIT 1`,
-      [data.email]
-    )
-  ]);
-  if (activeCompanyRequest.rows[0]) {
-    throw httpError(409, "Email này đang được dùng cho yêu cầu đăng ký doanh nghiệp");
-  }
-  if (existingUser && existingUser.employeeId !== employee.id) {
-    throw httpError(409, "Email này đã thuộc một tài khoản đăng nhập khác");
-  }
-  if (existingUser?.status === "Approved") {
-    throw httpError(409, "Email này đã có tài khoản được duyệt. Hãy đăng nhập thay vì đăng ký lại.");
-  }
-  if (existingUser?.status === "Pending") {
-    throw httpError(409, "Email này đã gửi yêu cầu tài khoản và đang chờ chủ sở hữu duyệt.");
-  }
-  if (existingUser?.status === "Suspended") {
-    throw httpError(409, "Tài khoản này đang bị khóa. Hãy liên hệ chủ sở hữu.");
+  if (user?.status === "Approved") {
+    const token = await createPasswordResetToken(user.id);
+    const resetUrl = new URL("/reset-password", `${getRequestOrigin(req)}/`);
+    resetUrl.searchParams.set("token", token);
+    await sendMail({
+      to: user.email,
+      ...buildPasswordResetEmail({
+        userName: user.name,
+        resetUrl: resetUrl.toString()
+      })
+    });
   }
 
-  const user = await createEmployeeAccountRequest(employee, hashPassword(data.password));
-  await sendMail({
-    to: user.email,
-    ...buildEmployeeRequestEmail({
-      employeeName: user.name,
-      companyName: await getCompanyName(user.companyId)
-    })
+  res.json({
+    ok: true,
+    message: "Nếu email tồn tại và đã được duyệt, BIZEN sẽ gửi link đặt lại mật khẩu."
   });
-  res.status(user.status === "Approved" ? 200 : 201).json(user);
+}
+
+export async function confirmPasswordResetHandler(req, res) {
+  const data = passwordResetConfirmSchema.parse(req.body);
+  const user = await resetPasswordWithToken(data.token, hashPassword(data.password));
+  if (!user) {
+    throw httpError(400, "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.");
+  }
+
+  res.json({
+    ok: true,
+    message: "Mật khẩu đã được cập nhật. Bạn có thể đăng nhập lại.",
+    user
+  });
 }
 
 export async function listAccountRequestsHandler(req, res) {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, CheckCircle2, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
+import { CheckCircle2, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
 import GoogleLoginButton from "../modules/auth/GoogleLoginButton";
 import { bizenApi } from "../modules/api/bizenApi";
 import { getDefaultPathForRole, saveAuthSession, setEmployeeExperiencePreference } from "../modules/auth/authStore";
@@ -70,13 +71,7 @@ export default function LoginPage() {
       <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
         <section className="flex flex-col justify-between bg-white/70 px-6 py-8 backdrop-blur-xl md:px-12">
           <Link to="/" className="group flex w-fit items-center gap-3 rounded-xl">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
-              <Building2 className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-2xl font-semibold tracking-normal text-slate-950 transition-colors group-hover:text-blue-700">BIZEN</p>
-              <p className="text-sm text-slate-500">Cloud HR & Payroll</p>
-            </div>
+            <BrandLogo />
           </Link>
 
           <div className="my-10 max-w-xl">
@@ -112,10 +107,8 @@ export default function LoginPage() {
                 <Link to="/register-company" className="text-blue-700 hover:text-blue-800">
                   Đăng ký doanh nghiệp (khách hàng)
                 </Link>
-                <Link to="/register-employee" className="text-slate-600 hover:text-blue-700">
-                  Nhân viên chưa được cấp mật khẩu?
-                </Link>
               </div>
+              <p className="mt-2 text-xs text-slate-500">Nhân viên đăng nhập bằng email và mật khẩu do chủ/quản lý cấp trong hồ sơ nhân sự.</p>
               <p className="mt-2 text-xs text-slate-400">
                 Chủ nền tảng: đăng nhập bằng tài khoản Platform Admin (cấu hình SERVER) → tự vào màn duyệt tenant.
               </p>
@@ -137,6 +130,12 @@ export default function LoginPage() {
               </span>
             </label>
 
+            <div className="mt-2 text-right">
+              <Link to="/forgot-password" className="text-sm font-semibold text-blue-700 hover:text-blue-800">
+                Quên mật khẩu?
+              </Link>
+            </div>
+
             {error ? <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p> : null}
 
             <button type="submit" disabled={loading} className="btn-motion login-submit-button mt-6 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:shadow-blue-600/30 disabled:bg-slate-300">
@@ -149,7 +148,7 @@ export default function LoginPage() {
               <span className="h-px flex-1 bg-slate-200" />
             </div>
 
-            <GoogleLoginButton onSuccess={handleGoogleSuccess} />
+            <GoogleLoginButton />
           </form>
         </section>
       </div>

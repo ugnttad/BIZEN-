@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Chrome } from "lucide-react";
-import { bizenApi } from "../api/bizenApi";
-import { saveAuthSession } from "./authStore";
+import { apiClient } from "../api/client";
 
 const defaultGoogleClientId = "518331039125-i79o5esjg5v5eiim93rdapvtfp0elk4n.apps.googleusercontent.com";
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || defaultGoogleClientId;
 
-let googleInitClientId = null;
-let credentialHandler = null;
+let googleInitKey = null;
 
 function loadGoogleScript() {
   return new Promise((resolve, reject) => {
@@ -34,23 +32,31 @@ function loadGoogleScript() {
   });
 }
 
-function ensureGoogleInitialized(clientId) {
-  if (googleInitClientId === clientId) return;
-  window.google.accounts.id.initialize({
-    client_id: clientId,
-    callback: (response) => credentialHandler?.(response)
-  });
-  googleInitClientId = clientId;
+function buildGoogleLoginUri() {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/api/auth/google/redirect`;
+  }
+  return `${apiClient.baseUrl}/auth/google/redirect`;
 }
 
-export default function GoogleLoginButton({ mode = "web", onSuccess }) {
-  const buttonRef = useRef(null);
-  const onSuccessRef = useRef(onSuccess);
-  const [error, setError] = useState("");
+function ensureGoogleInitialized(clientId, loginUri) {
+  const initKey = `${clientId}:${loginUri}`;
+  if (googleInitKey === initKey) return;
+  window.google.accounts.id.initialize({
+    client_id: clientId,
+    ux_mode: "redirect",
+    login_uri: loginUri,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    itp_support: true,
+    use_fedcm_for_prompt: true
+  });
+  googleInitKey = initKey;
+}
 
-  useEffect(() => {
-    onSuccessRef.current = onSuccess;
-  }, [onSuccess]);
+export default function GoogleLoginButton({ mode = "web" }) {
+  const buttonRef = useRef(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -65,16 +71,8 @@ export default function GoogleLoginButton({ mode = "web", onSuccess }) {
       .then(() => {
         if (!active || !buttonRef.current) return;
 
-        credentialHandler = async (response) => {
-          try {
-            const session = await bizenApi.googleLogin(response.credential);
-            saveAuthSession(session);
-            onSuccessRef.current?.(session.user);
-          } catch (err) {
-            setError(err.message || "Không đăng nhập được bằng Google.");
-          }
-        };
-        ensureGoogleInitialized(googleClientId);
+        const loginUri = buildGoogleLoginUri();
+        ensureGoogleInitialized(googleClientId, loginUri);
 
         buttonRef.current.innerHTML = "";
         window.google.accounts.id.renderButton(buttonRef.current, {
@@ -103,7 +101,7 @@ export default function GoogleLoginButton({ mode = "web", onSuccess }) {
       ) : null}
       {!error && googleClientId && !googleClientId.includes("your-google") ? (
         <p className="mt-2 text-xs text-slate-500">
-          Nếu nút Google báo lỗi: thêm domain app vào Authorized JavaScript origins trên Google Cloud Console.
+          Nếu Google báo lỗi: thêm domain app vào Authorized JavaScript origins và redirect/login URI trên Google Cloud Console.
         </p>
       ) : null}
     </div>

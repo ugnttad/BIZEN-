@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Building2, CheckCircle2, LogOut, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
+import { Building2, CheckCircle2, LogOut, RefreshCw, Search, XCircle } from "lucide-react";
 import EmptyState from "../../components/EmptyState";
+import BrandLogo from "../../components/BrandLogo";
 import RejectionReasonModal from "../../components/RejectionReasonModal";
 import StatusBadge from "../../components/StatusBadge";
 import { bizenApi } from "../../modules/api/bizenApi";
@@ -51,7 +52,7 @@ export default function PlatformCompanyRequests() {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return requests;
     return requests.filter((item) =>
-      [item.companyName, item.contactName, item.contactEmail, item.city].join(" ").toLowerCase().includes(normalized)
+      [item.companyName, item.contactName, item.contactEmail, item.city, item.taxCode, item.businessAddress, item.website].join(" ").toLowerCase().includes(normalized)
     );
   }, [requests, query]);
 
@@ -96,9 +97,7 @@ export default function PlatformCompanyRequests() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <Link to="/platform/companies" className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-slate-950 text-white">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
+            <BrandLogo compact />
             <div>
               <p className="text-lg font-semibold text-slate-950">BIZEN Platform</p>
               <p className="text-xs text-slate-500">{user?.email}</p>
@@ -186,6 +185,22 @@ export default function PlatformCompanyRequests() {
                     <div className="rounded-lg bg-slate-50 px-3 py-2">
                       <p className="text-slate-500">Quy mô AI</p>
                       <p className="mt-1 font-semibold text-slate-900">{item.employeeCount || 20} nhân sự</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <p className="text-slate-500">Mã số thuế</p>
+                      <p className="mt-1 font-semibold text-slate-900">{item.taxCode || "-"}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <p className="text-slate-500">Loại hình</p>
+                      <p className="mt-1 font-semibold text-slate-900">{item.businessType || "-"}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2 md:col-span-2">
+                      <p className="text-slate-500">Địa chỉ kinh doanh</p>
+                      <p className="mt-1 font-semibold text-slate-900">{item.businessAddress || "-"}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2 md:col-span-2">
+                      <p className="text-slate-500">Link/Ghi chú xác minh</p>
+                      <p className="mt-1 break-words font-semibold text-slate-900">{[item.website, item.verificationNote].filter(Boolean).join(" - ") || "-"}</p>
                     </div>
                     <div className="rounded-lg bg-slate-50 px-3 py-2">
                       <p className="text-slate-500">Gửi lúc</p>

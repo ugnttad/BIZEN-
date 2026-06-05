@@ -93,20 +93,6 @@ export function buildCompanyApprovedEmail({ ownerName, companyName }) {
   return { subject: `[BIZEN] ${title}`, text, html };
 }
 
-export function buildEmployeeRequestEmail({ employeeName, companyName }) {
-  const title = `Yêu cầu tham gia ${companyName} đã được ghi nhận`;
-  const text = `Chào ${employeeName}, yêu cầu tài khoản của bạn tại ${companyName} đã được gửi tới chủ sở hữu. Bạn sẽ nhận email khi tài khoản được duyệt.`;
-  const html = wrapEmail({
-    title,
-    body: `
-      <p>Chào <strong>${escapeHtml(employeeName)}</strong>,</p>
-      <p>Yêu cầu tham gia <strong>${escapeHtml(companyName)}</strong> đã được ghi nhận.</p>
-      <p>Chủ sở hữu sẽ kiểm tra và duyệt tài khoản cho bạn. Khi được duyệt, bạn có thể đăng nhập BIZEN để xem lịch, chấm công, lương và nghỉ phép.</p>
-    `
-  });
-  return { subject: `[BIZEN] ${title}`, text, html };
-}
-
 export function buildEmployeeApprovedEmail({ employeeName, companyName }) {
   const title = `Bạn đã được duyệt vào ${companyName}`;
   const loginUrl = appUrl("/login");
@@ -136,6 +122,22 @@ export function buildEmployeeCreatedEmail({ employeeName, companyName }) {
       <p>Chào <strong>${escapeHtml(employeeName)}</strong>,</p>
       <p>Chủ sở hữu <strong>${escapeHtml(companyName)}</strong> đã tạo tài khoản BIZEN cho bạn.</p>
       <p>Hãy đăng nhập bằng email này và mật khẩu được cấp để bắt đầu dùng web/mobile.</p>
+    `
+  });
+  return { subject: `[BIZEN] ${title}`, text, html };
+}
+
+export function buildPasswordResetEmail({ userName, resetUrl }) {
+  const title = "Dat lai mat khau BIZEN";
+  const text = `Chao ${userName}, ban vua yeu cau dat lai mat khau BIZEN. Link co hieu luc 30 phut: ${resetUrl}`;
+  const html = wrapEmail({
+    title,
+    ctaUrl: resetUrl,
+    ctaLabel: "Dat lai mat khau",
+    body: `
+      <p>Chao <strong>${escapeHtml(userName)}</strong>,</p>
+      <p>BIZEN da nhan yeu cau dat lai mat khau cho tai khoan cua ban.</p>
+      <p>Link nay chi co hieu luc trong 30 phut. Neu ban khong yeu cau, hay bo qua email nay.</p>
     `
   });
   return { subject: `[BIZEN] ${title}`, text, html };

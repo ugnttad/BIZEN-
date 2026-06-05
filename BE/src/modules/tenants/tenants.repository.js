@@ -9,6 +9,11 @@ const requestSelect = `
   contact_name AS "contactName",
   contact_email AS "contactEmail",
   phone,
+  business_type AS "businessType",
+  business_address AS "businessAddress",
+  tax_code AS "taxCode",
+  website,
+  verification_note AS "verificationNote",
   employee_count AS "employeeCount",
   status,
   company_id AS "companyId",
@@ -41,8 +46,27 @@ async function ensureTenantSchema(executor = query) {
   if (tenantSchemaReady) return;
 
   const sql = `
+    ALTER TABLE companies
+      ADD COLUMN IF NOT EXISTS business_type TEXT,
+      ADD COLUMN IF NOT EXISTS business_address TEXT,
+      ADD COLUMN IF NOT EXISTS tax_code TEXT,
+      ADD COLUMN IF NOT EXISTS website TEXT;
+
     ALTER TABLE company_access_requests
-      ADD COLUMN IF NOT EXISTS employee_count INTEGER NOT NULL DEFAULT 20;
+      ADD COLUMN IF NOT EXISTS employee_count INTEGER NOT NULL DEFAULT 20,
+      ADD COLUMN IF NOT EXISTS business_type TEXT NOT NULL DEFAULT 'Cafe / Milk tea',
+      ADD COLUMN IF NOT EXISTS business_address TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS tax_code TEXT,
+      ADD COLUMN IF NOT EXISTS website TEXT,
+      ADD COLUMN IF NOT EXISTS verification_note TEXT NOT NULL DEFAULT '';
+
+    CREATE INDEX IF NOT EXISTS idx_company_access_requests_tax_code
+      ON company_access_requests(tax_code)
+      WHERE tax_code IS NOT NULL;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS companies_tax_code_unique_idx
+      ON companies(tax_code)
+      WHERE tax_code IS NOT NULL;
   `;
 
   if (typeof executor === "function") {
@@ -129,8 +153,9 @@ export async function createCompanyAccessRequest(data) {
 
   const result = await query(
     `INSERT INTO company_access_requests
-      (company_name, city, contact_name, contact_email, phone, employee_count, admin_password_hash)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+      (company_name, city, contact_name, contact_email, phone, employee_count, admin_password_hash,
+       business_type, business_address, tax_code, website, verification_note)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING ${requestSelect}`,
     [
       data.companyName.trim(),
@@ -139,7 +164,12 @@ export async function createCompanyAccessRequest(data) {
       normalizeEmail(data.contactEmail),
       normalizePhone(data.phone) || null,
       normalizeEmployeeCount(data.employeeCount),
-      data.adminPasswordHash
+      data.adminPasswordHash,
+      data.businessType?.trim() || "Cafe / Milk tea",
+      data.businessAddress?.trim() || "",
+      data.taxCode || null,
+      data.website?.trim() || null,
+      data.verificationNote?.trim() || ""
     ]
   );
   return result.rows[0];
@@ -150,7 +180,8 @@ export async function findCompanyAccessConflict(data) {
 
   const contactEmail = normalizeEmail(data.contactEmail);
   const companyName = data.companyName.trim();
-  const [user, employee, activeEmailRequest, company, activeCompanyRequest] = await Promise.all([
+  const taxCode = data.taxCode || null;
+  const [user, employee, activeEmailRequest, company, activeCompanyRequest, taxCompany, activeTaxRequest] = await Promise.all([
     query("SELECT id FROM app_users WHERE lower(email) = lower($1) LIMIT 1", [contactEmail]),
     query("SELECT id FROM employees WHERE lower(email) = lower($1) LIMIT 1", [contactEmail]),
     query(
@@ -167,7 +198,17 @@ export async function findCompanyAccessConflict(data) {
          AND status IN ('Pending', 'Approved')
        LIMIT 1`,
       [companyName]
-    )
+    ),
+    taxCode ? query("SELECT id FROM companies WHERE tax_code = $1 LIMIT 1", [taxCode]) : Promise.resolve({ rows: [] }),
+    taxCode
+      ? query(
+          `SELECT id, status FROM company_access_requests
+           WHERE tax_code = $1
+             AND status IN ('Pending', 'Approved')
+           LIMIT 1`,
+          [taxCode]
+        )
+      : Promise.resolve({ rows: [] })
   ]);
 
   if (user.rows[0]) return "Email này đã thuộc một tài khoản BIZEN.";
@@ -175,6 +216,8 @@ export async function findCompanyAccessConflict(data) {
   if (activeEmailRequest.rows[0]) return "Email này đã có yêu cầu doanh nghiệp đang chờ duyệt hoặc đã được duyệt.";
   if (company.rows[0]) return "Tên doanh nghiệp này đã tồn tại trên BIZEN.";
   if (activeCompanyRequest.rows[0]) return "Tên doanh nghiệp này đã có yêu cầu đang chờ duyệt hoặc đã được duyệt.";
+  if (taxCompany.rows[0]) return "Ma so thue nay da ton tai tren BIZEN.";
+  if (activeTaxRequest.rows[0]) return "Ma so thue nay dang co yeu cau doanh nghiep cho duyet hoac da duoc duyet.";
   return null;
 }
 
@@ -227,6 +270,7 @@ export async function reviewCompanyAccessRequest(id, data) {
     const existingUser = await client.query("SELECT id FROM app_users WHERE lower(email) = lower($1) LIMIT 1", [email]);
     const existingEmployee = await client.query("SELECT id FROM employees WHERE lower(email) = lower($1) LIMIT 1", [email]);
     const existingCompany = await client.query("SELECT id FROM companies WHERE lower(name) = lower($1) LIMIT 1", [request.company_name.trim()]);
+    const existingTaxCompany = request.tax_code ? await client.query("SELECT id FROM companies WHERE tax_code = $1 LIMIT 1", [request.tax_code]) : { rows: [] };
     if (existingUser.rows[0] || existingEmployee.rows[0]) {
       throw httpError(409, "Email đại diện đã được dùng trong hệ thống, không thể duyệt doanh nghiệp này.");
     }
@@ -234,12 +278,23 @@ export async function reviewCompanyAccessRequest(id, data) {
       throw httpError(409, "Tên doanh nghiệp đã tồn tại, không thể duyệt trùng tenant.");
     }
 
+    if (existingTaxCompany.rows[0]) {
+      throw httpError(409, "Ma so thue da ton tai, khong the duyet trung tenant.");
+    }
+
     const company = await client.query(
-      `INSERT INTO companies (name, city)
-       VALUES ($1, $2)
+      `INSERT INTO companies (name, city, business_type, business_address, tax_code, website)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (name) DO NOTHING
        RETURNING id`,
-      [request.company_name.trim(), request.city.trim()]
+      [
+        request.company_name.trim(),
+        request.city.trim(),
+        request.business_type || null,
+        request.business_address || null,
+        request.tax_code || null,
+        request.website || null
+      ]
     );
     if (!company.rows[0]) {
       throw httpError(409, "Tên doanh nghiệp đã tồn tại, không thể tạo tenant trùng.");

@@ -3,8 +3,9 @@ import WebLayout from "./components/WebLayout";
 import MobileLayout from "./components/MobileLayout";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import GoogleAuthCallbackPage from "./pages/GoogleAuthCallbackPage";
 import CompanyRegisterPage from "./pages/CompanyRegisterPage";
-import EmployeeAccountRequestPage from "./pages/EmployeeAccountRequestPage";
+import PasswordResetPage from "./pages/PasswordResetPage";
 import PlatformCompanyRequests from "./pages/platform/PlatformCompanyRequests";
 import AdminHome from "./pages/web/AdminHome";
 import AdminDashboard from "./pages/web/AdminDashboard";
@@ -55,8 +56,11 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingEntry />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/google/callback" element={<GoogleAuthCallbackPage />} />
+      <Route path="/forgot-password" element={<PasswordResetPage />} />
+      <Route path="/reset-password" element={<PasswordResetPage />} />
       <Route path="/register-company" element={<CompanyRegisterPage />} />
-      <Route path="/register-employee" element={<EmployeeAccountRequestPage />} />
+      <Route path="/register-employee" element={<Navigate to="/login" replace />} />
       <Route
         path="/platform/companies"
         element={

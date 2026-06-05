@@ -5,14 +5,23 @@ import { hashPassword } from "../auth/password.service.js";
 import { buildCompanyApprovedEmail, sendMail } from "../mail/mail.service.js";
 import { createCompanyAccessRequest, findCompanyAccessConflict, listCompanyAccessRequests, reviewCompanyAccessRequest } from "./tenants.repository.js";
 
+function normalizeTaxCode(value = "") {
+  return String(value).replace(/\D/g, "");
+}
+
 const companyAccessRequestSchema = z.object({
-  companyName: z.string().trim().min(2, "Tên doanh nghiệp cần ít nhất 2 ký tự").max(80, "Tên doanh nghiệp tối đa 80 ký tự"),
-  city: z.string().trim().min(2).default("Đà Nẵng"),
-  contactName: z.string().trim().min(2, "Tên người đại diện cần ít nhất 2 ký tự").max(80, "Tên người đại diện tối đa 80 ký tự"),
-  contactEmail: z.string().trim().email("Email admin chưa hợp lệ").transform(normalizeEmail),
+  companyName: z.string().trim().min(2, "Ten doanh nghiep can it nhat 2 ky tu").max(80, "Ten doanh nghiep toi da 80 ky tu"),
+  city: z.string().trim().min(2).default("Da Nang"),
+  businessType: z.string().trim().min(2).max(80).default("Cafe / Milk tea"),
+  businessAddress: z.string().trim().min(5, "Dia chi kinh doanh la bat buoc").max(180),
+  taxCode: z.string().transform(normalizeTaxCode).refine((value) => value.length === 10 || value.length === 13, "Ma so thue can 10 hoac 13 chu so"),
+  website: z.string().trim().max(160).optional().default(""),
+  verificationNote: z.string().trim().max(300).optional().default(""),
+  contactName: z.string().trim().min(2, "Ten nguoi dai dien can it nhat 2 ky tu").max(80, "Ten nguoi dai dien toi da 80 ky tu"),
+  contactEmail: z.string().trim().email("Email admin chua hop le").transform(normalizeEmail),
   phone: z.string().optional().transform((value) => normalizePhone(value || "")),
-  employeeCount: z.coerce.number().int().min(1, "Quy mô nhân sự tối thiểu 1 người").max(20, "BIZEN MVP hỗ trợ tối đa 20 nhân sự").default(10),
-  password: z.string().refine(isStrongPassword, "Mật khẩu cần ít nhất 8 ký tự, có chữ và số")
+  employeeCount: z.coerce.number().int().min(1, "Quy mo nhan su toi thieu 1 nguoi").max(20, "BIZEN MVP ho tro toi da 20 nhan su").default(10),
+  password: z.string().refine(isStrongPassword, "Mat khau can it nhat 8 ky tu, co chu va so")
 });
 
 const reviewCompanyRequestSchema = z.object({
@@ -22,11 +31,11 @@ const reviewCompanyRequestSchema = z.object({
 
 export async function createCompanyAccessRequestHandler(req, res) {
   const data = companyAccessRequestSchema.parse(req.body);
-  if (!["đà nẵng", "da nang"].includes(data.city.toLowerCase())) {
-    throw httpError(400, "BIZEN MVP hiện chỉ nhận đăng ký cửa hàng tại Đà Nẵng");
+  if (!["da nang", "danang", "đà nẵng"].includes(data.city.toLowerCase())) {
+    throw httpError(400, "BIZEN MVP hien chi nhan dang ky cua hang tai Da Nang");
   }
   if (data.phone && !isVietnamPhone(data.phone)) {
-    throw httpError(400, "Số điện thoại cần 9-11 chữ số, phù hợp số điện thoại Việt Nam");
+    throw httpError(400, "So dien thoai can 9-11 chu so, phu hop so dien thoai Viet Nam");
   }
 
   const conflict = await findCompanyAccessConflict(data);
@@ -34,7 +43,12 @@ export async function createCompanyAccessRequestHandler(req, res) {
 
   const request = await createCompanyAccessRequest({
     companyName: data.companyName,
-    city: "Đà Nẵng",
+    city: "Da Nang",
+    businessType: data.businessType,
+    businessAddress: data.businessAddress,
+    taxCode: data.taxCode,
+    website: data.website,
+    verificationNote: data.verificationNote,
     contactName: data.contactName,
     contactEmail: data.contactEmail,
     phone: data.phone,

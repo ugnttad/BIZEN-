@@ -1,7 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0f172a"/>
-  <rect x="124" y="112" width="152" height="288" rx="26" fill="none" stroke="#ffffff" stroke-width="24"/>
-  <rect x="236" y="160" width="152" height="240" rx="26" fill="none" stroke="#93c5fd" stroke-width="24"/>
-  <path d="M172 176h56M172 236h56M172 296h56M284 220h56M284 280h56M284 340h56" stroke="#ffffff" stroke-width="22" stroke-linecap="round"/>
-  <circle cx="384" cy="128" r="36" fill="#2563eb"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BIZEN">
+  <defs>
+    <linearGradient id="bizenBlue" x1="92" y1="58" x2="302" y2="252" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#19c8ff"/>
+      <stop offset="0.52" stop-color="#0b7cff"/>
+      <stop offset="1" stop-color="#4b4cf6"/>
+    </linearGradient>
+    <linearGradient id="bizenPink" x1="90" y1="334" x2="364" y2="462" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6d4cff"/>
+      <stop offset="0.45" stop-color="#f238d8"/>
+      <stop offset="1" stop-color="#ffa13b"/>
+    </linearGradient>
+    <linearGradient id="bizenMid" x1="136" y1="218" x2="336" y2="305" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#08b6ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#ffffff"/>
+  <path fill="url(#bizenBlue)" d="M112 98c0-30.9 25.1-56 56-56h93c61.3 0 111 49.7 111 111v16c0 55.2-44.8 100-100 100H151c-21.5 0-39-17.5-39-39V98Z"/>
+  <path fill="#ffffff" d="M151 218c38.5-42.4 79-54.9 123-37.2 16.2 6.5 29.9 17.2 42.1 29.3-16.3 18.7-40.2 30.5-66.8 30.5H151V218Z" opacity="0.96"/>
+  <circle cx="197" cy="128" r="38" fill="#ffffff"/>
+  <path fill="url(#bizenPink)" d="M112 285c0-21.5 17.5-39 39-39h133c56.3 0 102 45.7 102 102v15c0 58.5-47.5 106-106 106H168c-30.9 0-56-25.1-56-56V285Z"/>
+  <path fill="url(#bizenMid)" d="M142 270c35.8-45.8 86.1-64.4 149-51.9 25.1 5 46.2 16.7 63.6 32.7-19.4 26.5-50.7 43.7-86 43.7H151c-3.1 0-6.1-.4-9-1.1V270Z"/>
+  <circle cx="287" cy="347" r="39" fill="#ffffff"/>
 </svg>

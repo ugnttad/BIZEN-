@@ -18,6 +18,7 @@ import {
   UsersRound,
   X
 } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
 
 const navItems = [
   { label: "Tính năng", href: "#features" },
@@ -145,11 +146,7 @@ export default function LandingPage() {
       <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" onClick={closeMenu} className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-slate-950 text-lg font-bold text-white">B</span>
-            <span>
-              <span className="block text-xl font-bold tracking-normal text-slate-950">BIZEN</span>
-              <span className="block text-xs font-medium text-slate-500">Cloud HR & Payroll</span>
-            </span>
+            <BrandLogo />
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-600 lg:flex">
@@ -411,9 +408,6 @@ export default function LandingPage() {
             </Link>
             <Link to="/register-company" className="hover:text-slate-950">
               Đăng ký doanh nghiệp
-            </Link>
-            <Link to="/register-employee" className="hover:text-slate-950">
-              Yêu cầu tài khoản nhân viên
             </Link>
           </div>
         </div>

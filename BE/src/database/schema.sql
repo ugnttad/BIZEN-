@@ -4,10 +4,15 @@ CREATE TABLE IF NOT EXISTS companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   city TEXT NOT NULL DEFAULT 'Da Nang',
+  business_type TEXT,
+  business_address TEXT,
+  tax_code TEXT,
+  website TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS companies_name_unique_idx ON companies(name);
+CREATE UNIQUE INDEX IF NOT EXISTS companies_tax_code_unique_idx ON companies(tax_code) WHERE tax_code IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS company_access_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -16,6 +21,11 @@ CREATE TABLE IF NOT EXISTS company_access_requests (
   contact_name TEXT NOT NULL,
   contact_email TEXT NOT NULL,
   phone TEXT,
+  business_type TEXT NOT NULL DEFAULT 'Cafe / Milk tea',
+  business_address TEXT NOT NULL DEFAULT '',
+  tax_code TEXT,
+  website TEXT,
+  verification_note TEXT NOT NULL DEFAULT '',
   employee_count INTEGER NOT NULL DEFAULT 20,
   admin_password_hash TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
@@ -28,6 +38,7 @@ CREATE TABLE IF NOT EXISTS company_access_requests (
 );
 
 CREATE INDEX IF NOT EXISTS idx_company_access_requests_status ON company_access_requests(status, requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_company_access_requests_tax_code ON company_access_requests(tax_code) WHERE tax_code IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS departments (
   id TEXT PRIMARY KEY,
@@ -275,6 +286,12 @@ CREATE TABLE IF NOT EXISTS app_users (
   name TEXT NOT NULL,
   picture_url TEXT,
   password_hash TEXT,
+  request_full_name TEXT,
+  request_phone TEXT,
+  request_citizen_id TEXT,
+  request_date_of_birth DATE,
+  request_address TEXT,
+  request_note TEXT,
   role TEXT NOT NULL CHECK (role IN ('Admin', 'Employee')),
   status TEXT NOT NULL DEFAULT 'Approved' CHECK (status IN ('Pending', 'Approved', 'Rejected', 'Suspended')),
   last_login_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -284,6 +301,12 @@ CREATE TABLE IF NOT EXISTS app_users (
 
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'Approved';
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS request_full_name TEXT;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS request_phone TEXT;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS request_citizen_id TEXT;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS request_date_of_birth DATE;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS request_address TEXT;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS request_note TEXT;
 
 DO $$
 BEGIN
@@ -300,6 +323,17 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_app_users_employee ON app_users(employee_id);
 CREATE INDEX IF NOT EXISTS idx_app_users_company_status ON app_users(company_id, status);
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS community_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
