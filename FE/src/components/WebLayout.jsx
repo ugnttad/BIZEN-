@@ -187,7 +187,7 @@ export default function WebLayout() {
                   <span className={`flex min-w-0 items-center ${collapsed ? "justify-center" : "gap-3"}`}>
                     <span
                       className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-all duration-200 ${
-                        isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-slate-100 text-slate-500 group-hover:bg-slate-950 group-hover:text-white"
+                        isActive ? "brand-icon-tile" : "bg-slate-100 text-slate-500 group-hover:bg-slate-950 group-hover:text-white"
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -363,7 +363,7 @@ export default function WebLayout() {
               {canUseAi ? (
                 <Link
                   to="/web/assistant"
-                  className="btn-motion hidden items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white shadow-lg shadow-slate-950/10 hover:bg-blue-600 sm:inline-flex"
+                  className="brand-button btn-motion hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold sm:inline-flex"
                 >
                   <Sparkles className="h-4 w-4" />
                   AI
@@ -408,7 +408,7 @@ export default function WebLayout() {
                       )}
                     </div>
                     {canUseAi ? (
-                      <Link to="/web/assistant" className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-bold text-white hover:bg-blue-600">
+                      <Link to="/web/assistant" className="brand-button mt-3 flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold">
                         <Sparkles className="h-4 w-4" />
                         Mở trợ lý AI
                       </Link>

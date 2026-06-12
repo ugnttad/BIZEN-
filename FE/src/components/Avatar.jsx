@@ -10,7 +10,7 @@ export default function Avatar({ name, src, size = "md", className = "" }) {
 
   return (
     <div
-      className={`${sizes[size]} ${className} grid shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-blue-600 to-violet-600 font-semibold text-white shadow-sm`}
+      className={`${sizes[size]} ${className} grid shrink-0 place-items-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#1767ff,#22a8ff_70%,#5b6cff)] font-semibold text-white shadow-sm ring-2 ring-white/80`}
       aria-hidden="true"
     >
       {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : initials(name)}

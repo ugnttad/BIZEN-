@@ -151,12 +151,25 @@ export default function AdminHome() {
 
   return (
     <div>
+      <section className="brand-card relative mb-5 min-h-[210px] rounded-2xl p-5 lg:min-h-[250px]">
+        <div className="absolute inset-y-4 right-4 hidden w-[58%] rounded-2xl bg-[url('/assets/bizen-home-cover.svg')] bg-contain bg-right bg-no-repeat opacity-25 blur-[1px] md:block" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.99)_0%,rgba(255,255,255,0.96)_54%,rgba(255,255,255,0.82)_100%)]" />
+        <div className="absolute bottom-0 right-0 hidden h-28 w-72 rounded-tl-full bg-blue-100/35 blur-2xl md:block" />
+        <div className="relative flex min-h-[170px] max-w-xl flex-col justify-center lg:min-h-[210px]">
+          <p className="text-xs font-bold uppercase tracking-normal text-blue-700">BIZEN Workspace</p>
+          <h2 className="mt-2 text-3xl font-bold leading-tight text-slate-950 md:text-4xl">Quản trị nhân sự thông minh</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600 md:text-base">
+            Một màn hình gọn để chủ quán bắt đầu xử lý nhân viên, ca làm, checklist, chấm công và lương trong ngày.
+          </p>
+        </div>
+      </section>
+
       <PageHeader
         eyebrow="Workspace"
         title="Trang chủ quản lý"
         description={`Hôm nay ${formatDisplayDate()}. Chọn một khu vực vận hành bên dưới để bắt đầu xử lý công việc.`}
         actions={
-          <Link to="/web/assistant" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+          <Link to="/web/assistant" className="brand-button btn-motion inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold">
             <Sparkles className="h-4 w-4" />
             Hỏi trợ lý AI
           </Link>
@@ -167,7 +180,7 @@ export default function AdminHome() {
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {quickStats.map((item) => (
-          <div key={item.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div key={item.label} className="premium-card rounded-lg p-4">
             <p className="text-sm font-semibold text-slate-500">{item.label}</p>
             <p className="mt-2 text-2xl font-bold text-slate-950">{item.value}</p>
             <p className="mt-1 text-sm text-slate-500">{item.helper}</p>
@@ -179,9 +192,9 @@ export default function AdminHome() {
         {featureCards.map((feature) => {
           const Icon = feature.icon;
           return (
-            <Link key={feature.href} to={feature.href} className="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md">
+            <Link key={feature.href} to={feature.href} className="premium-card group rounded-lg p-4">
               <div className="flex items-start justify-between gap-3">
-                <span className="grid h-11 w-11 place-items-center rounded-lg bg-slate-100 text-slate-700">
+                <span className="brand-icon-tile grid h-11 w-11 place-items-center rounded-lg">
                   <Icon className="h-5 w-5" />
                 </span>
                 <ChevronRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500" />

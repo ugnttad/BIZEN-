@@ -15,6 +15,9 @@ import {
 export const authRouter = Router();
 
 authRouter.post("/google", asyncHandler(googleLoginHandler));
+authRouter.get("/google/redirect", (_req, res) => {
+  res.redirect(303, "/login");
+});
 authRouter.post("/google/redirect", asyncHandler(googleRedirectLoginHandler));
 authRouter.post("/login", asyncHandler(passwordLoginHandler));
 authRouter.post("/password-reset/request", asyncHandler(requestPasswordResetHandler));

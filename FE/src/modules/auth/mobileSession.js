@@ -16,18 +16,7 @@ export function saveMobileEmployee(employee) {
   );
 }
 
-export function getMobileEmployeeSession() {
-  const authUser = getAuthUser();
-  if (authUser?.employeeId) {
-    return {
-      id: authUser.employeeId,
-      name: authUser.name,
-      email: authUser.email,
-      role: authUser.role,
-      avatarUrl: authUser.pictureUrl
-    };
-  }
-
+function readStoredMobileEmployee() {
   const raw = localStorage.getItem(MOBILE_EMPLOYEE_KEY);
   if (!raw) return null;
 
@@ -36,6 +25,24 @@ export function getMobileEmployeeSession() {
   } catch {
     return null;
   }
+}
+
+export function getMobileEmployeeSession() {
+  const authUser = getAuthUser();
+  const storedEmployee = readStoredMobileEmployee();
+
+  if (authUser?.employeeId) {
+    return {
+      ...storedEmployee,
+      id: authUser.employeeId,
+      name: storedEmployee?.name || authUser.name,
+      email: storedEmployee?.email || authUser.email,
+      role: storedEmployee?.role || authUser.role,
+      avatarUrl: storedEmployee?.avatarUrl || authUser.pictureUrl
+    };
+  }
+
+  return storedEmployee;
 }
 
 export function getMobileEmployeeId() {

@@ -161,7 +161,7 @@ export default function LandingPage() {
             <Link to="/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
               Đăng nhập
             </Link>
-            <Link to="/register-company" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
+            <Link to="/register-company" className="brand-button btn-motion inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold">
               Đăng ký doanh nghiệp
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -188,7 +188,7 @@ export default function LandingPage() {
               <Link to="/login" onClick={closeMenu} className="rounded-lg px-3 py-2 hover:bg-slate-100">
                 Đăng nhập
               </Link>
-              <Link to="/register-company" onClick={closeMenu} className="rounded-lg bg-slate-950 px-3 py-2 text-white">
+              <Link to="/register-company" onClick={closeMenu} className="brand-button rounded-lg px-3 py-2 text-white">
                 Đăng ký doanh nghiệp
               </Link>
             </nav>
@@ -197,11 +197,13 @@ export default function LandingPage() {
       </header>
 
       <section className="relative min-h-[88vh] overflow-hidden pt-16">
-        <div className="absolute inset-0 bg-[url('/assets/bizen-hero-dashboard.png')] bg-cover bg-center lg:bg-right" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.99)_0%,rgba(255,255,255,0.94)_42%,rgba(255,255,255,0.72)_68%,rgba(255,255,255,0.22)_100%)]" />
+        <div className="absolute inset-y-20 right-0 hidden w-[58vw] max-w-5xl bg-[url('/assets/bizen-home-cover.svg')] bg-contain bg-right bg-no-repeat opacity-28 blur-[1px] lg:block" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.99)_0%,rgba(255,255,255,0.96)_46%,rgba(255,255,255,0.82)_74%,rgba(255,255,255,0.64)_100%)]" />
+        <div className="absolute right-0 top-20 hidden h-80 w-80 rounded-full bg-blue-100/35 blur-3xl lg:block" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white via-white/70 to-transparent" />
         <div className="relative mx-auto flex min-h-[calc(88vh-4rem)] max-w-7xl items-center px-4 py-16 sm:px-6 lg:px-8">
           <div className="max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm">
+            <p className="brand-eyebrow inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold">
               <ShieldCheck className="h-4 w-4 text-blue-600" />
               Quản lí nhân sự thực tế cho cửa hàng nhỏ
             </p>
@@ -212,7 +214,7 @@ export default function LandingPage() {
               Một nơi để chủ quán xếp ca, kiểm tra chấm công GPS/Face ID, giao checklist theo ca, duyệt nghỉ phép và xuất báo cáo vận hành.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/register-company" className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
+              <Link to="/register-company" className="brand-button btn-motion inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold">
                 Đăng ký doanh nghiệp
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -223,7 +225,7 @@ export default function LandingPage() {
 
             <div className="mt-10 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
               {metrics.map((metric) => (
-                <div key={metric.label} className="rounded-lg border border-slate-200 bg-white/85 p-4 shadow-sm">
+                <div key={metric.label} className="premium-card rounded-lg p-4">
                   <p className="text-2xl font-bold text-slate-950">{metric.value}</p>
                   <p className="mt-1 text-xs font-medium text-slate-500">{metric.label}</p>
                 </div>
@@ -247,8 +249,8 @@ export default function LandingPage() {
             {featureExamples.slice(0, 6).map((feature) => {
               const Icon = feature.icon;
               return (
-                <article key={feature.title} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="grid h-11 w-11 place-items-center rounded-lg bg-slate-100 text-slate-800">
+                <article key={feature.title} className="premium-card rounded-lg p-5">
+                  <div className="brand-icon-tile grid h-11 w-11 place-items-center rounded-lg">
                     <Icon className="h-5 w-5" />
                   </div>
                   <h3 className="mt-5 text-lg font-bold text-slate-950">{feature.title}</h3>
@@ -331,7 +333,7 @@ export default function LandingPage() {
           <p className="mt-4 text-base leading-7 text-slate-600">
             Nếu đã có cửa hàng test, dùng thẳng form đăng ký doanh nghiệp. Nếu cần khảo sát nghiệp vụ trước, để lại thông tin ở form bên cạnh.
           </p>
-          <Link to="/register-company" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+          <Link to="/register-company" className="brand-button btn-motion mt-5 inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold">
             Đăng ký doanh nghiệp
             <ArrowRight className="h-4 w-4" />
           </Link>
@@ -369,7 +371,7 @@ export default function LandingPage() {
           </label>
           {formError ? <p className="mt-4 rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">{formError}</p> : null}
           {submitted ? <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">Đã ghi nhận thông tin tư vấn.</p> : null}
-          <button type="submit" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700">
+          <button type="submit" className="brand-button btn-motion mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-bold">
             Gửi thông tin
             <ArrowRight className="h-4 w-4" />
           </button>

@@ -115,7 +115,7 @@ export default function AiChat({ compact = false }) {
     <section className={compact ? "premium-card rounded-2xl p-3" : "premium-card sticky top-24 rounded-2xl"}>
       <header className="relative z-10 border-b border-slate-200/80 p-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-950/10">
+          <div className="brand-icon-tile grid h-11 w-11 place-items-center rounded-xl">
             <Sparkles className="h-5 w-5" />
           </div>
           <div className="min-w-0">
@@ -142,7 +142,7 @@ export default function AiChat({ compact = false }) {
             <div
               className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm leading-5 shadow-sm ${
                 message.from === "user"
-                  ? "rounded-br-md bg-blue-600 text-white shadow-blue-600/20"
+                  ? "brand-button rounded-br-md text-white"
                   : "rounded-bl-md border border-slate-200 bg-white text-slate-700"
               }`}
             >
@@ -205,7 +205,7 @@ export default function AiChat({ compact = false }) {
           <button
             type="submit"
             disabled={loading}
-            className="btn-motion grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="brand-button btn-motion grid h-10 w-10 shrink-0 place-items-center rounded-lg disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Gửi"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}

@@ -36,10 +36,16 @@ function isSameHostOrigin(origin, host) {
   }
 }
 
+function isGoogleRedirectRequest(req) {
+  return req.path === "/api/auth/google/redirect" || req.originalUrl?.startsWith("/api/auth/google/redirect");
+}
+
 function resolveCorsOptions(req, callback) {
   const origin = req.headers.origin;
+  const isGoogleRedirect = isGoogleRedirectRequest(req);
+  const isGoogleRedirectOrigin = isGoogleRedirect && (origin === "null" || origin === "https://accounts.google.com");
   const isAllowedOrigin =
-    !origin || isSameHostOrigin(origin, req.headers.host) || env.clientOrigins.includes(origin) || isDevLanOrigin(origin);
+    !origin || isGoogleRedirectOrigin || isSameHostOrigin(origin, req.headers.host) || env.clientOrigins.includes(origin) || isDevLanOrigin(origin);
 
   if (isAllowedOrigin) {
     callback(null, { origin: true, credentials: true });

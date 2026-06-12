@@ -357,6 +357,32 @@ CREATE TABLE IF NOT EXISTS community_typing (
 
 CREATE INDEX IF NOT EXISTS idx_community_typing_active ON community_typing(company_id, is_typing, updated_at DESC);
 
+CREATE TABLE IF NOT EXISTS community_direct_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  sender_user_id UUID REFERENCES app_users(id) ON DELETE SET NULL,
+  sender_employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  recipient_user_id UUID REFERENCES app_users(id) ON DELETE SET NULL,
+  recipient_employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  body TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_community_direct_messages_pair ON community_direct_messages(company_id, sender_user_id, recipient_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_community_direct_messages_recipient ON community_direct_messages(company_id, recipient_user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS community_direct_typing (
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  sender_user_id UUID REFERENCES app_users(id) ON DELETE CASCADE,
+  recipient_user_id UUID REFERENCES app_users(id) ON DELETE CASCADE,
+  sender_employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  is_typing BOOLEAN NOT NULL DEFAULT false,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (company_id, sender_user_id, recipient_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_community_direct_typing_active ON community_direct_typing(company_id, recipient_user_id, is_typing, updated_at DESC);
+
 CREATE TABLE IF NOT EXISTS face_enrollment_images (
   storage_key TEXT PRIMARY KEY,
   image_data BYTEA NOT NULL,

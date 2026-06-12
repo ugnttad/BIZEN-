@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LockKeyhole, Mail, Smartphone } from "lucide-react";
 import BrandLogo from "../../components/BrandLogo";
+import PwaInstallPrompt from "../../components/PwaInstallPrompt";
 import GoogleLoginButton from "../../modules/auth/GoogleLoginButton";
 import { bizenApi } from "../../modules/api/bizenApi";
 import { getDefaultPathForRole, saveAuthSession, setEmployeeExperiencePreference } from "../../modules/auth/authStore";
@@ -65,26 +66,28 @@ export default function MobileLogin() {
     <main className="app-background min-h-screen px-0 py-0 sm:px-6 sm:py-8">
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-64" />
       <section className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col justify-between overflow-hidden bg-white/90 p-6 shadow-2xl shadow-slate-950/10 backdrop-blur-xl sm:min-h-[860px] sm:rounded-[30px] sm:border sm:border-white/70">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-teal-400 to-amber-400" />
+        <div className="brand-stripe absolute inset-x-0 top-0 h-1" />
         <div>
           <Link to="/" className="group flex w-fit items-center gap-3 rounded-xl">
             <BrandLogo subtitle="Employee App" />
           </Link>
 
           <div className="mt-14">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[linear-gradient(135deg,rgba(23,103,255,0.12),rgba(8,182,255,0.08),rgba(103,87,255,0.08))] text-blue-700 ring-1 ring-blue-100">
               <Smartphone className="h-8 w-8" />
             </div>
             <h1 className="mt-5 text-3xl font-semibold tracking-normal text-slate-950">Đăng nhập</h1>
             <p className="mt-2 text-sm text-slate-500">Dùng tài khoản nhân viên để chấm công, xem lịch và bảng lương.</p>
           </div>
 
+          <PwaInstallPrompt compact />
+
           <form onSubmit={submit} className="mt-8 space-y-4">
             <label className="block text-sm font-medium text-slate-700">
               Email
               <span className="soft-focus mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3">
                 <Mail className="h-4 w-4 text-slate-400" />
-                <input value={email} onChange={(event) => setEmail(event.target.value)} className="w-full outline-none" placeholder="name@company.com" />
+                <input value={email} onChange={(event) => setEmail(event.target.value)} className="min-w-0 w-full outline-none" placeholder="name@company.com" />
               </span>
             </label>
 
@@ -92,11 +95,11 @@ export default function MobileLogin() {
               Mật khẩu
               <span className="soft-focus mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3">
                 <LockKeyhole className="h-4 w-4 text-slate-400" />
-                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full outline-none" />
+                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="min-w-0 w-full outline-none" />
               </span>
             </label>
 
-            <Link to="/forgot-password" className="block text-right text-sm font-semibold text-blue-700 hover:text-blue-800">
+            <Link to="/forgot-password" className="block pr-1 text-right text-sm font-semibold text-blue-700 hover:text-blue-800">
               Quên mật khẩu?
             </Link>
 
