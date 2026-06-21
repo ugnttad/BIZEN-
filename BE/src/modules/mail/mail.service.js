@@ -1,6 +1,13 @@
 import nodemailer from "nodemailer";
 import { env } from "../../config/env.js";
 
+export {
+  buildCompanyApprovedEmail,
+  buildEmployeeApprovedEmail,
+  buildEmployeeCreatedEmail,
+  buildPasswordResetEmail
+} from "./templates.js";
+
 let transporter;
 
 function isConfigured() {
@@ -19,40 +26,9 @@ function getTransporter() {
   return transporter;
 }
 
-function escapeHtml(value = "") {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function appUrl(path = "/") {
-  return new URL(path, `${env.clientOrigin}/`).toString();
-}
-
-function wrapEmail({ title, body, ctaUrl, ctaLabel }) {
-  return `
-    <div style="font-family:Arial,sans-serif;background:#f8fafc;padding:24px;color:#0f172a">
-      <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:24px">
-        <div style="font-size:14px;font-weight:700;color:#2563eb;margin-bottom:12px">BIZEN</div>
-        <h1 style="font-size:22px;line-height:1.3;margin:0 0 16px">${escapeHtml(title)}</h1>
-        <div style="font-size:15px;line-height:1.6;color:#334155">${body}</div>
-        ${
-          ctaUrl
-            ? `<a href="${escapeHtml(ctaUrl)}" style="display:inline-block;margin-top:20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:12px 16px;font-weight:700">${escapeHtml(ctaLabel || "Mở BIZEN")}</a>`
-            : ""
-        }
-        ${
-          ctaUrl
-            ? `<p style="font-size:12px;line-height:1.5;color:#64748b;margin-top:12px">Nếu nút không mở được, bấm liên kết này: <a href="${escapeHtml(ctaUrl)}" style="color:#2563eb">${escapeHtml(ctaUrl)}</a></p>`
-            : ""
-        }
-        <p style="font-size:12px;line-height:1.5;color:#64748b;margin-top:24px">Email này được gửi tự động từ BIZEN. Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email.</p>
-      </div>
-    </div>
-  `;
+function getFromAddress() {
+  if (!env.mailFrom) return "BIZEN <no-reply@bizen.vn>";
+  return env.mailFrom.includes("<") ? env.mailFrom : `BIZEN <${env.mailFrom}>`;
 }
 
 export async function sendMail({ to, subject, text, html }) {
@@ -64,7 +40,7 @@ export async function sendMail({ to, subject, text, html }) {
 
   try {
     return await getTransporter().sendMail({
-      from: env.mailFrom,
+      from: getFromAddress(),
       to,
       subject,
       text,
@@ -74,71 +50,4 @@ export async function sendMail({ to, subject, text, html }) {
     console.warn(`[mail:error] ${subject} -> ${to}: ${error.message}`);
     return { skipped: true, reason: error.message };
   }
-}
-
-export function buildCompanyApprovedEmail({ ownerName, companyName }) {
-  const title = `${companyName} đã được tạo thành công`;
-  const loginUrl = appUrl("/login");
-  const text = `Chào ${ownerName}, chúc mừng! Doanh nghiệp ${companyName} đã được duyệt và tài khoản chủ sở hữu của bạn đã sẵn sàng trên BIZEN. Đăng nhập tại ${loginUrl}.`;
-  const html = wrapEmail({
-    title,
-    ctaUrl: loginUrl,
-    ctaLabel: "Đăng nhập BIZEN",
-    body: `
-      <p>Chào <strong>${escapeHtml(ownerName)}</strong>,</p>
-      <p>Chúc mừng! Doanh nghiệp <strong>${escapeHtml(companyName)}</strong> đã được duyệt và tài khoản chủ sở hữu của bạn đã sẵn sàng.</p>
-      <p>Bạn có thể đăng nhập để tạo nhân viên, xếp ca, duyệt Face ID, chấm công và quản lý lương.</p>
-    `
-  });
-  return { subject: `[BIZEN] ${title}`, text, html };
-}
-
-export function buildEmployeeApprovedEmail({ employeeName, companyName }) {
-  const title = `Bạn đã được duyệt vào ${companyName}`;
-  const loginUrl = appUrl("/login");
-  const text = `Chào ${employeeName}, chúc mừng! Tài khoản BIZEN của bạn tại ${companyName} đã được duyệt. Đăng nhập tại ${loginUrl}.`;
-  const html = wrapEmail({
-    title,
-    ctaUrl: loginUrl,
-    ctaLabel: "Đăng nhập tài khoản",
-    body: `
-      <p>Chào <strong>${escapeHtml(employeeName)}</strong>,</p>
-      <p>Chúc mừng! Tài khoản BIZEN của bạn tại <strong>${escapeHtml(companyName)}</strong> đã được duyệt.</p>
-      <p>Bạn có thể đăng nhập để xem lịch làm, chấm công Face ID, theo dõi lương và gửi đơn nghỉ phép.</p>
-    `
-  });
-  return { subject: `[BIZEN] ${title}`, text, html };
-}
-
-export function buildEmployeeCreatedEmail({ employeeName, companyName }) {
-  const title = `Tài khoản BIZEN tại ${companyName} đã sẵn sàng`;
-  const loginUrl = appUrl("/login");
-  const text = `Chào ${employeeName}, chủ sở hữu ${companyName} đã tạo tài khoản BIZEN cho bạn. Đăng nhập bằng email này và mật khẩu được cấp tại ${loginUrl}.`;
-  const html = wrapEmail({
-    title,
-    ctaUrl: loginUrl,
-    ctaLabel: "Đăng nhập BIZEN",
-    body: `
-      <p>Chào <strong>${escapeHtml(employeeName)}</strong>,</p>
-      <p>Chủ sở hữu <strong>${escapeHtml(companyName)}</strong> đã tạo tài khoản BIZEN cho bạn.</p>
-      <p>Hãy đăng nhập bằng email này và mật khẩu được cấp để bắt đầu dùng web/mobile.</p>
-    `
-  });
-  return { subject: `[BIZEN] ${title}`, text, html };
-}
-
-export function buildPasswordResetEmail({ userName, resetUrl }) {
-  const title = "Dat lai mat khau BIZEN";
-  const text = `Chao ${userName}, ban vua yeu cau dat lai mat khau BIZEN. Link co hieu luc 30 phut: ${resetUrl}`;
-  const html = wrapEmail({
-    title,
-    ctaUrl: resetUrl,
-    ctaLabel: "Dat lai mat khau",
-    body: `
-      <p>Chao <strong>${escapeHtml(userName)}</strong>,</p>
-      <p>BIZEN da nhan yeu cau dat lai mat khau cho tai khoan cua ban.</p>
-      <p>Link nay chi co hieu luc trong 30 phut. Neu ban khong yeu cau, hay bo qua email nay.</p>
-    `
-  });
-  return { subject: `[BIZEN] ${title}`, text, html };
 }

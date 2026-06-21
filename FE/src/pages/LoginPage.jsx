@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { CheckCircle2, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
 import GoogleLoginButton from "../modules/auth/GoogleLoginButton";
 import { bizenApi } from "../modules/api/bizenApi";
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -69,7 +70,7 @@ export default function LoginPage() {
     <main className="app-background relative min-h-screen overflow-hidden">
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-80" />
       <div className="relative grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="flex flex-col justify-between bg-white/70 px-6 py-8 backdrop-blur-xl md:px-12">
+        <section className="flex flex-col justify-between bg-white px-6 py-8 md:px-12">
           <Link to="/" className="group flex w-fit items-center gap-3 rounded-xl">
             <BrandLogo />
           </Link>
@@ -87,7 +88,7 @@ export default function LoginPage() {
             </p>
             <div className="mt-8 grid gap-3">
               {accessHighlights.map((item) => (
-                <div key={item} className="motion-card flex items-center gap-3 rounded-xl border border-slate-200 bg-white/70 p-4 hover:border-blue-200 hover:shadow-soft">
+                <div key={item} className="motion-card flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-blue-200 hover:shadow-soft">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                   <p className="text-sm font-semibold text-slate-700">{item}</p>
                 </div>
@@ -126,7 +127,15 @@ export default function LoginPage() {
               Mật khẩu
               <span className="soft-focus mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                 <LockKeyhole className="h-4 w-4 text-slate-400" />
-                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full outline-none" />
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} className="w-full outline-none" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </span>
             </label>
 

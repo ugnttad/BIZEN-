@@ -36,6 +36,17 @@ function isSameHostOrigin(origin, host) {
   }
 }
 
+function isCapacitorOrigin(origin) {
+  if (!origin) return false;
+
+  try {
+    const url = new URL(origin);
+    return url.hostname === "localhost" && !url.port && ["capacitor:", "https:", "http:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
 function isGoogleRedirectRequest(req) {
   return req.path === "/api/auth/google/redirect" || req.originalUrl?.startsWith("/api/auth/google/redirect");
 }
@@ -45,7 +56,7 @@ function resolveCorsOptions(req, callback) {
   const isGoogleRedirect = isGoogleRedirectRequest(req);
   const isGoogleRedirectOrigin = isGoogleRedirect && (origin === "null" || origin === "https://accounts.google.com");
   const isAllowedOrigin =
-    !origin || isGoogleRedirectOrigin || isSameHostOrigin(origin, req.headers.host) || env.clientOrigins.includes(origin) || isDevLanOrigin(origin);
+    !origin || isGoogleRedirectOrigin || isCapacitorOrigin(origin) || isSameHostOrigin(origin, req.headers.host) || env.clientOrigins.includes(origin) || isDevLanOrigin(origin);
 
   if (isAllowedOrigin) {
     callback(null, { origin: true, credentials: true });
@@ -76,6 +87,7 @@ export function createApp() {
       geminiConfigured: Boolean(env.geminiApiKey),
       geminiModel: env.geminiModel,
       legacyOpenaiConfigured: Boolean(env.openaiApiKey),
+      pushConfigured: Boolean(env.vapidPublicKey && env.vapidPrivateKey),
       awsRekognitionEnabled: Boolean(env.awsRekognitionEnabled),
       faceIdDemoMode: Boolean(env.faceIdAllowDemoMode)
     });

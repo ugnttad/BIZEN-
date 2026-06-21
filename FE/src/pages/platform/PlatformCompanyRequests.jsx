@@ -27,6 +27,8 @@ export default function PlatformCompanyRequests() {
   const user = getAuthUser();
   const [status, setStatus] = useState("Pending");
   const [query, setQuery] = useState("");
+  const [companies, setCompanies] = useState([]);
+  const [companiesLoading, setCompaniesLoading] = useState(true);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewingId, setReviewingId] = useState("");
@@ -44,9 +46,23 @@ export default function PlatformCompanyRequests() {
       .finally(() => setLoading(false));
   }
 
+  function loadCompanies() {
+    setCompaniesLoading(true);
+    setError("");
+    bizenApi
+      .platformCompanies()
+      .then(setCompanies)
+      .catch((err) => setError(err.message || "Không tải được danh sách doanh nghiệp."))
+      .finally(() => setCompaniesLoading(false));
+  }
+
   useEffect(() => {
     loadRequests(status);
   }, [status]);
+
+  useEffect(() => {
+    loadCompanies();
+  }, []);
 
   const rows = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -56,12 +72,26 @@ export default function PlatformCompanyRequests() {
     );
   }, [requests, query]);
 
+  const companyRows = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return companies;
+    return companies.filter((item) =>
+      [item.name, item.ownerName, item.ownerEmail, item.contactEmail, item.city, item.taxCode, item.businessAddress, item.website].join(" ").toLowerCase().includes(normalized)
+    );
+  }, [companies, query]);
+
+  const totalActiveEmployees = useMemo(
+    () => companies.reduce((sum, item) => sum + Number(item.activeEmployeeCount || item.employeeCount || 0), 0),
+    [companies]
+  );
+
   async function review(id, nextStatus, reason = "") {
     setReviewingId(id);
     setError("");
     try {
       await bizenApi.reviewCompanyRequest(id, { status: nextStatus, rejectionReason: reason });
       loadRequests(status);
+      loadCompanies();
       return true;
     } catch (err) {
       setError(err.message || "Không cập nhật được yêu cầu doanh nghiệp.");
@@ -119,7 +149,13 @@ export default function PlatformCompanyRequests() {
               Bạn là người bán sản phẩm — duyệt tenant trước khi khách vào hệ thống. Approve sẽ tạo company và tài khoản chủ sở hữu đầu tiên.
             </p>
           </div>
-          <button onClick={() => loadRequests(status)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <button
+            onClick={() => {
+              loadRequests(status);
+              loadCompanies();
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
             <RefreshCw className="h-4 w-4" />
             Làm mới
           </button>
@@ -149,7 +185,75 @@ export default function PlatformCompanyRequests() {
 
         {error ? <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-700">{error}</div> : null}
 
+        <section className="mt-5 grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Doanh nghiệp đang quản lý</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">{companies.length}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Nhân sự active trên hệ thống</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">{totalActiveEmployees}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm font-medium text-slate-500">Request đang xem</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-950">{rows.length}</p>
+          </div>
+        </section>
+
+        <section className="mt-5 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Doanh nghiệp đã duyệt</h2>
+              <p className="text-sm text-slate-500">Danh sách tenant thật đang tồn tại trong BIZEN.</p>
+            </div>
+            <p className="text-sm font-semibold text-slate-600">{companyRows.length} doanh nghiệp</p>
+          </div>
+
+          {companiesLoading ? (
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">Đang tải danh sách doanh nghiệp...</div>
+          ) : companyRows.length === 0 ? (
+            <div className="mt-4 rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500">Chưa có doanh nghiệp nào khớp bộ lọc.</div>
+          ) : (
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              {companyRows.map((company) => (
+                <article key={company.id} className="rounded-lg border border-slate-200 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold text-slate-950">{company.name}</p>
+                      <p className="mt-1 text-sm text-slate-500">{company.businessType || "Chưa có loại hình"} · {company.city}</p>
+                    </div>
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Đã duyệt</span>
+                  </div>
+                  <div className="mt-4 grid gap-2 text-sm md:grid-cols-2">
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <p className="text-slate-500">Owner/Admin</p>
+                      <p className="mt-1 truncate font-semibold text-slate-900">{company.ownerEmail || company.contactEmail || "-"}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <p className="text-slate-500">Mã số thuế</p>
+                      <p className="mt-1 font-semibold text-slate-900">{company.taxCode || "-"}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <p className="text-slate-500">Nhân sự active</p>
+                      <p className="mt-1 font-semibold text-slate-900">{company.activeEmployeeCount ?? company.employeeCount ?? 0}/{company.requestedEmployeeCount || 20}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2">
+                      <p className="text-slate-500">Duyệt lúc</p>
+                      <p className="mt-1 font-semibold text-slate-900">{formatDateTime(company.approvedAt || company.createdAt)}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2 md:col-span-2">
+                      <p className="text-slate-500">Địa chỉ</p>
+                      <p className="mt-1 font-semibold text-slate-900">{company.businessAddress || "-"}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section className="mt-5">
+          <h2 className="mb-3 text-lg font-semibold text-slate-950">Yêu cầu đăng ký doanh nghiệp</h2>
           {loading ? (
             <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">Đang tải yêu cầu…</div>
           ) : rows.length === 0 ? (

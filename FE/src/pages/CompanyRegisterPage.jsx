@@ -2,12 +2,43 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, BadgeCheck, Building2, CheckCircle2, LinkIcon, LockKeyhole, Mail, MapPin, Phone, Send, UserRound } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
+import SocialLinks from "../components/SocialLinks";
 import { bizenApi } from "../modules/api/bizenApi";
+
+const businessTypeOptions = [
+  "Bán lẻ / Dịch vụ nhỏ",
+  "Quán cafe / Trà sữa",
+  "Nhà hàng / Quán ăn",
+  "Quán bar / Pub / Lounge",
+  "Tiệm bánh / Bakery",
+  "Cửa hàng tiện lợi / Tạp hóa",
+  "Shop thời trang / Phụ kiện",
+  "Shop mỹ phẩm / Làm đẹp",
+  "Spa / Salon / Nail",
+  "Gym / Yoga / Fitness",
+  "Phòng khám",
+  "Nha khoa",
+  "Nhà thuốc",
+  "Trung tâm giáo dục / Gia sư",
+  "Trường mầm non / Lớp học",
+  "Xưởng sản xuất",
+  "Xưởng may / Gia công",
+  "Kho vận / Logistics",
+  "Gara ô tô / Sửa xe",
+  "Dịch vụ sửa chữa / Bảo trì",
+  "Studio ảnh / Sáng tạo nội dung",
+  "Khách sạn / Homestay",
+  "Công ty dịch vụ",
+  "Văn phòng / Agency",
+  "Nông trại / Trang trại",
+  "Siêu thị mini",
+  "Khác"
+];
 
 const emptyForm = {
   companyName: "",
   city: "Đà Nẵng",
-  businessType: "Cafe / Milk tea",
+  businessType: businessTypeOptions[0],
   businessAddress: "",
   taxCode: "",
   website: "",
@@ -45,7 +76,7 @@ export default function CompanyRegisterPage() {
       return;
     }
     if (form.businessAddress.trim().length < 5) {
-      setError("Cần nhập địa chỉ kinh doanh để BIZEN xác minh quán/doanh nghiệp.");
+      setError("Cần nhập địa chỉ kinh doanh để BIZEN xác minh doanh nghiệp.");
       return;
     }
     if (!/^\d{10}(\d{3})?$/.test(taxCode)) {
@@ -53,7 +84,7 @@ export default function CompanyRegisterPage() {
       return;
     }
     if (!["đà nẵng", "da nang"].includes(city)) {
-      setError("BIZEN hiện chỉ nhận đăng ký cửa hàng tại Đà Nẵng trong giai đoạn triển khai đầu.");
+      setError("BIZEN hiện chỉ nhận đăng ký doanh nghiệp tại Đà Nẵng trong giai đoạn triển khai đầu.");
       return;
     }
     if (phoneDigits && !/^0?\d{9,10}$/.test(phoneDigits)) {
@@ -61,7 +92,7 @@ export default function CompanyRegisterPage() {
       return;
     }
     if (!Number.isInteger(employeeCount) || employeeCount < 1 || employeeCount > 20) {
-      setError("Quy mô nhân sự cần từ 1 đến 20 người để AI xếp ca đúng phạm vi cửa hàng nhỏ.");
+      setError("Quy mô nhân sự cần từ 1 đến 20 người để AI xếp ca đúng phạm vi doanh nghiệp nhỏ.");
       return;
     }
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(form.password)) {
@@ -100,6 +131,7 @@ export default function CompanyRegisterPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8">
+      <SocialLinks />
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <div>
@@ -110,12 +142,12 @@ export default function CompanyRegisterPage() {
             <BrandLogo className="mt-10" />
             <h1 className="mt-5 text-3xl font-semibold tracking-normal text-slate-950 md:text-4xl">Đăng ký doanh nghiệp sử dụng BIZEN</h1>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              Doanh nghiệp gửi thông tin trước. Chủ nền tảng BIZEN duyệt tenant, sau đó email đại diện mới trở thành chủ sở hữu đầu tiên — có quyền tạo nhân sự và duyệt tài khoản nhân viên.
+              Doanh nghiệp gửi thông tin trước. Chủ nền tảng BIZEN duyệt tenant, sau đó email đại diện mới trở thành chủ sở hữu đầu tiên — có quyền tạo nhân sự, cấu hình ca làm và cấp tài khoản nhân viên.
             </p>
           </div>
 
           <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
-            Sau khi được duyệt, đăng nhập bằng email admin bạn nhập bên dưới — không cần đăng ký lại.
+            Sau khi được duyệt, đăng nhập bằng email admin bạn nhập bên dưới — không cần đăng ký lại. Loại hình doanh nghiệp chỉ giúp BIZEN hiểu mô hình vận hành ban đầu, không khóa cố định tính năng.
           </div>
         </section>
 
@@ -157,7 +189,18 @@ export default function CompanyRegisterPage() {
                 Loại hình kinh doanh
                 <span className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
                   <BadgeCheck className="h-4 w-4 text-slate-400" />
-                  <input required value={form.businessType} onChange={(event) => updateField("businessType", event.target.value)} className="w-full outline-none" />
+                  <select
+                    required
+                    value={form.businessType}
+                    onChange={(event) => updateField("businessType", event.target.value)}
+                    className="w-full bg-transparent outline-none"
+                  >
+                    {businessTypeOptions.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
                 </span>
               </label>
               <label className="block text-sm font-medium text-slate-700">

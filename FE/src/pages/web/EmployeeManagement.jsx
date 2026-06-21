@@ -7,7 +7,8 @@ import LoadingState from "../../components/LoadingState";
 import Modal from "../../components/Modal";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
-import { cafeShopConstraints, contractTypes, employeeRoles, hospitalityPositions, payTypes } from "../../constants/hospitality";
+import { cafeShopConstraints, contractTypes, employeeRoles, payTypes } from "../../constants/hospitality";
+import { getPositionOptions, ownerPositions } from "../../constants/positionCatalog";
 import { formatCurrency } from "../../lib/utils";
 import { bizenApi } from "../../modules/api/bizenApi";
 import { getAuthUser } from "../../modules/auth/authStore";
@@ -35,21 +36,6 @@ const legacyDepartmentLabels = {
   "Customer Support": "Phục vụ / Order"
 };
 
-const departmentPositionOptions = {
-  "Quan ly cua hang": ["Chủ sở hữu", "Quản lý cửa hàng", "Quản lý ca", "Trưởng ca"],
-  "Pha che": ["Pha chế", "Barista", "Pha chế trà sữa", "Trưởng ca pha chế"],
-  "Pha che / Bar": ["Pha chế", "Barista", "Pha chế trà sữa", "Trưởng ca pha chế"],
-  "Thu ngan": ["Thu ngân", "Thu ngân trưởng", "Kế toán cửa hàng"],
-  "Phuc vu": ["Phục vụ", "Order", "Runner", "Trưởng ca phục vụ"],
-  "Phuc vu / Order": ["Phục vụ", "Order", "Runner", "Nhân viên bán hàng", "Trưởng ca phục vụ"],
-  "Phuc vu / ban hang": ["Phục vụ", "Order", "Runner", "Nhân viên bán hàng", "Trưởng ca phục vụ"],
-  "Topping / Bep nhe": ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Bếp nhẹ"],
-  Bep: ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Bếp nhẹ"],
-  "Bep / kho": ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Thủ kho"],
-  "Kho / Tap vu": ["Thủ kho", "Tạp vụ", "Giao hàng", "Bảo vệ"],
-  "Van phong / nhan su": ["Kế toán cửa hàng", "Quản lý cửa hàng"]
-};
-
 function stripVietnamese(value = "") {
   return String(value)
     .normalize("NFD")
@@ -62,18 +48,8 @@ function getDepartmentLabel(name) {
   return legacyDepartmentLabels[name] || name || "Chưa có bộ phận";
 }
 
-function getDepartmentKey(name) {
-  return stripVietnamese(getDepartmentLabel(name));
-}
-
-function getPositionOptions(departmentName, role) {
-  if (role === "Admin") return ["Chủ sở hữu", "Quản lý cửa hàng"];
-  const base = departmentPositionOptions[getDepartmentKey(departmentName)] || hospitalityPositions;
-  return base;
-}
-
-function normalizePosition(departmentName, role, currentPosition) {
-  const options = getPositionOptions(departmentName, role);
+function normalizePosition(departmentName, role, currentPosition, businessType = "") {
+  const options = getPositionOptions(departmentName, role, businessType);
   return options.includes(currentPosition) ? currentPosition : options[0];
 }
 
@@ -115,25 +91,31 @@ export default function EmployeeManagement() {
   const [formError, setFormError] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [company, setCompany] = useState(null);
   const authUser = getAuthUser();
   const canMutateEmployees = authUser?.role === "Admin";
   const roleOptions = employeeRoles;
   const canEditEmployee = () => canMutateEmployees;
-  const positionOptions = useMemo(() => getPositionOptions(form.department, form.role), [form.department, form.role]);
+  const businessType = company?.businessType || "";
+  const positionOptions = useMemo(() => getPositionOptions(form.department, form.role, businessType), [businessType, form.department, form.role]);
   const operationalCount = useMemo(() => rows.filter(isOperational).length, [rows]);
   const ownerCount = useMemo(() => rows.filter((employee) => employee.role === "Admin" && isOperational(employee)).length, [rows]);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([bizenApi.employees(), bizenApi.departments()])
-      .then(([employees, departmentRows]) => {
+    Promise.all([bizenApi.employees(), bizenApi.departments(), bizenApi.currentCompany().catch(() => null)])
+      .then(([employees, departmentRows, companyRow]) => {
         if (active) {
+          const nextBusinessType = companyRow?.businessType || "";
+          const nextDepartment = departmentRows[0]?.name || "Phục vụ";
           setRows(employees);
           setDepartments(departmentRows);
+          setCompany(companyRow);
           setForm((current) => ({
             ...current,
-            department: current.department || departmentRows[0]?.name || "Phục vụ"
+            department: current.department || nextDepartment,
+            position: current.position || normalizePosition(current.department || nextDepartment, current.role, current.position, nextBusinessType)
           }));
         }
       })
@@ -162,7 +144,7 @@ export default function EmployeeManagement() {
     setForm({
       ...emptyForm,
       department: departments[0]?.name || "Phục vụ",
-      position: normalizePosition(departments[0]?.name || "Phục vụ", "Employee", "")
+      position: normalizePosition(departments[0]?.name || "Phục vụ", "Employee", "", businessType)
     });
     setFormError("");
   }
@@ -174,7 +156,7 @@ export default function EmployeeManagement() {
       name: employee.name,
       department: employee.department,
       role: employee.role,
-      position: normalizePosition(employee.department, employee.role, employee.position),
+      position: normalizePosition(employee.department, employee.role, employee.position, businessType),
       contractType: employee.contractType,
       payType: employee.payType || inferPayTypeFromContract(employee.contractType),
       baseSalary: employee.baseSalary,
@@ -191,25 +173,15 @@ export default function EmployeeManagement() {
     setForm((current) => ({
       ...current,
       department: nextDepartment,
-      position: normalizePosition(nextDepartment, current.role, current.position)
+      position: normalizePosition(nextDepartment, current.role, current.position, businessType)
     }));
   }
 
   function updateRole(nextRole) {
     setForm((current) => ({
       ...current,
-      department:
-        nextRole === "Admin"
-          ? departments.find((item) => getDepartmentKey(item.name) === "Quan ly cua hang")?.name || current.department
-          : current.department,
       role: nextRole,
-      position: normalizePosition(
-        nextRole === "Admin"
-          ? departments.find((item) => getDepartmentKey(item.name) === "Quan ly cua hang")?.name || current.department
-          : current.department,
-        nextRole,
-        current.position
-      )
+      position: normalizePosition(current.department, nextRole, current.position, businessType)
     }));
   }
 
@@ -242,7 +214,7 @@ export default function EmployeeManagement() {
         : ownerCount - (editingEmployee?.role === "Admin" ? 1 : 0);
 
     if (nextOperationalCount > cafeShopConstraints.maxActiveEmployees) {
-      setFormError(`BIZEN đang ràng buộc tối đa ${cafeShopConstraints.maxActiveEmployees} nhân sự đang làm cho một quán cafe/trà sữa trong giai đoạn triển khai hiện tại.`);
+      setFormError(`BIZEN đang ràng buộc tối đa ${cafeShopConstraints.maxActiveEmployees} nhân sự đang làm cho một doanh nghiệp trong giai đoạn triển khai hiện tại.`);
       return;
     }
 
@@ -277,22 +249,17 @@ export default function EmployeeManagement() {
     }
 
     if (nextOwnerCount > cafeShopConstraints.maxOwners) {
-      setFormError("Mỗi quán chỉ nên có tối đa 1 hồ sơ chủ sở hữu để giữ mô hình vận hành gọn.");
+      setFormError("Mỗi doanh nghiệp chỉ nên có tối đa 1 hồ sơ chủ sở hữu để giữ mô hình vận hành gọn.");
       return;
     }
 
-    if (form.role === "Admin" && getDepartmentKey(form.department) !== "Quan ly cua hang") {
-      setFormError("Chủ sở hữu phải thuộc bộ phận Quản lý cửa hàng.");
-      return;
-    }
-
-    if (form.role === "Employee" && ["Chủ sở hữu", "Chủ doanh nghiệp"].includes(form.position)) {
+    if (form.role === "Employee" && ownerPositions.includes(form.position)) {
       setFormError("Nhân viên không được chọn chức vụ chủ sở hữu.");
       return;
     }
 
     if (!positionOptions.includes(form.position)) {
-      setFormError("Chức vụ phải khớp với bộ phận làm việc đã chọn.");
+      setFormError("Chức vụ phải phù hợp với loại hình doanh nghiệp và bộ phận làm việc đã chọn.");
       return;
     }
 
@@ -348,7 +315,7 @@ export default function EmployeeManagement() {
       <PageHeader
         eyebrow="Quản lý nhân sự"
         title="Hồ sơ nhân viên"
-        description="Mô hình gọn cho cửa hàng nhỏ: chủ sở hữu có toàn quyền, nhân viên dùng web/mobile để chấm công, xem lịch, lương và nghỉ phép."
+        description="Mô hình gọn cho doanh nghiệp nhỏ: chủ sở hữu có toàn quyền, nhân viên dùng web/mobile để chấm công, xem lịch, lương và nghỉ phép."
         actions={
           canMutateEmployees ? (
             <button onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">
@@ -364,14 +331,14 @@ export default function EmployeeManagement() {
           { label: "Quy mô", value: `${cafeShopConstraints.minRecommendedEmployees}-${cafeShopConstraints.maxActiveEmployees}`, helper: `${operationalCount} nhân sự đang làm` },
           { label: "Hồ sơ chủ", value: `${ownerCount}/${cafeShopConstraints.maxOwners}`, helper: "nếu chủ cũng chấm công" },
           { label: "Mức lương", value: "Tháng/giờ", helper: "full-time theo tháng, part-time theo giờ" },
-          { label: "Chức vụ", value: "Theo bộ phận", helper: "cafe/trà sữa nhỏ" }
+          { label: "Loại hình", value: businessType || "Chưa có", helper: "dropdown chức vụ tự đổi theo ngành" }
         ].map((rule) => (
           <div key={rule.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-normal text-slate-500">
               <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
               {rule.label}
             </div>
-            <p className="mt-2 text-lg font-bold text-slate-950">{rule.value}</p>
+            <p className="mt-2 break-words text-lg font-bold text-slate-950">{rule.value}</p>
             <p className="mt-1 text-xs text-slate-500">{rule.helper}</p>
           </div>
         ))}
@@ -519,7 +486,9 @@ export default function EmployeeManagement() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-slate-500">Tên công việc thực tế, tự đổi theo bộ phận và quyền truy cập để tránh lệch như làm bếp nhưng chức vụ phục vụ.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Tự gợi ý theo loại hình {businessType ? <span className="font-semibold text-slate-700">{businessType}</span> : "doanh nghiệp đã đăng ký"} và bộ phận đang chọn.
+            </p>
           </label>
           <label className="text-sm font-medium text-slate-700">
             Loại hợp đồng

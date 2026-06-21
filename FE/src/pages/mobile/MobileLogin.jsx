@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LockKeyhole, Mail, Smartphone } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Mail, Smartphone } from "lucide-react";
 import BrandLogo from "../../components/BrandLogo";
 import PwaInstallPrompt from "../../components/PwaInstallPrompt";
 import GoogleLoginButton from "../../modules/auth/GoogleLoginButton";
@@ -12,6 +12,7 @@ export default function MobileLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -65,7 +66,7 @@ export default function MobileLogin() {
   return (
     <main className="app-background min-h-screen px-0 py-0 sm:px-6 sm:py-8">
       <div className="ambient-grid pointer-events-none fixed inset-x-0 top-0 h-64" />
-      <section className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col justify-between overflow-hidden bg-white/90 p-6 shadow-2xl shadow-slate-950/10 backdrop-blur-xl sm:min-h-[860px] sm:rounded-[30px] sm:border sm:border-white/70">
+      <section className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col justify-between overflow-hidden bg-white p-6 shadow-xl shadow-slate-950/10 sm:min-h-[860px] sm:rounded-[30px] sm:border sm:border-slate-200">
         <div className="brand-stripe absolute inset-x-0 top-0 h-1" />
         <div>
           <Link to="/" className="group flex w-fit items-center gap-3 rounded-xl">
@@ -73,7 +74,7 @@ export default function MobileLogin() {
           </Link>
 
           <div className="mt-14">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[linear-gradient(135deg,rgba(23,103,255,0.12),rgba(8,182,255,0.08),rgba(103,87,255,0.08))] text-blue-700 ring-1 ring-blue-100">
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
               <Smartphone className="h-8 w-8" />
             </div>
             <h1 className="mt-5 text-3xl font-semibold tracking-normal text-slate-950">Đăng nhập</h1>
@@ -95,7 +96,15 @@ export default function MobileLogin() {
               Mật khẩu
               <span className="soft-focus mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3">
                 <LockKeyhole className="h-4 w-4 text-slate-400" />
-                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="min-w-0 w-full outline-none" />
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} className="min-w-0 w-full outline-none" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </span>
             </label>
 

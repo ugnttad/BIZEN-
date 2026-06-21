@@ -3,7 +3,7 @@ import { httpError } from "../../shared/httpError.js";
 import { isStrongPassword, isVietnamPhone, normalizeEmail, normalizePhone } from "../../shared/validation.js";
 import { hashPassword } from "../auth/password.service.js";
 import { buildCompanyApprovedEmail, sendMail } from "../mail/mail.service.js";
-import { createCompanyAccessRequest, findCompanyAccessConflict, listCompanyAccessRequests, reviewCompanyAccessRequest } from "./tenants.repository.js";
+import { createCompanyAccessRequest, findCompanyAccessConflict, listCompanies, listCompanyAccessRequests, reviewCompanyAccessRequest } from "./tenants.repository.js";
 
 function normalizeTaxCode(value = "") {
   return String(value).replace(/\D/g, "");
@@ -12,7 +12,7 @@ function normalizeTaxCode(value = "") {
 const companyAccessRequestSchema = z.object({
   companyName: z.string().trim().min(2, "Ten doanh nghiep can it nhat 2 ky tu").max(80, "Ten doanh nghiep toi da 80 ky tu"),
   city: z.string().trim().min(2).default("Da Nang"),
-  businessType: z.string().trim().min(2).max(80).default("Cafe / Milk tea"),
+  businessType: z.string().trim().min(2).max(80).default("Bán lẻ / Dịch vụ nhỏ"),
   businessAddress: z.string().trim().min(5, "Dia chi kinh doanh la bat buoc").max(180),
   taxCode: z.string().transform(normalizeTaxCode).refine((value) => value.length === 10 || value.length === 13, "Ma so thue can 10 hoac 13 chu so"),
   website: z.string().trim().max(160).optional().default(""),
@@ -32,7 +32,7 @@ const reviewCompanyRequestSchema = z.object({
 export async function createCompanyAccessRequestHandler(req, res) {
   const data = companyAccessRequestSchema.parse(req.body);
   if (!["da nang", "danang", "đà nẵng"].includes(data.city.toLowerCase())) {
-    throw httpError(400, "BIZEN MVP hien chi nhan dang ky cua hang tai Da Nang");
+    throw httpError(400, "BIZEN MVP hien chi nhan dang ky doanh nghiep tai Da Nang");
   }
   if (data.phone && !isVietnamPhone(data.phone)) {
     throw httpError(400, "So dien thoai can 9-11 chu so, phu hop so dien thoai Viet Nam");
@@ -62,6 +62,10 @@ export async function createCompanyAccessRequestHandler(req, res) {
 export async function listCompanyAccessRequestsHandler(req, res) {
   const status = req.query.status || "Pending";
   res.json(await listCompanyAccessRequests(status));
+}
+
+export async function listCompaniesHandler(req, res) {
+  res.json(await listCompanies());
 }
 
 export async function reviewCompanyAccessRequestHandler(req, res) {

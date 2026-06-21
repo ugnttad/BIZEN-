@@ -54,11 +54,14 @@ async function ensureTenantSchema(executor = query) {
 
     ALTER TABLE company_access_requests
       ADD COLUMN IF NOT EXISTS employee_count INTEGER NOT NULL DEFAULT 20,
-      ADD COLUMN IF NOT EXISTS business_type TEXT NOT NULL DEFAULT 'Cafe / Milk tea',
+      ADD COLUMN IF NOT EXISTS business_type TEXT NOT NULL DEFAULT 'Bán lẻ / Dịch vụ nhỏ',
       ADD COLUMN IF NOT EXISTS business_address TEXT NOT NULL DEFAULT '',
       ADD COLUMN IF NOT EXISTS tax_code TEXT,
       ADD COLUMN IF NOT EXISTS website TEXT,
       ADD COLUMN IF NOT EXISTS verification_note TEXT NOT NULL DEFAULT '';
+
+    ALTER TABLE company_access_requests
+      ALTER COLUMN business_type SET DEFAULT 'Bán lẻ / Dịch vụ nhỏ';
 
     CREATE INDEX IF NOT EXISTS idx_company_access_requests_tax_code
       ON company_access_requests(tax_code)
@@ -82,6 +85,21 @@ function normalizeEmployeeCount(value) {
   const count = Number(value || 10);
   if (!Number.isFinite(count)) return 10;
   return Math.min(20, Math.max(1, Math.round(count)));
+}
+
+async function cleanupReusableOrphanEmployeeAccount(email, executor = query) {
+  const sql = `
+    DELETE FROM app_users
+    WHERE lower(email) = lower($1)
+      AND role = 'Employee'
+      AND employee_id IS NULL
+  `;
+
+  if (typeof executor === "function") {
+    await executor(sql, [email]);
+    return;
+  }
+  await executor.query(sql, [email]);
 }
 
 function allocateCounts(templates, desiredTotal) {
@@ -165,7 +183,7 @@ export async function createCompanyAccessRequest(data) {
       normalizePhone(data.phone) || null,
       normalizeEmployeeCount(data.employeeCount),
       data.adminPasswordHash,
-      data.businessType?.trim() || "Cafe / Milk tea",
+      data.businessType?.trim() || "Bán lẻ / Dịch vụ nhỏ",
       data.businessAddress?.trim() || "",
       data.taxCode || null,
       data.website?.trim() || null,
@@ -181,6 +199,8 @@ export async function findCompanyAccessConflict(data) {
   const contactEmail = normalizeEmail(data.contactEmail);
   const companyName = data.companyName.trim();
   const taxCode = data.taxCode || null;
+  await cleanupReusableOrphanEmployeeAccount(contactEmail);
+
   const [user, employee, activeEmailRequest, company, activeCompanyRequest, taxCompany, activeTaxRequest] = await Promise.all([
     query("SELECT id FROM app_users WHERE lower(email) = lower($1) LIMIT 1", [contactEmail]),
     query("SELECT id FROM employees WHERE lower(email) = lower($1) LIMIT 1", [contactEmail]),
@@ -234,6 +254,68 @@ export async function listCompanyAccessRequests(status = "Pending") {
   return result.rows;
 }
 
+export async function listCompanies() {
+  await ensureTenantSchema();
+
+  const result = await query(
+    `SELECT
+      c.id,
+      c.name,
+      c.city,
+      c.business_type AS "businessType",
+      c.business_address AS "businessAddress",
+      c.tax_code AS "taxCode",
+      c.website,
+      c.created_at AS "createdAt",
+      owner.name AS "ownerName",
+      owner.email AS "ownerEmail",
+      COALESCE(COUNT(e.id)::int, 0) AS "employeeCount",
+      COALESCE((COUNT(e.id) FILTER (WHERE e.status <> 'Inactive'))::int, 0) AS "activeEmployeeCount",
+      request.id AS "requestId",
+      request.contact_name AS "contactName",
+      request.contact_email AS "contactEmail",
+      request.phone,
+      request.employee_count AS "requestedEmployeeCount",
+      request.reviewed_at AS "approvedAt"
+     FROM companies c
+     LEFT JOIN LATERAL (
+       SELECT u.name, u.email
+       FROM app_users u
+       WHERE u.company_id = c.id
+         AND u.role = 'Admin'
+       ORDER BY u.created_at ASC
+       LIMIT 1
+     ) owner ON true
+     LEFT JOIN employees e ON e.company_id = c.id
+     LEFT JOIN LATERAL (
+       SELECT r.id, r.contact_name, r.contact_email, r.phone, r.employee_count, r.reviewed_at
+       FROM company_access_requests r
+       WHERE r.company_id = c.id
+       ORDER BY r.reviewed_at DESC NULLS LAST, r.requested_at DESC
+       LIMIT 1
+     ) request ON true
+     GROUP BY
+      c.id,
+      c.name,
+      c.city,
+      c.business_type,
+      c.business_address,
+      c.tax_code,
+      c.website,
+      c.created_at,
+      owner.name,
+      owner.email,
+      request.id,
+      request.contact_name,
+      request.contact_email,
+      request.phone,
+      request.employee_count,
+      request.reviewed_at
+     ORDER BY c.created_at DESC`
+  );
+  return result.rows;
+}
+
 export async function reviewCompanyAccessRequest(id, data) {
   return withTransaction(async (client) => {
     await ensureTenantSchema(client);
@@ -267,6 +349,7 @@ export async function reviewCompanyAccessRequest(id, data) {
     }
 
     const email = normalizeEmail(request.contact_email);
+    await cleanupReusableOrphanEmployeeAccount(email, client);
     const existingUser = await client.query("SELECT id FROM app_users WHERE lower(email) = lower($1) LIMIT 1", [email]);
     const existingEmployee = await client.query("SELECT id FROM employees WHERE lower(email) = lower($1) LIMIT 1", [email]);
     const existingCompany = await client.query("SELECT id FROM companies WHERE lower(name) = lower($1) LIMIT 1", [request.company_name.trim()]);

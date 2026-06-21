@@ -14,6 +14,10 @@
     "vercel:env:smtp": "node scripts/sync-vercel-smtp-env.mjs",
     "vercel:env:ai": "node scripts/sync-vercel-ai-env.mjs",
     "vercel:env:maps": "node scripts/sync-vercel-maps-env.mjs",
+    "mobile:android:add": "npm --prefix FE run android:add",
+    "mobile:android:sync": "npm --prefix FE run android:sync",
+    "mobile:android:open": "npm --prefix FE run android:open",
+    "mobile:android:debug": "npm --prefix FE run android:debug",
     "ai:check": "node scripts/check-ai-providers.mjs"
   },
   "dependencies": {

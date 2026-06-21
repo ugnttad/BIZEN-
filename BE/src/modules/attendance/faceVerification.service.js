@@ -129,16 +129,16 @@ function buildFaceQualityResult(face) {
   const requiredLandmarks = ["eyeLeft", "eyeRight", "nose", "mouthLeft", "mouthRight"];
   const hasAllLandmarks = requiredLandmarks.every((landmark) => hasLandmark(face, landmark));
   const wellFramed =
-    metrics.box.left >= 0.04 &&
-    metrics.box.top >= 0.03 &&
-    metrics.right <= 0.96 &&
-    metrics.bottom <= 0.98 &&
-    metrics.box.width >= 0.18 &&
-    metrics.box.width <= 0.72 &&
-    metrics.box.height >= 0.22 &&
-    metrics.box.height <= 0.84 &&
-    metrics.centerX >= 0.32 &&
-    metrics.centerX <= 0.68;
+    metrics.box.left >= 0.02 &&
+    metrics.box.top >= 0.02 &&
+    metrics.right <= 0.98 &&
+    metrics.bottom <= 0.99 &&
+    metrics.box.width >= 0.14 &&
+    metrics.box.width <= 0.8 &&
+    metrics.box.height >= 0.18 &&
+    metrics.box.height <= 0.9 &&
+    metrics.centerX >= 0.25 &&
+    metrics.centerX <= 0.75;
   const checks = [];
 
   checks.push({
@@ -152,7 +152,7 @@ function buildFaceQualityResult(face) {
     checks.push({
       key: "brightness",
       label: "Ánh sáng",
-      status: brightness >= 30 ? "pass" : "fail",
+      status: brightness >= 25 ? "pass" : "fail",
       value: Math.round(brightness)
     });
   }
@@ -161,7 +161,7 @@ function buildFaceQualityResult(face) {
     checks.push({
       key: "sharpness",
       label: "Độ nét",
-      status: sharpness >= 35 ? "pass" : "fail",
+      status: sharpness >= 25 ? "pass" : "fail",
       value: Math.round(sharpness)
     });
   }
@@ -170,7 +170,7 @@ function buildFaceQualityResult(face) {
     checks.push({
       key: "pose-yaw",
       label: "Góc mặt ngang",
-      status: Math.abs(yaw) <= 30 ? "pass" : "fail",
+      status: Math.abs(yaw) <= 38 ? "pass" : "fail",
       value: Math.round(yaw)
     });
   }
@@ -179,7 +179,7 @@ function buildFaceQualityResult(face) {
     checks.push({
       key: "pose-pitch",
       label: "Góc mặt dọc",
-      status: Math.abs(pitch) <= 25 ? "pass" : "fail",
+      status: Math.abs(pitch) <= 32 ? "pass" : "fail",
       value: Math.round(pitch)
     });
   }
@@ -198,7 +198,7 @@ function buildFaceQualityResult(face) {
     value: requiredLandmarks.filter((landmark) => hasLandmark(face, landmark)).length
   });
 
-  if (face.EyesOpen?.Value === false && Number(face.EyesOpen.Confidence || 0) >= 85) {
+  if (face.EyesOpen?.Value === false && Number(face.EyesOpen.Confidence || 0) >= 92) {
     checks.push({
       key: "eyes-open",
       label: "Mắt mở",
@@ -361,74 +361,60 @@ export async function verifyFaceLiveness(frames = {}) {
     };
   }
 
-  const requiredFrames = {
-    center: "Nhìn thẳng",
-    turnLeft: "Quay trái",
-    turnRight: "Quay phải"
-  };
-
-  for (const [key, label] of Object.entries(requiredFrames)) {
-    if (!frames[key]) {
-      return {
-        live: false,
-        reason: `Thiếu frame liveness: ${label}.`,
-        checks: [frameCheck(label, false, "missing")]
-      };
-    }
-  }
   const blinkFrames = Array.isArray(frames.blink) ? frames.blink.filter(Boolean) : [frames.blink].filter(Boolean);
-  if (!blinkFrames.length) {
+  const sampleImages = [
+    ...(Array.isArray(frames.samples) ? frames.samples.filter(Boolean) : []),
+    frames.turnLeft,
+    frames.turnRight,
+    ...blinkFrames
+  ].filter(Boolean);
+
+  if (!frames.center) {
     return {
       live: false,
-      reason: "Thiếu frame liveness: Chớp mắt.",
-      checks: [frameCheck("Chớp mắt", false, "missing")]
+      reason: "Thiếu ảnh chính từ camera live.",
+      checks: [frameCheck("Ảnh chính", false, "missing")]
     };
   }
 
-  const analyzed = {};
-  for (const [key, label] of Object.entries(requiredFrames)) {
-    analyzed[key] = await detectFaceForLiveness(frames[key], label);
-    if (!analyzed[key].valid) {
-      return {
-        live: false,
-        reason: analyzed[key].reason || `${label}: frame chưa đạt.`,
-        checks: analyzed[key].checks || [frameCheck(label, false)]
-      };
-    }
-  }
-  analyzed.blink = null;
-  const blinkAttempts = [];
-  for (const image of blinkFrames.slice(0, 6)) {
-    const attempt = await detectFaceForLiveness(image, "Chớp mắt", { allowEyesClosed: true });
-    blinkAttempts.push(attempt);
-    if (attempt.valid && attempt.metrics?.eyesOpen === false && attempt.metrics?.eyesOpenConfidence >= 70) {
-      analyzed.blink = attempt;
-      break;
-    }
-  }
-  if (!analyzed.blink) {
-    const bestAttempt = blinkAttempts.find((attempt) => attempt.valid) || blinkAttempts[0];
+  if (sampleImages.length < 2) {
     return {
       live: false,
-      reason: "Chưa thấy hành động chớp mắt rõ.",
-      checks: [...(bestAttempt?.checks || []), frameCheck("Có chớp mắt", false, "không có frame mắt đóng rõ")]
+      reason: "Thiếu chuỗi ảnh camera live. Vui lòng giữ mặt trong khung và thử lại.",
+      checks: [frameCheck("Chuỗi camera live", false, `${sampleImages.length}/2`)]
     };
   }
 
-  const center = analyzed.center.metrics;
-  const turnLeft = analyzed.turnLeft.metrics;
-  const turnRight = analyzed.turnRight.metrics;
-  const blink = analyzed.blink.metrics;
+  const center = await detectFaceForLiveness(frames.center, "Nhìn thẳng");
+  if (!center.valid) {
+    return {
+      live: false,
+      reason: center.reason || "Ảnh chính chưa đủ rõ để xác minh.",
+      checks: center.checks || [frameCheck("Ảnh chính", false)]
+    };
+  }
+
+  const analyzedSamples = [];
+  for (const [index, image] of sampleImages.slice(0, 4).entries()) {
+    analyzedSamples.push(await detectFaceForLiveness(image, `Mẫu ${index + 1}`));
+  }
+
+  const validSamples = analyzedSamples.filter((sample) => sample.valid);
+  const enoughLiveSamples = validSamples.length >= 2;
+  const centerMetrics = center.metrics || {};
+  const stableEnough =
+    validSamples.length === 0 ||
+    validSamples.some((sample) => {
+      const sampleMetrics = sample.metrics || {};
+      if (!sampleMetrics.box || !centerMetrics.box) return true;
+      const centerDelta = Math.abs((sampleMetrics.centerX || 0) - (centerMetrics.centerX || 0)) + Math.abs((sampleMetrics.centerY || 0) - (centerMetrics.centerY || 0));
+      const sizeDelta = Math.abs((sampleMetrics.box.width || 0) - (centerMetrics.box.width || 0)) + Math.abs((sampleMetrics.box.height || 0) - (centerMetrics.box.height || 0));
+      return centerDelta <= 0.18 && sizeDelta <= 0.24;
+    });
   const checks = [
-    frameCheck("Nhìn thẳng", Math.abs(center.yaw || 0) <= 12 && Math.abs(center.pitch || 0) <= 18, `yaw ${Math.round(center.yaw || 0)}`),
-    frameCheck(
-      "Quay hai hướng",
-      Math.abs((turnLeft.yaw || 0) - (turnRight.yaw || 0)) >= 24 && Math.abs(turnLeft.yaw || 0) >= 10 && Math.abs(turnRight.yaw || 0) >= 10,
-      `yaw ${Math.round(turnLeft.yaw || 0)} / ${Math.round(turnRight.yaw || 0)}`
-    ),
-    frameCheck("Đổi hướng thật", (turnLeft.yaw || 0) * (turnRight.yaw || 0) < 0, "hai frame phải lệch hướng đối nhau"),
-    frameCheck("Mắt mở ở frame chính", center.eyesOpen !== false || center.eyesOpenConfidence < 80, `confidence ${Math.round(center.eyesOpenConfidence || 0)}`),
-    frameCheck("Có chớp mắt", blink.eyesOpen === false && blink.eyesOpenConfidence >= 70, `confidence ${Math.round(blink.eyesOpenConfidence || 0)}`)
+    frameCheck("Ảnh chính rõ", center.valid, `confidence ${Math.round(center.confidence || 0)}`),
+    frameCheck("Camera live", enoughLiveSamples, `${validSamples.length}/${analyzedSamples.length} frame đạt`),
+    frameCheck("Khuôn mặt ổn định", stableEnough, "giữ trong khung")
   ];
 
   const failed = checks.filter((check) => check.status === "fail");
@@ -437,15 +423,22 @@ export async function verifyFaceLiveness(frames = {}) {
       live: false,
       reason: failed.map((check) => check.label).join(", "),
       checks,
-      frames: analyzed
+      frames: {
+        center,
+        samples: analyzedSamples
+      }
     };
   }
 
   return {
     live: true,
     provider: "aws-rekognition",
+    mode: "steady-camera",
     checks,
-    frames: analyzed,
+    frames: {
+      center,
+      samples: analyzedSamples
+    },
     centerImage: frames.center
   };
 }

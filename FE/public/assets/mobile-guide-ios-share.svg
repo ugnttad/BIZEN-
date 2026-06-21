@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title desc">
+  <title id="title">Bam nut chia se tren Safari</title>
+  <desc id="desc">Huong dan bam nut share tren thanh cong cu Safari de add BIZEN vao man hinh chinh.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#eff6ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f172a" flood-opacity=".16"/>
+    </filter>
+  </defs>
+  <rect width="960" height="640" rx="32" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <rect x="326" y="56" width="308" height="528" rx="44" fill="#0f172a"/>
+    <rect x="344" y="86" width="272" height="468" rx="30" fill="#ffffff"/>
+    <rect x="358" y="110" width="244" height="310" rx="24" fill="#f8fafc" stroke="#e2e8f0"/>
+    <text x="390" y="154" font-family="Arial, sans-serif" font-size="24" font-weight="800" fill="#0f172a">BIZEN Mobile</text>
+    <rect x="386" y="184" width="188" height="18" rx="9" fill="#dbeafe"/>
+    <rect x="386" y="218" width="188" height="44" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+    <rect x="386" y="278" width="188" height="44" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+    <rect x="386" y="350" width="188" height="42" rx="14" fill="#2563eb"/>
+    <rect x="344" y="442" width="272" height="112" rx="30" fill="#f8fafc" stroke="#e2e8f0"/>
+    <circle cx="404" cy="499" r="19" fill="#ffffff" stroke="#cbd5e1"/>
+    <circle cx="480" cy="499" r="22" fill="#2563eb"/>
+    <path d="M480 509 V478" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+    <path d="M469 489 L480 478 L491 489" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="520" y="482" width="42" height="34" rx="9" fill="#ffffff" stroke="#cbd5e1"/>
+    <circle cx="568" cy="499" r="19" fill="#ffffff" stroke="#cbd5e1"/>
+  </g>
+  <g>
+    <rect x="88" y="102" width="232" height="138" rx="24" fill="#ffffff" stroke="#dbe3ef"/>
+    <circle cx="124" cy="140" r="18" fill="#2563eb"/>
+    <text x="118" y="147" font-family="Arial, sans-serif" font-size="20" font-weight="800" fill="#ffffff">2</text>
+    <text x="154" y="137" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="#0f172a">Bam Share</text>
+    <text x="154" y="164" font-family="Arial, sans-serif" font-size="14" fill="#64748b">Nut chia se nam o thanh cong cu</text>
+    <text x="154" y="188" font-family="Arial, sans-serif" font-size="14" fill="#64748b">duoi cung cua Safari.</text>
+  </g>
+  <path d="M322 208 C400 268 430 384 472 476" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round"/>
+  <path d="M458 471 L472 476 L478 462" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g>
+    <circle cx="480" cy="499" r="36" fill="none" stroke="#2563eb" stroke-width="5"/>
+    <text x="610" y="586" font-family="Arial, sans-serif" font-size="17" font-weight="800" fill="#0f172a">Buoc 2: Bam icon Share.</text>
+  </g>
+</svg>

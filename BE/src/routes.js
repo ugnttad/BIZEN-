@@ -17,11 +17,13 @@ import { tenantsRouter } from "./modules/tenants/tenants.routes.js";
 import { kpisRouter } from "./modules/kpis/kpis.routes.js";
 import { profileRouter } from "./modules/profile/profile.routes.js";
 import { communityRouter } from "./modules/community/community.routes.js";
+import { companiesRouter } from "./modules/companies/companies.routes.js";
 
 export const apiRouter = Router();
 
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/tenants", tenantsRouter);
+apiRouter.use("/companies", authenticate, requireRoles("Admin", "Employee"), companiesRouter);
 apiRouter.use("/profile", authenticate, requireRoles("Admin", "Employee"), profileRouter);
 apiRouter.use("/community", authenticate, requireRoles("Admin", "Employee"), communityRouter);
 apiRouter.use("/dashboard", authenticate, requireRoles("Admin"), dashboardRouter);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Bell, CalendarDays, ChevronDown, ClipboardCheck, CreditCard, Home, LogOut, MessageCircle, Monitor, ScanFace, UserRound } from "lucide-react";
 import Avatar from "./Avatar";
 import PwaInstallPrompt from "./PwaInstallPrompt";
@@ -19,7 +19,9 @@ const mobileNav = [
 export default function MobileLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const employee = getMobileEmployeeSession();
+  const showInstallPrompt = location.pathname !== "/mobile/checkin";
 
   if (!employee?.id) {
     return <Navigate to="/mobile/login" replace />;
@@ -103,12 +105,12 @@ export default function MobileLayout() {
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-28 pt-5 no-scrollbar animate-page-enter">
-          <PwaInstallPrompt />
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 no-scrollbar animate-page-enter">
+          {showInstallPrompt ? <PwaInstallPrompt /> : null}
           <Outlet />
         </div>
 
-        <nav className="glass-panel absolute inset-x-3 bottom-3 grid grid-cols-7 rounded-2xl p-1.5">
+        <nav className="glass-panel fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 mx-auto grid max-w-md grid-cols-7 rounded-2xl p-1.5 shadow-2xl shadow-slate-950/15">
           {mobileNav.map((item) => {
             const Icon = item.icon;
             return (

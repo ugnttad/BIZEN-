@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, MessagesSquare, Search, Send, UserRound, UsersRound } from "lucide-react";
+import { BellRing, Loader2, MessageCircle, MessagesSquare, Search, Send, UserRound, UsersRound } from "lucide-react";
 import Avatar from "../components/Avatar";
 import StatusBadge from "../components/StatusBadge";
 import { bizenApi } from "../modules/api/bizenApi";
 import { getAuthUser } from "../modules/auth/authStore";
+import { enablePushNotifications, getPushSupportState } from "../modules/notifications/pushNotifications";
 
 const TEAM_CHANNEL = "team";
 const DIRECT_CHANNEL = "direct";
@@ -26,6 +27,11 @@ function buildTypingText(rows) {
   return `${names[0]} và ${names.length - 1} người khác đang nhập...`;
 }
 
+function getInitialDirectPeerId() {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("direct") || "";
+}
+
 export default function CommunityPage() {
   const user = getAuthUser();
   const bottomRef = useRef(null);
@@ -33,10 +39,10 @@ export default function CommunityPage() {
   const typingActiveRef = useRef(false);
   const lastTypingPingRef = useRef(0);
   const activeTypingTargetRef = useRef(null);
-  const [channel, setChannel] = useState(TEAM_CHANNEL);
+  const [channel, setChannel] = useState(() => (getInitialDirectPeerId() ? DIRECT_CHANNEL : TEAM_CHANNEL));
   const [members, setMembers] = useState([]);
   const [directPeers, setDirectPeers] = useState([]);
-  const [selectedPeerId, setSelectedPeerId] = useState("");
+  const [selectedPeerId, setSelectedPeerId] = useState(() => getInitialDirectPeerId());
   const [teamMessages, setTeamMessages] = useState([]);
   const [directMessages, setDirectMessages] = useState([]);
   const [teamTypingUsers, setTeamTypingUsers] = useState([]);
@@ -47,6 +53,12 @@ export default function CommunityPage() {
   const [directLoading, setDirectLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [pushState, setPushState] = useState(() => ({
+    ...getPushSupportState(),
+    enabled: false,
+    loading: false,
+    message: ""
+  }));
 
   const selectedPeer = useMemo(() => directPeers.find((peer) => peer.userId === selectedPeerId) || null, [directPeers, selectedPeerId]);
   const visibleMessages = channel === TEAM_CHANNEL ? teamMessages : directMessages;
@@ -168,11 +180,32 @@ export default function CommunityPage() {
     setBody("");
   }
 
-  async function submitMessage(event) {
-    event.preventDefault();
+  async function handleEnablePush() {
+    setPushState((current) => ({ ...current, loading: true, message: "" }));
+    try {
+      await enablePushNotifications();
+      setPushState({
+        supported: true,
+        permission: "granted",
+        enabled: true,
+        loading: false,
+        message: "Đã bật thông báo tin nhắn cho thiết bị này."
+      });
+    } catch (notificationError) {
+      setPushState((current) => ({
+        ...current,
+        permission: getPushSupportState().permission,
+        loading: false,
+        message: notificationError.message || "Không bật được thông báo."
+      }));
+    }
+  }
+
+  async function sendCurrentMessage() {
     const cleanBody = body.trim();
     if (!cleanBody) return;
     if (channel === DIRECT_CHANNEL && !selectedPeerId) return;
+    if (sending) return;
     setSending(true);
     setError("");
     if (typingStopTimerRef.current) window.clearTimeout(typingStopTimerRef.current);
@@ -192,6 +225,17 @@ export default function CommunityPage() {
     } finally {
       setSending(false);
     }
+  }
+
+  function submitMessage(event) {
+    event.preventDefault();
+    void sendCurrentMessage();
+  }
+
+  function handleBodyKeyDown(event) {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent?.isComposing) return;
+    event.preventDefault();
+    void sendCurrentMessage();
   }
 
   useEffect(() => {
@@ -221,6 +265,24 @@ export default function CommunityPage() {
       if (typingStopTimerRef.current) window.clearTimeout(typingStopTimerRef.current);
       stopActiveTyping();
     };
+  }, []);
+
+  useEffect(() => {
+    const support = getPushSupportState();
+    setPushState((current) => ({ ...current, ...support }));
+    if (!support.supported) return;
+
+    navigator.serviceWorker
+      ?.getRegistration?.()
+      .then((registration) => registration?.pushManager?.getSubscription?.())
+      .then((subscription) => {
+        setPushState((current) => ({
+          ...current,
+          permission: Notification.permission,
+          enabled: Boolean(subscription)
+        }));
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -273,6 +335,13 @@ export default function CommunityPage() {
         ? `Nhắn riêng cho ${selectedPeer.name}...`
         : "Chọn người nhận trước khi nhắn...";
   const inputDisabled = channel === DIRECT_CHANNEL && !selectedPeerId;
+  const pushButtonLabel = pushState.loading
+    ? "Đang bật..."
+    : pushState.enabled
+      ? "Đã bật thông báo"
+      : pushState.permission === "denied"
+        ? "Thông báo đang bị chặn"
+        : "Bật thông báo tin nhắn";
 
   return (
     <div className="grid min-h-[calc(100vh-120px)] gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
@@ -305,6 +374,21 @@ export default function CommunityPage() {
           </button>
         </div>
 
+        <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+          <button
+            type="button"
+            onClick={handleEnablePush}
+            disabled={!pushState.supported || pushState.loading || pushState.enabled || pushState.permission === "denied"}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-bold text-blue-700 ring-1 ring-blue-100 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-400"
+          >
+            {pushState.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
+            {pushButtonLabel}
+          </button>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            {pushState.message || (pushState.supported ? "Nhận thông báo khi có tin nhắn mới trong workspace." : "Trình duyệt này chưa hỗ trợ Web Push.")}
+          </p>
+        </div>
+
         {channel === TEAM_CHANNEL ? (
           <>
             <div className="mt-5 rounded-xl bg-slate-50 p-3">
@@ -313,7 +397,11 @@ export default function CommunityPage() {
               </p>
               <p className="mt-1 text-xs text-slate-500">Dùng để báo ca, nhắc checklist hoặc trao đổi nhanh trong quán.</p>
             </div>
-            <div className="mt-5 space-y-2">
+            <details className="mt-5 rounded-xl border border-slate-200 bg-white p-3">
+              <summary className="cursor-pointer select-none text-sm font-bold text-slate-800">
+                Danh sách nhân viên ({members.length})
+              </summary>
+              <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
               {members.map((member) => (
                 <div key={member.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2">
                   <Avatar name={member.name} src={member.avatarUrl} size="sm" />
@@ -332,7 +420,8 @@ export default function CommunityPage() {
                 </div>
               ))}
               {!members.length && !loading ? <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">Chưa có thành viên.</p> : null}
-            </div>
+              </div>
+            </details>
           </>
         ) : (
           <>
@@ -340,7 +429,26 @@ export default function CommunityPage() {
               <Search className="h-4 w-4 text-slate-400" />
               <input value={memberQuery} onChange={(event) => setMemberQuery(event.target.value)} className="min-w-0 flex-1 outline-none" placeholder="Tìm người để nhắn riêng" />
             </label>
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+              <label className="text-xs font-bold uppercase text-slate-500">Chọn nhân viên</label>
+              <select
+                value={selectedPeerId}
+                onChange={(event) => selectDirectPeer(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+              >
+                <option value="">Chọn người để chat riêng</option>
+                {filteredPeers.map((peer) => (
+                  <option key={peer.userId} value={peer.userId}>
+                    {peer.name} - {peer.position || peer.department || peer.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <details className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+              <summary className="cursor-pointer select-none text-sm font-bold text-slate-800">
+                Chat gần đây ({filteredPeers.length})
+              </summary>
+              <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
               {filteredPeers.map((peer) => (
                 <button
                   type="button"
@@ -361,7 +469,8 @@ export default function CommunityPage() {
               {!filteredPeers.length && !loading ? (
                 <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">Chưa có tài khoản nào khác để chat riêng.</p>
               ) : null}
-            </div>
+              </div>
+            </details>
           </>
         )}
       </aside>
@@ -436,6 +545,7 @@ export default function CommunityPage() {
             <textarea
               value={body}
               onChange={handleBodyChange}
+              onKeyDown={handleBodyKeyDown}
               onBlur={handleBlur}
               rows={2}
               disabled={inputDisabled}

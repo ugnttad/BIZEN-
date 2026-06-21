@@ -1,0 +1,8 @@
+{
+  "appId": "com.bizen.hrpayroll",
+  "appName": "BIZEN",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

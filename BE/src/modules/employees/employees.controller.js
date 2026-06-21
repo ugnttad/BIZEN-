@@ -2,11 +2,12 @@ import { z } from "zod";
 import { query } from "../../config/db.js";
 import { httpError } from "../../shared/httpError.js";
 import { normalizeEmail } from "../../shared/validation.js";
-import { getCompanyIdForUser } from "../companies/company.repository.js";
+import { getCompanyById, getCompanyIdForUser } from "../companies/company.repository.js";
 import { updateEmployeeAccountProfile, upsertPasswordUser } from "../auth/auth.repository.js";
 import { hashPassword } from "../auth/password.service.js";
 import { buildEmployeeCreatedEmail, sendMail } from "../mail/mail.service.js";
 import { createEmployee, deleteEmployee, getEmployeeById, listEmployees, updateEmployee } from "./employees.repository.js";
+import { getPositionOptions, ownerPositions } from "./positionCatalog.js";
 
 const employeeSchema = z.object({
   name: z.string().min(2),
@@ -39,22 +40,6 @@ const cafeShopConstraints = {
 };
 
 const allowedAccessRoles = ["Admin", "Employee"];
-const ownerPositions = ["Chủ sở hữu", "Chủ doanh nghiệp"];
-const positionOptionsByDepartment = {
-  "Quan ly cua hang": ["Chủ sở hữu", "Quản lý cửa hàng", "Quản lý ca", "Trưởng ca"],
-  "Pha che": ["Pha chế", "Barista", "Pha chế trà sữa", "Trưởng ca pha chế"],
-  "Pha che / Bar": ["Pha chế", "Barista", "Pha chế trà sữa", "Trưởng ca pha chế"],
-  "Thu ngan": ["Thu ngân", "Thu ngân trưởng", "Kế toán cửa hàng"],
-  "Phuc vu": ["Phục vụ", "Order", "Runner", "Trưởng ca phục vụ"],
-  "Phuc vu / Order": ["Phục vụ", "Order", "Runner", "Nhân viên bán hàng", "Trưởng ca phục vụ"],
-  "Phuc vu / ban hang": ["Phục vụ", "Order", "Runner", "Nhân viên bán hàng", "Trưởng ca phục vụ"],
-  "Topping / Bep nhe": ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Bếp nhẹ"],
-  Bep: ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Bếp nhẹ"],
-  "Bep / kho": ["Nhân viên topping", "Chuẩn bị nguyên liệu", "Thủ kho"],
-  "Kho / Tap vu": ["Thủ kho", "Tạp vụ", "Giao hàng", "Bảo vệ"],
-  "Van phong / nhan su": ["Kế toán cửa hàng", "Quản lý cửa hàng"]
-};
-const allOperationalPositions = Array.from(new Set(Object.values(positionOptionsByDepartment).flat()));
 
 function stripVietnamese(value = "") {
   return String(value)
@@ -62,15 +47,6 @@ function stripVietnamese(value = "") {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
     .replace(/Đ/g, "D");
-}
-
-function getDepartmentKey(name) {
-  return stripVietnamese(name);
-}
-
-function getPositionOptions(departmentName, role) {
-  if (role === "Admin") return ["Chủ sở hữu", "Quản lý cửa hàng"];
-  return positionOptionsByDepartment[getDepartmentKey(departmentName)] || allOperationalPositions;
 }
 
 function normalizePhone(value = "") {
@@ -117,7 +93,19 @@ async function getCompanyName(companyId) {
   return result.rows[0]?.name || "doanh nghiệp";
 }
 
+async function cleanupReusableOrphanEmployeeAccount(email) {
+  await query(
+    `DELETE FROM app_users
+     WHERE lower(email) = lower($1)
+       AND role = 'Employee'
+       AND employee_id IS NULL`,
+    [email]
+  );
+}
+
 async function assertEmailAvailable(email, currentEmployeeId = null) {
+  await cleanupReusableOrphanEmployeeAccount(email);
+
   const [employee, user, companyRequest] = await Promise.all([
     query(
       `SELECT id FROM employees
@@ -155,6 +143,8 @@ async function assertEmailAvailable(email, currentEmployeeId = null) {
 
 async function assertCafeShopConstraints(companyId, data, current = null) {
   const departmentName = data.departmentId ? await getDepartmentName(companyId, data.departmentId) : current?.department;
+  const company = await getCompanyById(companyId);
+  const businessType = company?.businessType || "";
   const nextEmployee = {
     id: current?.id,
     status: data.status ?? current?.status ?? "Active",
@@ -183,23 +173,19 @@ async function assertCafeShopConstraints(companyId, data, current = null) {
   ];
 
   if (nextOperationalEmployees.length > cafeShopConstraints.maxActiveEmployees) {
-    throw httpError(400, `BIZEN MVP giới hạn tối đa ${cafeShopConstraints.maxActiveEmployees} nhân sự đang làm cho một cửa hàng`);
+    throw httpError(400, `BIZEN MVP giới hạn tối đa ${cafeShopConstraints.maxActiveEmployees} nhân sự đang làm cho một doanh nghiệp`);
   }
 
   if (nextOperationalEmployees.filter((employee) => employee.role === "Admin").length > cafeShopConstraints.maxOwners) {
-    throw httpError(400, "Mỗi cửa hàng chỉ nên có tối đa 1 hồ sơ chủ sở hữu");
-  }
-
-  if (nextEmployee.role === "Admin" && getDepartmentKey(departmentName) !== "Quan ly cua hang") {
-    throw httpError(400, "Chủ sở hữu phải thuộc bộ phận Quản lý cửa hàng");
+    throw httpError(400, "Mỗi doanh nghiệp chỉ nên có tối đa 1 hồ sơ chủ sở hữu");
   }
 
   if (nextEmployee.role === "Employee" && ownerPositions.includes(nextEmployee.position)) {
     throw httpError(400, "Nhân viên không được chọn chức vụ Chủ sở hữu");
   }
 
-  if (!getPositionOptions(departmentName, nextEmployee.role).includes(nextEmployee.position)) {
-    throw httpError(400, "Chức vụ công việc phải khớp với bộ phận làm việc");
+  if (!getPositionOptions(departmentName, nextEmployee.role, businessType).includes(nextEmployee.position)) {
+    throw httpError(400, "Chức vụ công việc phải phù hợp với loại hình doanh nghiệp và bộ phận làm việc");
   }
 
   if (nextEmployee.payType === "Monthly" && (nextEmployee.baseSalary < cafeShopConstraints.minBaseSalary || nextEmployee.baseSalary > cafeShopConstraints.maxBaseSalary)) {

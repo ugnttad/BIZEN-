@@ -1,4 +1,4 @@
-import { query } from "../../config/db.js";
+import { query, withTransaction } from "../../config/db.js";
 import { ensureEmployeeCompensationSchema } from "./employeeCompensation.service.js";
 
 const employeeSelect = `
@@ -135,5 +135,8 @@ export async function updateEmployee(id, companyId, data) {
 
 export async function deleteEmployee(id, companyId) {
   await ensureEmployeeCompensationSchema();
-  await query("DELETE FROM employees WHERE id = $1 AND company_id = $2", [id, companyId]);
+  await withTransaction(async (client) => {
+    await client.query("DELETE FROM app_users WHERE company_id = $1 AND employee_id = $2", [companyId, id]);
+    await client.query("DELETE FROM employees WHERE id = $1 AND company_id = $2", [id, companyId]);
+  });
 }

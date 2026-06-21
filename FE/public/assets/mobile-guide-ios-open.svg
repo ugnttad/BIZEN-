@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title desc">
+  <title id="title">Mo BIZEN bang Safari tren iPhone</title>
+  <desc id="desc">Huong dan mo link BIZEN mobile login bang Safari tren iOS.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eff6ff"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f172a" flood-opacity=".16"/>
+    </filter>
+  </defs>
+  <rect width="960" height="640" rx="32" fill="url(#bg)"/>
+  <circle cx="780" cy="96" r="92" fill="#dbeafe" opacity=".62"/>
+  <circle cx="132" cy="542" r="120" fill="#f1f5f9" opacity=".9"/>
+  <g filter="url(#shadow)">
+    <rect x="324" y="56" width="312" height="528" rx="44" fill="#0f172a"/>
+    <rect x="342" y="86" width="276" height="468" rx="30" fill="#ffffff"/>
+    <rect x="428" y="72" width="104" height="8" rx="4" fill="#1e293b"/>
+    <rect x="358" y="106" width="244" height="36" rx="18" fill="#f8fafc" stroke="#dbe3ef"/>
+    <circle cx="380" cy="124" r="8" fill="#2563eb"/>
+    <text x="398" y="129" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#334155">Safari</text>
+    <rect x="358" y="158" width="244" height="42" rx="16" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="375" y="184" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#1d4ed8">bizen-sigma.vercel.app/mobile/login</text>
+    <rect x="368" y="226" width="224" height="270" rx="24" fill="#f8fafc" stroke="#e2e8f0"/>
+    <rect x="392" y="252" width="56" height="56" rx="16" fill="#0f172a"/>
+    <text x="462" y="276" font-family="Arial, sans-serif" font-size="22" font-weight="800" fill="#0f172a">BIZEN</text>
+    <text x="462" y="298" font-family="Arial, sans-serif" font-size="13" fill="#64748b">Employee App</text>
+    <rect x="392" y="338" width="176" height="18" rx="9" fill="#e2e8f0"/>
+    <rect x="392" y="368" width="176" height="44" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+    <rect x="392" y="426" width="176" height="44" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+    <rect x="392" y="486" width="176" height="40" rx="14" fill="#2563eb"/>
+    <text x="441" y="511" font-family="Arial, sans-serif" font-size="15" font-weight="800" fill="#ffffff">Vao app</text>
+  </g>
+  <g>
+    <rect x="76" y="108" width="236" height="118" rx="24" fill="#ffffff" stroke="#dbe3ef"/>
+    <circle cx="112" cy="146" r="18" fill="#2563eb"/>
+    <text x="106" y="153" font-family="Arial, sans-serif" font-size="20" font-weight="800" fill="#ffffff">1</text>
+    <text x="142" y="143" font-family="Arial, sans-serif" font-size="19" font-weight="800" fill="#0f172a">Mo Safari</text>
+    <text x="142" y="170" font-family="Arial, sans-serif" font-size="14" fill="#64748b">Nhap link mobile login cua BIZEN.</text>
+    <text x="142" y="194" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#2563eb">/mobile/login</text>
+  </g>
+  <path d="M312 166 C352 166 360 158 392 158" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round"/>
+  <path d="M386 148 L402 158 L386 168" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="74" y="588" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#0f172a">Buoc 1: Mo bang Safari, khong mo bang trinh duyet trong Facebook/Zalo.</text>
+</svg>

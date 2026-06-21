@@ -19,6 +19,7 @@ import {
   LogOut,
   MessageCircle,
   Menu,
+  MonitorSmartphone,
   ScanFace,
   Search,
   Settings,
@@ -27,7 +28,8 @@ import {
   UserCheck,
   UserRound,
   UsersRound,
-  X
+  X,
+  BookOpen
 } from "lucide-react";
 import Avatar from "./Avatar";
 import BrandLogo from "./BrandLogo";
@@ -49,7 +51,8 @@ const webNavItems = [
   { label: "Báo cáo", path: "/web/reports", icon: BarChart3, roles: ["Admin"] },
   { label: "Cộng đồng", path: "/web/community", icon: MessageCircle, roles: ["Admin", "Employee"] },
   { label: "Trợ lý AI", path: "/web/assistant", icon: Sparkles, roles: ["Admin"] },
-  { label: "Cài đặt", path: "/web/settings", icon: Settings, roles: ["Admin"] }
+  { label: "Cài đặt", path: "/web/settings", icon: Settings, roles: ["Admin"] },
+  { label: "Hướng dẫn", path: "/guide", icon: BookOpen, roles: ["Admin", "Employee"] }
 ];
 
 const roleLabels = {
@@ -455,6 +458,10 @@ export default function WebLayout() {
                       <Link to="/web/community" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
                         <MessageCircle className="h-4 w-4" />
                         Cộng đồng
+                      </Link>
+                      <Link to="/mobile-guide" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                        <MonitorSmartphone className="h-4 w-4" />
+                        Hướng dẫn mobile
                       </Link>
                     </div>
                     <button

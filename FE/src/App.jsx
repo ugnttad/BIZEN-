@@ -5,6 +5,8 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import GoogleAuthCallbackPage from "./pages/GoogleAuthCallbackPage";
 import CompanyRegisterPage from "./pages/CompanyRegisterPage";
+import MobileGuidePage from "./pages/MobileGuidePage";
+import UserGuidePage from "./pages/UserGuidePage";
 import PasswordResetPage from "./pages/PasswordResetPage";
 import PlatformCompanyRequests from "./pages/platform/PlatformCompanyRequests";
 import AdminHome from "./pages/web/AdminHome";
@@ -60,6 +62,8 @@ export default function App() {
       <Route path="/forgot-password" element={<PasswordResetPage />} />
       <Route path="/reset-password" element={<PasswordResetPage />} />
       <Route path="/register-company" element={<CompanyRegisterPage />} />
+      <Route path="/mobile-guide" element={<MobileGuidePage />} />
+      <Route path="/guide" element={<UserGuidePage />} />
       <Route path="/register-employee" element={<Navigate to="/login" replace />} />
       <Route
         path="/platform/companies"

@@ -152,14 +152,19 @@ export default function AdminHome() {
   return (
     <div>
       <section className="brand-card relative mb-5 min-h-[210px] rounded-2xl p-5 lg:min-h-[250px]">
-        <div className="absolute inset-y-4 right-4 hidden w-[58%] rounded-2xl bg-[url('/assets/bizen-home-cover.svg')] bg-contain bg-right bg-no-repeat opacity-25 blur-[1px] md:block" />
+        <div className="pointer-events-none absolute right-4 top-6 hidden w-[min(54%,780px)] md:block" aria-hidden="true">
+          <div className="relative aspect-[1950/720] overflow-hidden rounded-2xl border border-white/70 bg-white/70 shadow-xl shadow-blue-100/50">
+            <img src="/assets/bizen-home-cover.svg" alt="" className="h-full w-full object-contain opacity-35 saturate-90" />
+            <div className="absolute inset-0 bg-gradient-to-r from-white/60 via-white/20 to-transparent" />
+          </div>
+        </div>
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.99)_0%,rgba(255,255,255,0.96)_54%,rgba(255,255,255,0.82)_100%)]" />
         <div className="absolute bottom-0 right-0 hidden h-28 w-72 rounded-tl-full bg-blue-100/35 blur-2xl md:block" />
         <div className="relative flex min-h-[170px] max-w-xl flex-col justify-center lg:min-h-[210px]">
           <p className="text-xs font-bold uppercase tracking-normal text-blue-700">BIZEN Workspace</p>
-          <h2 className="mt-2 text-3xl font-bold leading-tight text-slate-950 md:text-4xl">Quản trị nhân sự thông minh</h2>
+          <h2 className="mt-2 text-3xl font-bold leading-tight text-slate-950 md:text-4xl">Con người là trung tâm, vận hành gọn trong một nơi.</h2>
           <p className="mt-3 text-sm leading-6 text-slate-600 md:text-base">
-            Một màn hình gọn để chủ quán bắt đầu xử lý nhân viên, ca làm, checklist, chấm công và lương trong ngày.
+            Một màn hình gọn để chủ/quản lý bắt đầu xử lý nhân viên, ca làm, checklist, chấm công và lương trong ngày.
           </p>
         </div>
       </section>

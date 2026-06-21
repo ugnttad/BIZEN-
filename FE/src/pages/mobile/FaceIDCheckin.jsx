@@ -299,38 +299,23 @@ export default function FaceIDCheckin() {
     }
   }
 
-  async function captureBlinkBurst() {
-    const frames = [];
-    for (let index = 0; index < 6; index += 1) {
-      await wait(160);
-      frames.push(captureFrame());
-    }
-    return frames;
-  }
-
   async function runLivenessChallenge() {
     if (cameraStatus !== "ready" || imageSource !== "camera") {
       throw new Error("Check-in Face ID thật cần camera live. Ảnh upload chỉ dùng để đăng ký hoặc test chất lượng.");
     }
 
-    const steps = [
-      { key: "center", prompt: "Nhìn thẳng vào camera", progress: "1/4", waitMs: 900 },
-      { key: "turnLeft", prompt: "Quay mặt sang trái", progress: "2/4", waitMs: 1100 },
-      { key: "turnRight", prompt: "Quay mặt sang phải", progress: "3/4", waitMs: 1100 }
-    ];
-    const frames = {};
+    const frames = { mode: "steady", samples: [] };
+    setLivenessPrompt("Nhìn thẳng và giữ yên");
+    setLivenessProgress("1/2");
+    await wait(450);
+    frames.center = captureFrame();
 
-    for (const step of steps) {
-      setLivenessPrompt(step.prompt);
-      setLivenessProgress(step.progress);
-      await wait(step.waitMs);
-      frames[step.key] = captureFrame();
+    setLivenessPrompt("Đang lấy mẫu camera live");
+    setLivenessProgress("2/2");
+    for (let index = 0; index < 3; index += 1) {
+      await wait(260);
+      frames.samples.push(captureFrame());
     }
-
-    setLivenessPrompt("Chớp mắt liên tục");
-    setLivenessProgress("4/4");
-    await wait(350);
-    frames.blink = await captureBlinkBurst();
 
     setLivenessPrompt("");
     setLivenessProgress("");
@@ -469,6 +454,43 @@ export default function FaceIDCheckin() {
   const scanLabel = hasCheckedOut ? "Đã hoàn tất" : hasCheckedIn ? "Kết thúc ca" : "Check-in Face ID";
   const readinessBlocking = readiness && readiness.ready === false && readinessStatus !== "error";
   const readinessTone = getReadinessTone(readinessStatus);
+  const actionHelp = hasCheckedOut
+    ? "Ca hôm nay đã hoàn tất."
+    : !canCheckIn
+      ? enrollmentNeedsRealIndex
+        ? "Face ID cần đăng ký lại bằng AWS trước khi chấm công."
+        : "Bạn cần đăng ký Face ID và chờ chủ sở hữu duyệt trước khi chấm công."
+      : !canUseLiveCamera
+        ? "Cần dùng camera live để check-in/check-out."
+        : readinessBlocking
+          ? readiness?.reason || "Căn lại khuôn mặt trước khi tiếp tục."
+          : "";
+  const actionPanel = (
+    <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+      <button
+        onClick={scanFace}
+        disabled={isBusy || !hasImage || !canUseLiveCamera || !canCheckIn || hasCheckedOut || readinessBlocking}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+      >
+        {state === "scanning" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanFace className="h-4 w-4" />}
+        {scanLabel}
+      </button>
+      <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+        <button
+          onClick={enrollFace}
+          disabled={isBusy || !hasImage || readinessBlocking}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+        >
+          {state === "enrolling" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          {enrollment?.status === "Rejected" ? "Đăng ký lại" : "Đăng ký Face ID"}
+        </button>
+        <button onClick={resetScan} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100" aria-label="Làm mới">
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      </div>
+      {actionHelp ? <p className="mt-2 px-1 text-xs leading-5 text-slate-500">{actionHelp}</p> : null}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -483,11 +505,11 @@ export default function FaceIDCheckin() {
           <StatusBadge status={badgeStatus} />
         </div>
 
-        <div className="relative grid aspect-[4/5] place-items-center overflow-hidden rounded-2xl bg-slate-950">
+        <div className="relative grid aspect-[3/4] max-h-[58vh] place-items-center overflow-hidden rounded-2xl bg-slate-950">
           {imageSource === "upload" && uploadedImage ? (
             <img src={uploadedImage} alt="" className="h-full w-full object-cover" />
           ) : (
-            <video ref={videoRef} className="h-full w-full object-cover" autoPlay playsInline muted />
+            <video ref={videoRef} className="h-full w-full object-cover [transform:scaleX(-1)]" autoPlay playsInline muted />
           )}
           <canvas ref={canvasRef} className="hidden" />
 
@@ -532,6 +554,8 @@ export default function FaceIDCheckin() {
           </div>
         </div>
 
+        {actionPanel}
+
         <div className={`mt-4 rounded-lg border px-3 py-3 text-sm ${readinessTone}`}>
           <div className="flex items-start gap-2">
             {readinessStatus === "checking" ? <Loader2 className="mt-0.5 h-4 w-4 animate-spin" /> : <ScanFace className="mt-0.5 h-4 w-4" />}
@@ -541,7 +565,7 @@ export default function FaceIDCheckin() {
                 {readiness?.confidence ? <span className="text-xs font-bold">{Math.round(readiness.confidence)}%</span> : null}
               </div>
               <p className="mt-1 text-xs leading-5">{getReadinessMessage(readinessStatus, readiness)}</p>
-              {canUseLiveCamera && canCheckIn ? <p className="mt-1 text-xs leading-5">Khi check-in, hệ thống sẽ bắt buộc nhìn thẳng, quay trái/phải và chớp mắt trước khi match AWS.</p> : null}
+              {canUseLiveCamera && canCheckIn ? <p className="mt-1 text-xs leading-5">Khi check-in, bạn chỉ cần nhìn thẳng và giữ mặt trong khung khoảng 1 giây trước khi hệ thống match AWS.</p> : null}
               {readiness?.checks?.length ? (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {readiness.checks.slice(0, 4).map((check) => (
@@ -643,27 +667,6 @@ export default function FaceIDCheckin() {
           </div>
         ) : null}
 
-        <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
-          <button
-            onClick={enrollFace}
-            disabled={isBusy || !hasImage || readinessBlocking}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-          >
-            {state === "enrolling" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-            {enrollment?.status === "Rejected" ? "Đăng ký lại" : "Đăng ký"}
-          </button>
-          <button
-            onClick={scanFace}
-            disabled={isBusy || !hasImage || !canUseLiveCamera || !canCheckIn || hasCheckedOut}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            {state === "scanning" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanFace className="h-4 w-4" />}
-            {scanLabel}
-          </button>
-          <button onClick={resetScan} className="grid h-11 w-11 place-items-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100" aria-label="Làm mới">
-            <RotateCcw className="h-4 w-4" />
-          </button>
-        </div>
       </section>
     </div>
   );

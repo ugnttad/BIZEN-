@@ -3,6 +3,7 @@ import { z } from "zod";
 import { query, withTransaction } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { getCompanyIdForUser } from "../companies/company.repository.js";
+import { sendPushToCompany, sendPushToUsers } from "../notifications/push.service.js";
 
 export const communityRouter = Router();
 
@@ -91,6 +92,12 @@ const directMessageSchema = messageSchema.extend({
 const directTypingSchema = typingSchema.extend({
   recipientUserId: z.string().uuid()
 });
+
+function truncateForNotification(value, maxLength = 120) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1)}…`;
+}
 
 function messageSelect() {
   return `
@@ -226,12 +233,13 @@ communityRouter.get(
         d.name AS department,
         e.status,
         last_dm.body AS "lastMessage",
+        last_dm.sender_user_id AS "lastSenderUserId",
         last_dm.created_at AS "lastMessageAt"
        FROM app_users u
        LEFT JOIN employees e ON e.id = u.employee_id AND e.company_id = u.company_id
        LEFT JOIN departments d ON d.id = e.department_id AND d.company_id = e.company_id
        LEFT JOIN LATERAL (
-         SELECT dm.body, dm.created_at
+         SELECT dm.body, dm.sender_user_id, dm.created_at
          FROM community_direct_messages dm
          WHERE dm.company_id = $1
            AND (
@@ -300,7 +308,15 @@ communityRouter.post(
       [companyId, req.user.id, req.user.employeeId || null, peer.userId, peer.employeeId || null, data.body]
     );
     const result = await query(`${directMessageSelect()} WHERE m.company_id = $1 AND m.id = $2`, [companyId, inserted.rows[0].id]);
-    res.status(201).json(result.rows[0]);
+    const message = result.rows[0];
+    await sendPushToUsers(companyId, [peer.userId], {
+      title: `Tin nhắn từ ${message.senderName}`,
+      body: truncateForNotification(message.body),
+      url: `/mobile/community?direct=${req.user.id}`,
+      tag: `bizen-direct-${message.id}`,
+      type: "direct-message"
+    }).catch(() => {});
+    res.status(201).json(message);
   })
 );
 
@@ -317,7 +333,15 @@ communityRouter.post(
       [companyId, req.user.id, req.user.employeeId || null, data.body]
     );
     const result = await query(`${messageSelect()} WHERE m.company_id = $1 AND m.id = $2`, [companyId, inserted.rows[0].id]);
-    res.status(201).json(result.rows[0]);
+    const message = result.rows[0];
+    await sendPushToCompany(companyId, req.user.id, {
+      title: "Tin nhắn cộng đồng BIZEN",
+      body: `${message.senderName}: ${truncateForNotification(message.body, 100)}`,
+      url: "/mobile/community",
+      tag: `bizen-community-${message.id}`,
+      type: "community-message"
+    }).catch(() => {});
+    res.status(201).json(message);
   })
 );
 

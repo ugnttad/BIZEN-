@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS company_access_requests (
   contact_name TEXT NOT NULL,
   contact_email TEXT NOT NULL,
   phone TEXT,
-  business_type TEXT NOT NULL DEFAULT 'Cafe / Milk tea',
+  business_type TEXT NOT NULL DEFAULT 'Bán lẻ / Dịch vụ nhỏ',
   business_address TEXT NOT NULL DEFAULT '',
   tax_code TEXT,
   website TEXT,
@@ -323,6 +323,22 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_app_users_employee ON app_users(employee_id);
 CREATE INDEX IF NOT EXISTS idx_app_users_company_status ON app_users(company_id, status);
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES app_users(id) ON DELETE CASCADE,
+  employee_id TEXT REFERENCES employees(id) ON DELETE SET NULL,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(company_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_company ON push_subscriptions(company_id);
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

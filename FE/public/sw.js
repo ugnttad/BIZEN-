@@ -1,4 +1,4 @@
-const CACHE_VERSION = "bizen-pwa-v1";
+const CACHE_VERSION = "bizen-pwa-v2";
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -7,6 +7,7 @@ const APP_SHELL = [
   "/index.html",
   "/mobile/login",
   "/mobile/home",
+  "/mobile/community",
   "/manifest.webmanifest",
   "/offline.html",
   "/assets/bizen-app-icon.svg",
@@ -76,4 +77,51 @@ self.addEventListener("fetch", (event) => {
   if (["style", "script", "worker", "image", "font", "manifest"].includes(request.destination)) {
     event.respondWith(staleWhileRevalidate(request));
   }
+});
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {
+      title: "BIZEN",
+      body: event.data?.text() || "Bạn có thông báo mới."
+    };
+  }
+
+  const title = payload.title || "BIZEN";
+  const options = {
+    body: payload.body || "Bạn có thông báo mới.",
+    icon: "/assets/bizen-icon-192.png",
+    badge: "/assets/bizen-icon-192.png",
+    tag: payload.tag || "bizen-notification",
+    data: {
+      url: payload.url || "/mobile/community",
+      type: payload.type || "notification"
+    },
+    vibrate: [80, 40, 80]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || "/mobile/community", self.location.origin).href;
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url.startsWith(self.location.origin) && "focus" in client) {
+            client.navigate(targetUrl);
+            return client.focus();
+          }
+        }
+        if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+        return undefined;
+      })
+  );
 });

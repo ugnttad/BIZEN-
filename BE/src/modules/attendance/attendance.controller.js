@@ -30,10 +30,12 @@ const faceCheckinSchema = z.object({
   image: z.string().min(200),
   livenessFrames: z
     .object({
-      center: z.string().min(200),
-      turnLeft: z.string().min(200),
-      turnRight: z.string().min(200),
-      blink: z.array(z.string().min(200)).min(1).max(6)
+      mode: z.string().trim().max(30).optional(),
+      center: z.string().min(200).optional(),
+      samples: z.array(z.string().min(200)).min(1).max(5).optional(),
+      turnLeft: z.string().min(200).optional(),
+      turnRight: z.string().min(200).optional(),
+      blink: z.array(z.string().min(200)).min(1).max(6).optional()
     })
     .optional(),
   workDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),

@@ -1,15 +1,20 @@
 function resolveApiUrl() {
   const configuredUrl = normalizeApiUrl(import.meta.env.VITE_API_URL);
+  const nativeApiUrl = normalizeApiUrl(import.meta.env.VITE_NATIVE_API_URL) || "https://bizen-sigma.vercel.app/api";
 
   if (typeof window === "undefined") {
     return configuredUrl || "/api";
   }
 
-  const { protocol, hostname, origin } = window.location;
+  const { protocol, hostname, origin, port } = window.location;
   const isLocalBrowser = isLocalLikeHost(hostname);
 
   if (configuredUrl && !(isLocalOnlyApiUrl(configuredUrl) && !isLocalBrowser)) {
     return configuredUrl;
+  }
+
+  if (isCapacitorShell(protocol, hostname, port)) {
+    return nativeApiUrl;
   }
 
   if (isLocalBrowser) {
@@ -33,6 +38,13 @@ function isLocalLikeHost(hostname) {
     hostname.startsWith("10.") ||
     /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)
   );
+}
+
+function isCapacitorShell(protocol, hostname, port) {
+  const capacitor = typeof window !== "undefined" ? window.Capacitor : null;
+  if (typeof capacitor?.isNativePlatform === "function" && capacitor.isNativePlatform()) return true;
+  if (protocol === "capacitor:") return true;
+  return hostname === "localhost" && !port && ["https:", "capacitor:"].includes(protocol);
 }
 
 function isLocalOnlyApiUrl(value) {

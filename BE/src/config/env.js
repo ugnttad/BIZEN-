@@ -50,6 +50,7 @@ const awsRekognitionEnabled =
       : hasAwsStaticCredentials || hasAwsProviderCredentials;
 const faceIdDemoModeValue = (process.env.FACE_ID_ALLOW_DEMO_MODE || "").trim().toLowerCase();
 const smtpSecureValue = (process.env.SMTP_SECURE || "").trim().toLowerCase();
+const platformAdminEmail = process.env.PLATFORM_ADMIN_EMAIL || "platform@bizen.vn";
 
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
@@ -78,8 +79,11 @@ export const env = {
   smtpUser: process.env.SMTP_USER || "",
   smtpPass: process.env.SMTP_PASS || "",
   mailFrom: process.env.MAIL_FROM || process.env.SMTP_USER || "BIZEN <no-reply@bizen.vn>",
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY || process.env.WEB_PUSH_PUBLIC_KEY || "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || process.env.WEB_PUSH_PRIVATE_KEY || "",
+  vapidSubject: process.env.VAPID_SUBJECT || `mailto:${platformAdminEmail}`,
   businessTimeZone: process.env.BUSINESS_TIME_ZONE || "Asia/Ho_Chi_Minh",
-  platformAdminEmail: process.env.PLATFORM_ADMIN_EMAIL || "platform@bizen.vn",
+  platformAdminEmail,
   platformAdminPassword: process.env.PLATFORM_ADMIN_PASSWORD || "Platform@2026",
   passwordLoginSecret: process.env.PASSWORD_LOGIN_SECRET || "Bizen@2026",
   jwtSecret: process.env.JWT_SECRET || "bizen-dev-secret-change-me"
