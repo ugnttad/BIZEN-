@@ -451,3 +451,21 @@ ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS store_latitude NUMERIC(10, 7) 
 ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS store_longitude NUMERIC(10, 7) DEFAULT 108.2208000;
 ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS geofence_radius_meters INTEGER NOT NULL DEFAULT 200;
 ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS geofence_enabled BOOLEAN NOT NULL DEFAULT true;
+
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plan_tier TEXT NOT NULL DEFAULT 'FREE';
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS max_employees INTEGER NOT NULL DEFAULT 10;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS plan_expiry_date TIMESTAMPTZ;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS ai_credits_remaining INTEGER NOT NULL DEFAULT 3;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'companies_plan_tier_check'
+  ) THEN
+    ALTER TABLE companies
+      ADD CONSTRAINT companies_plan_tier_check
+      CHECK (plan_tier IN ('FREE', 'PRO', 'ENTERPRISE'));
+  END IF;
+END $$;

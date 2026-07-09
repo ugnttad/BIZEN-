@@ -24,6 +24,10 @@ export async function getCompanyById(companyId) {
       business_address AS "businessAddress",
       tax_code AS "taxCode",
       website,
+      plan_tier AS "planTier",
+      max_employees AS "maxEmployees",
+      plan_expiry_date AS "planExpiryDate",
+      ai_credits_remaining AS "aiCreditsRemaining",
       created_at AS "createdAt"
      FROM companies
      WHERE id = $1

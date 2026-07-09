@@ -4,9 +4,10 @@ import { query, withTransaction } from "../../config/db.js";
 import { asyncHandler } from "../../shared/asyncHandler.js";
 import { getBusinessDate } from "../../shared/businessDate.js";
 import { httpError } from "../../shared/httpError.js";
+import { requirePlanTier } from "../../shared/plan.middleware.js";
 import { isIsoDate } from "../../shared/validation.js";
 import { requireRoles } from "../auth/auth.middleware.js";
-import { getCompanyIdForUser } from "../companies/company.repository.js";
+import { decrementAiCredits, getCompanyIdForUser } from "../companies/company.repository.js";
 import { suggestSchedulePlan } from "./scheduleAi.service.js";
 
 export const schedulesRouter = Router();
@@ -432,11 +433,18 @@ schedulesRouter.put(
 schedulesRouter.post(
   "/ai-suggest",
   requireRoles("Admin"),
+  requirePlanTier(['PRO', 'ENTERPRISE'], { allowCredits: true }),
   asyncHandler(async (req, res) => {
     const companyId = await getCompanyIdForUser(req.user);
     const payload = aiSuggestScheduleSchema.parse(req.body || {});
     const context = await buildSchedulePlannerContext(companyId, payload);
-    res.json(await suggestSchedulePlan(context));
+    const result = await suggestSchedulePlan(context);
+    
+    if (req.useAiCredit) {
+      await decrementAiCredits(companyId);
+    }
+    
+    res.json(result);
   })
 );
 

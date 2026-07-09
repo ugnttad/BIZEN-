@@ -39,6 +39,11 @@ export async function getEmployeeById(id, companyId) {
   return result.rows[0];
 }
 
+export async function countEmployeesByCompanyId(companyId) {
+  const result = await query(`SELECT COUNT(*) as count FROM employees WHERE company_id = $1`, [companyId]);
+  return parseInt(result.rows[0].count, 10);
+}
+
 async function nextEmployeeId(companyId) {
   await ensureEmployeeCompensationSchema();
   const prefix = companyId.replace(/-/g, "").slice(0, 8).toUpperCase();
