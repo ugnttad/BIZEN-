@@ -36,3 +36,12 @@ export async function getCompanyById(companyId) {
   );
   return result.rows[0] || null;
 }
+
+export async function decrementAiCredits(companyId) {
+  await query(
+    `UPDATE companies 
+     SET ai_credits_remaining = ai_credits_remaining - 1 
+     WHERE id = $1 AND ai_credits_remaining > 0`,
+    [companyId]
+  );
+}
